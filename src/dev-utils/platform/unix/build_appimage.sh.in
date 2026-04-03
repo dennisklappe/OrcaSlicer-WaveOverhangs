@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 APPIMAGETOOLURL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage"
 
 
@@ -11,7 +11,6 @@ if [ -f /.dockerenv ] ; then # Only run if inside of a Docker Container
 sed '0,/AI\x02/{s|AI\x02|\x00\x00\x00|}' -i  ../appimagetool.AppImage
 fi
 
-sed -i -e 's#/usr#././#g' bin/@SLIC3R_APP_CMD@
 mv @SLIC3R_APP_CMD@ AppRun
 chmod +x AppRun
 
@@ -28,13 +27,29 @@ Categories=Utility;
 MimeType=model/stl;application/vnd.ms-3mfdocument;application/prs.wavefront-obj;application/x-amf;
 EOF
 
+mkdir -p usr/share/metainfo
+cat <<EOF > usr/share/metainfo/@SLIC3R_APP_KEY@.appdata.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>@SLIC3R_APP_KEY@.desktop</id>
+  <name>@SLIC3R_APP_KEY@</name>
+  <summary>Open-source 3D slicer for FFF and SLA printers</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0-or-later</project_license>
+  <description>
+    <p>OrcaSlicer prepares 3D models for printing, including printer profile management, preview tooling, and network-connected device workflows.</p>
+  </description>
+  <launchable type="desktop-id">@SLIC3R_APP_KEY@.desktop</launchable>
+</component>
+EOF
+
 
 export ARCH=$(uname -m)
 
 if [ -f /.dockerenv ] ; then # Only run if inside of a Docker Container
-  ../appimagetool.AppImage --appimage-extract-and-run . $([ ! -z "${container}" ] && echo '--appimage-extract-and-run')
+  ../appimagetool.AppImage --appimage-extract-and-run . $([ -n "${container}" ] && echo '--appimage-extract-and-run')
 else
-  ../appimagetool.AppImage . $([ ! -z "${container}" ] && echo '--appimage-extract-and-run')
+  ../appimagetool.AppImage . $([ -n "${container}" ] && echo '--appimage-extract-and-run')
 fi
 
 mv @SLIC3R_APP_KEY@-$(uname -m).AppImage ${APP_IMAGE}
