@@ -1101,6 +1101,22 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     params.line_width             = region_config.wave_overhang_line_width.value;
     params.overhang_flow          = overhang_flow;
     params.scaled_resolution      = scaled_resolution;
+    params.anchor_bite            = region_config.wave_overhang_anchor_bite.value;
+    params.spacing_mode           = (region_config.wave_overhang_spacing_mode == wosmProgressive)
+                                        ? WaveOverhangs::SpacingMode::Progressive
+                                        : WaveOverhangs::SpacingMode::Uniform;
+    switch (region_config.wave_overhang_seam_mode.value) {
+    case woseAligned: params.seam_mode = WaveOverhangs::SeamMode::Aligned; break;
+    case woseRandom:  params.seam_mode = WaveOverhangs::SeamMode::Random;  break;
+    case woseAlternating:
+    default:          params.seam_mode = WaveOverhangs::SeamMode::Alternating; break;
+    }
+
+    // TODO: plumb wave_overhang_min_angle. Computing overhang steepness requires per-layer
+    // delta-Z / slope analysis that isn't readily available at this call site; defined as
+    // config-only for now. When plumbed, gate the call below: if the estimated steepest
+    // overhang angle from vertical is below `region_config.wave_overhang_min_angle`, return
+    // an empty GenerateResult so the standard perimeter logic runs instead.
 
     WaveOverhangs::GenerateResult res;
     if (region_config.wave_overhang_algorithm == woaKaiser) {

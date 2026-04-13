@@ -15,13 +15,23 @@
 
 namespace Slic3r::WaveOverhangs {
 
+// Ring spacing mode (uniform constant step vs progressively growing step).
+enum class SpacingMode { Uniform, Progressive };
+
+// Inter-ring seam/direction mode (see wave_overhang_seam_mode in PrintConfig).
+enum class SeamMode { Alternating, Aligned, Random };
+
 struct CommonParams {
-    int    perimeter_count        = 1;
-    int    additional_shell_count = 0;
-    double line_spacing           = 0.35;
-    double line_width             = 0.4;
-    Flow   overhang_flow;
-    double scaled_resolution      = 1.0;
+    int         perimeter_count        = 1;
+    int         additional_shell_count = 0;
+    double      line_spacing           = 0.35;
+    double      line_width             = 0.4;
+    Flow        overhang_flow;
+    double      scaled_resolution      = 1.0;
+    // Expert tunables (Kaiser-plumbed; Anderson ignores).
+    double      anchor_bite            = 1.0;   // mm; seed-curve pre-offset into supported band.
+    SpacingMode spacing_mode           = SpacingMode::Uniform;
+    SeamMode    seam_mode              = SeamMode::Alternating;
 };
 
 struct GenerateResult {

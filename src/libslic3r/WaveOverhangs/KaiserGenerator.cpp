@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
@@ -35,7 +36,7 @@ namespace {
 // boundary polylines with a slightly inflated band around the lower-slice
 // polygons - any contour segment that lies within `epsilon` of supported
 // material is treated as anchored.
-Polylines extract_seed_curves(const ExPolygon &overhang, const Polygons &lower_slices, coord_t epsilon)
+Polylines extract_seed_curves(const ExPolygon &overhang, const Polygons &lower_slices, coord_t epsilon, coord_t anchor_bite)
 {
     if (lower_slices.empty())
         return {};
@@ -45,8 +46,11 @@ Polylines extract_seed_curves(const ExPolygon &overhang, const Polygons &lower_s
     if (boundary_pls.empty())
         return {};
 
-    // Inflate the lower-slice polygons by epsilon to get a "supported" band.
-    Polygons supported_band = expand(lower_slices, float(epsilon), ClipperLib::jtSquare, 0.);
+    // Inflate the lower-slice polygons by epsilon (+anchor bite) to get a "supported" band.
+    // anchor_bite pre-extends the band into the supported region so seeds reach further
+    // in before the first offset ring is emitted.
+    const coord_t band_infl = epsilon + std::max<coord_t>(0, anchor_bite);
+    Polygons supported_band = expand(lower_slices, float(band_infl), ClipperLib::jtSquare, 0.);
     if (supported_band.empty())
         return {};
 
@@ -109,10 +113,12 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
 
     const Flow    wave_flow = params.line_width > 0. ? params.overhang_flow.with_width(float(params.line_width))
                                                      : params.overhang_flow;
-    const double  step_mm   = std::max(0.05, params.line_width * (1.0 - std::clamp(this->overlap, 0.0, 0.9)));
-    const coord_t step      = std::max<coord_t>(1, coord_t(scale_(step_mm)));
+    const double  base_step_mm = std::max(0.05, params.line_width * (1.0 - std::clamp(this->overlap, 0.0, 0.9)));
+    const coord_t base_step    = std::max<coord_t>(1, coord_t(scale_(base_step_mm)));
     // Tight band around lower slices to detect supported (root) edge.
     const coord_t seed_epsilon = std::max<coord_t>(SCALED_EPSILON * 4, scale_(0.02));
+    // Anchor-bite: how far seed extraction pre-extends into the supported region.
+    const coord_t anchor_bite  = std::max<coord_t>(0, coord_t(scale_(std::max(0.0, params.anchor_bite))));
 
     // Compute overhang-only region (overhang_area minus lower slices) - this
     // is the area we are actually allowed to deposit Kaiser tracks in.
@@ -134,15 +140,29 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
             continue;
 
         // Auto-detect seed curve(s): the contour edges adjacent to lower slices.
-        Polylines seeds = extract_seed_curves(overhang, lower_slices_polygons, seed_epsilon);
+        Polylines seeds = extract_seed_curves(overhang, lower_slices_polygons, seed_epsilon, anchor_bite);
         if (seeds.empty())
             continue; // No supported edge found; this is a floating island, skip.
 
         ExtrusionPaths region_paths;
-        bool           alternate = false;
+        // Estimate max ring count for progressive-step normalization.
+        const double max_rings_estimate = std::max(4.0, double(max_extent) / double(base_step));
+        size_t       ring_index = 0;
 
         // Iteratively grow the seed outward.
-        for (coord_t r = step; r <= max_extent + step; r += step) {
+        for (coord_t r = 0; r <= max_extent + base_step; ) {
+            // Compute this ring's step based on spacing_mode.
+            coord_t step;
+            if (params.spacing_mode == SpacingMode::Progressive) {
+                // 70% of base step at root, growing to ~130% at tip.
+                const double f = 0.7 + 0.6 * double(ring_index) / max_rings_estimate;
+                step = std::max<coord_t>(1, coord_t(double(base_step) * f));
+            } else {
+                step = base_step;
+            }
+            r += step;
+            if (r > max_extent + base_step)
+                break;
             // Buffer the seed by r. EndType = OpenButt to keep the buffer
             // square at seed endpoints (avoids spurious round caps that could
             // poke beyond the overhang region).
@@ -159,12 +179,26 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
                 break;
             }
 
-            // Boustrophedon: alternate direction every ring.
-            if (alternate) {
+            // Ring-direction logic driven by seam_mode.
+            bool reverse_this_ring = false;
+            switch (params.seam_mode) {
+            case SeamMode::Alternating:
+                // Boustrophedon: alternate direction every ring.
+                reverse_this_ring = (ring_index & 1u) != 0u;
+                break;
+            case SeamMode::Aligned:
+                // Keep every ring in the same direction.
+                reverse_this_ring = false;
+                break;
+            case SeamMode::Random:
+                // Deterministic per-ring pseudo-random choice (hash of ring index).
+                reverse_this_ring = (std::hash<size_t>{}(ring_index) & 1u) != 0u;
+                break;
+            }
+            if (reverse_this_ring) {
                 for (Polyline &pl : tracks)
                     pl.reverse();
             }
-            alternate = !alternate;
 
             // Simplify slightly to keep segment count down.
             for (Polyline &pl : tracks)
@@ -179,6 +213,8 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
 
             extrusion_paths_append(region_paths, tracks, erOverhangPerimeter,
                                    wave_flow.mm3_per_mm(), wave_flow.width(), wave_flow.height());
+
+            ++ring_index;
         }
 
         // Tag and ship.

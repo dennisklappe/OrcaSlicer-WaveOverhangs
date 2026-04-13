@@ -89,6 +89,19 @@ enum WaveOverhangRecipe {
     wortFast
 };
 
+// Orca: wave-overhang ring spacing mode.
+enum WaveOverhangSpacingMode {
+    wosmUniform,
+    wosmProgressive
+};
+
+// Orca: wave-overhang inter-ring seam direction mode.
+enum WaveOverhangSeamMode {
+    woseAlternating,
+    woseAligned,
+    woseRandom
+};
+
 enum AuthorizationType {
     atKeyPassword, atUserPassword
 };
@@ -546,6 +559,8 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangTopMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangAlgorithm)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangRecipe)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangSpacingMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangSeamMode)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -1151,6 +1166,10 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<WaveOverhangAlgorithm>, wave_overhang_algorithm))
     ((ConfigOptionFloat,                     wave_overhang_laso_overlap))
     ((ConfigOptionEnum<WaveOverhangRecipe>,  wave_overhang_recipe))
+    ((ConfigOptionFloat,                     wave_overhang_min_angle))
+    ((ConfigOptionFloat,                     wave_overhang_anchor_bite))
+    ((ConfigOptionEnum<WaveOverhangSpacingMode>, wave_overhang_spacing_mode))
+    ((ConfigOptionEnum<WaveOverhangSeamMode>,    wave_overhang_seam_mode))
     ((ConfigOptionInt, wall_filament))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloat, inner_wall_speed))

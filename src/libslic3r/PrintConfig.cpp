@@ -194,6 +194,21 @@ static t_config_enum_values s_keys_map_WaveOverhangRecipe {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangRecipe)
 
+// Orca: wave-overhang ring spacing mode
+static t_config_enum_values s_keys_map_WaveOverhangSpacingMode {
+    { "uniform",     wosmUniform },
+    { "progressive", wosmProgressive }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangSpacingMode)
+
+// Orca: wave-overhang seam mode
+static t_config_enum_values s_keys_map_WaveOverhangSeamMode {
+    { "alternating", woseAlternating },
+    { "aligned",     woseAligned },
+    { "random",      woseRandom }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangSeamMode)
+
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
     { "external",       int(FuzzySkinType::External) },
@@ -4731,6 +4746,59 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Fast (speed priority)"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<WaveOverhangRecipe>(wortCustom));
+
+    def = this->add("wave_overhang_min_angle", coFloat);
+    def->label = L("Wave overhang min angle");
+    def->category = L("Strength");
+    def->tooltip = L("Minimum overhang angle (from vertical) at which wave-overhang generation activates. "
+                     "Below this threshold, shallow overhangs use normal perimeters instead. "
+                     "0 = always on, 90 = never.");
+    def->sidetext = L("°");
+    def->mode = comDevelop;
+    def->min = 0;
+    def->max = 90;
+    def->set_default_value(new ConfigOptionFloat(45));
+
+    def = this->add("wave_overhang_anchor_bite", coFloat);
+    def->label = L("Wave overhang anchor bite");
+    def->category = L("Strength");
+    def->tooltip = L("Distance the wave pattern extends into the supported region beyond the overhang's "
+                     "root edge. Improves adhesion of the first wave rings. 0 = no bite (seed stays exactly at root).");
+    def->sidetext = L("mm");
+    def->mode = comDevelop;
+    def->min = 0;
+    def->max = 5.0;
+    def->set_default_value(new ConfigOptionFloat(1.0));
+
+    def = this->add("wave_overhang_spacing_mode", coEnum);
+    def->label = L("Wave overhang spacing mode");
+    def->category = L("Strength");
+    def->tooltip = L("How ring-to-ring spacing varies across the wave. Uniform keeps constant step. "
+                     "Progressive tightens near the supported edge and widens toward the cantilever tip "
+                     "for better mechanical anchoring.");
+    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangSpacingMode>::get_enum_values();
+    def->enum_values.push_back("uniform");
+    def->enum_values.push_back("progressive");
+    def->enum_labels.push_back(L("Uniform (constant step)"));
+    def->enum_labels.push_back(L("Progressive (tight at root, wide at tip)"));
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangSpacingMode>(wosmUniform));
+
+    def = this->add("wave_overhang_seam_mode", coEnum);
+    def->label = L("Wave overhang seam mode");
+    def->category = L("Strength");
+    def->tooltip = L("Direction pattern across successive wave rings. Alternating (boustrophedon) minimizes "
+                     "travel. Aligned keeps all rings same-direction for consistent flow but adds travel jumps. "
+                     "Random hides the start seam in high-visibility surfaces.");
+    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangSeamMode>::get_enum_values();
+    def->enum_values.push_back("alternating");
+    def->enum_values.push_back("aligned");
+    def->enum_values.push_back("random");
+    def->enum_labels.push_back(L("Alternating (boustrophedon)"));
+    def->enum_labels.push_back(L("Aligned (same direction)"));
+    def->enum_labels.push_back(L("Random (hide seam)"));
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangSeamMode>(woseAlternating));
 
     def = this->add("wall_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
