@@ -131,7 +131,14 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
 
     Polygons covered_total;
 
+    // Scaled minimum contour-length filter: skip tiny overhangs.
+    const coord_t min_contour_len = params.min_length_mm > 0.0
+                                        ? coord_t(scale_(params.min_length_mm))
+                                        : coord_t(0);
+
     for (const ExPolygon &overhang : union_ex(overhangs_only)) {
+        if (min_contour_len > 0 && overhang.contour.length() < min_contour_len)
+            continue;
         // Per-region max offset distance: bounding box diagonal is a safe upper bound.
         BoundingBox region_bb = get_extents(overhang);
         const coord_t max_extent = static_cast<coord_t>(std::hypot(

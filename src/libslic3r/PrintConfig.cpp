@@ -4808,6 +4808,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("wave_overhang_min_length", coFloat);
+    def->label = L("Wave overhang min length");
+    def->category = L("Strength");
+    def->tooltip = L("Minimum overhang perimeter length (in mm) below which wave-overhang generation "
+                     "is skipped. Useful to avoid waving tiny overhangs where normal perimeters are fine.");
+    def->sidetext = L("mm");
+    def->mode = comDevelop;
+    def->min = 0;
+    def->max = 50;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
     def = this->add("wall_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Walls");

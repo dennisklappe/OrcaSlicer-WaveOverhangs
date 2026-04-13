@@ -1171,6 +1171,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<WaveOverhangSpacingMode>, wave_overhang_spacing_mode))
     ((ConfigOptionEnum<WaveOverhangSeamMode>,    wave_overhang_seam_mode))
     ((ConfigOptionBool,                      wave_overhang_debug_gcode))
+    ((ConfigOptionFloat,                     wave_overhang_min_length))
     ((ConfigOptionInt, wall_filament))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloat, inner_wall_speed))

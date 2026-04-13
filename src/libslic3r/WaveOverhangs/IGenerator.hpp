@@ -32,6 +32,7 @@ struct CommonParams {
     double      anchor_bite            = 1.0;   // mm; seed-curve pre-offset into supported band.
     SpacingMode spacing_mode           = SpacingMode::Uniform;
     SeamMode    seam_mode              = SeamMode::Alternating;
+    double      min_length_mm          = 0.0;   // mm; skip overhangs whose contour length is below this.
 };
 
 struct GenerateResult {

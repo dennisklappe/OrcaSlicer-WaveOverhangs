@@ -14,8 +14,20 @@ GenerateResult AndersonGenerator::generate(const ExPolygons   &overhang_area,
                                            const Polygons     &lower_slices_polygons,
                                            const CommonParams &params)
 {
+    // Filter out overhangs whose contour length is below the configured minimum.
+    ExPolygons filtered;
+    if (params.min_length_mm > 0.0) {
+        const double min_len_scaled = scale_(params.min_length_mm);
+        filtered.reserve(overhang_area.size());
+        for (const ExPolygon &ex : overhang_area) {
+            if (ex.contour.length() >= min_len_scaled)
+                filtered.push_back(ex);
+        }
+    }
+    const ExPolygons &src = (params.min_length_mm > 0.0) ? filtered : overhang_area;
+
     auto [paths, residual] = ::Slic3r::WaveOverhangs::generate(
-        overhang_area,
+        src,
         lower_slices_polygons,
         params.perimeter_count,
         params.additional_shell_count,
