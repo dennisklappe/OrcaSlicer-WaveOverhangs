@@ -6502,6 +6502,15 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
     }
 
+    // Orca: wave-overhang print speed override. Overrides any prior speed selection
+    // (including dynamic overhang-speed results) so wave-overhang paths print at the
+    // user-configured wave speed. Also disables variable_speed so we emit a single F.
+    if (path.wave_overhang && m_config.wave_overhang_print_speed.value > 0) {
+        speed = m_config.wave_overhang_print_speed.value;
+        variable_speed = false;
+        new_points.clear();
+    }
+
     double F = speed * 60;  // convert mm/sec to mm/min
     
     // Orca: Dynamic PA
