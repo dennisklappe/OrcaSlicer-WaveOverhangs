@@ -9,6 +9,7 @@
 #include "ShortestPath.hpp"
 #include "VariableWidth.hpp"
 #include "Arachne/WallToolPaths.hpp"
+#include "WaveOverhangs/WaveOverhangs.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "ExPolygonCollection.hpp"
 #include "Geometry.hpp"
@@ -1075,15 +1076,47 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
     return {extra_perims, diff(inset_overhang_area, inset_overhang_area_left_unfilled)};
 }
 
+// Thin wrapper around WaveOverhangs::generate(). Matches the signature/return of
+// generate_extra_perimeters_over_overhangs() so the call site can swap between them based on
+// the wave_overhangs flag. The underlying WaveOverhangs::generate() already tags the returned
+// ExtrusionPaths with `wave_overhang = true`, so we just forward the result here.
+static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_paths(
+    ExPolygons               infill_area,
+    const Polygons          &lower_slices_polygons,
+    int                      perimeter_count,
+    const PrintRegionConfig &region_config,
+    const Flow              &overhang_flow,
+    double                   scaled_resolution)
+{
+    const int desired_wave_perimeters = std::min(region_config.wave_overhang_outer_perimeters.value,
+                                                 perimeter_count);
+    const int additional_shell_count  = std::max(0, desired_wave_perimeters - perimeter_count);
+    return WaveOverhangs::generate(
+        std::move(infill_area),
+        lower_slices_polygons,
+        perimeter_count,
+        additional_shell_count,
+        region_config.wave_overhang_line_spacing.value,
+        region_config.wave_overhang_line_width.value,
+        overhang_flow,
+        scaled_resolution);
+}
+
 void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
 {
-    if (!m_spiral_vase && this->lower_slices != nullptr && this->config->detect_overhang_wall && this->config->extra_perimeters_on_overhangs &&
+    const bool use_wave_overhangs = this->config->wave_overhangs;
+    const bool gate_extra_perims  = this->config->extra_perimeters_on_overhangs || use_wave_overhangs;
+    if (!m_spiral_vase && this->lower_slices != nullptr && this->config->detect_overhang_wall && gate_extra_perims &&
         this->config->wall_loops > 0 && this->layer_id > this->object_config->raft_layers) {
         // Generate extra perimeters on overhang areas, and cut them to these parts only, to save print time and material
-        auto [extra_perimeters, filled_area] = generate_extra_perimeters_over_overhangs(infill_area, this->lower_slices_polygons(),
-                                                                                        this->config->wall_loops, this->overhang_flow,
-                                                                                        this->m_scaled_resolution, *this->object_config,
-                                                                                        *this->print_config);
+        auto [extra_perimeters, filled_area] = use_wave_overhangs
+            ? generate_wave_overhang_paths(infill_area, this->lower_slices_polygons(),
+                                           this->config->wall_loops, *this->config,
+                                           this->overhang_flow, this->m_scaled_resolution)
+            : generate_extra_perimeters_over_overhangs(infill_area, this->lower_slices_polygons(),
+                                                        this->config->wall_loops, this->overhang_flow,
+                                                        this->m_scaled_resolution, *this->object_config,
+                                                        *this->print_config);
         if (!extra_perimeters.empty()) {
             ExtrusionEntityCollection *this_islands_perimeters = static_cast<ExtrusionEntityCollection *>(this->loops->entities.back());
             ExtrusionEntityCollection  new_perimeters{};
