@@ -12,6 +12,7 @@
 #include "Plater.hpp"
 
 #include <wx/msgdlg.h>
+#include <algorithm>
 
 namespace Slic3r {
 namespace GUI {
@@ -535,10 +536,82 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         auto answer = dialog.ShowModal();
         if (answer == wxID_YES)
             new_conf.set_key_value("wall_generator", new ConfigOptionEnum<PerimeterGeneratorType>(PerimeterGeneratorType::Arachne));
-        else 
+        else
             new_conf.set_key_value("fuzzy_skin_mode", new ConfigOptionEnum<FuzzySkinMode>(FuzzySkinMode::Displacement));
         apply(config, &new_conf);
         is_msg_dlg_already_exist = false;
+    }
+
+    // Orca: wave-overhang recipe preset expansion.
+    // When the user picks a named recipe in the dropdown, auto-fill the
+    // underlying wave_overhang_* keys from the table, then snap the recipe
+    // key itself back to 'custom' so subsequent manual edits don't re-trigger.
+    if (m_applying_keys.empty() ||
+        std::find(m_applying_keys.begin(), m_applying_keys.end(), std::string("wave_overhang_recipe")) != m_applying_keys.end())
+    {
+        auto recipe = config->opt_enum<WaveOverhangRecipe>("wave_overhang_recipe");
+        if (recipe != wortCustom) {
+            DynamicPrintConfig new_conf = *config;
+            auto set_algo    = [&](WaveOverhangAlgorithm v) { new_conf.set_key_value("wave_overhang_algorithm", new ConfigOptionEnum<WaveOverhangAlgorithm>(v)); };
+            auto set_top     = [&](WaveOverhangTopMode v)   { new_conf.set_key_value("wave_overhang_top_mode",  new ConfigOptionEnum<WaveOverhangTopMode>(v)); };
+            auto set_int     = [&](const char* k, int v)    { new_conf.set_key_value(k, new ConfigOptionInt(v)); };
+            auto set_float   = [&](const char* k, double v) { new_conf.set_key_value(k, new ConfigOptionFloat(v)); };
+
+            switch (recipe) {
+            case wortBalanced:
+                set_algo(woaAnderson);
+                set_int  ("wave_overhang_outer_perimeters", 1);
+                set_float("wave_overhang_line_spacing",     0.35);
+                set_float("wave_overhang_line_width",       0.40);
+                set_float("wave_overhang_print_speed",      2.0);
+                set_float("wave_overhang_travel_speed",     40.0);
+                set_int  ("wave_overhang_fan_speed",        100);
+                set_float("wave_overhang_laso_overlap",     0.15);
+                set_top  (wotmDefault);
+                set_int  ("wave_overhang_extra_top_layers", 0);
+                break;
+            case wortAesthetic:
+                set_algo(woaKaiser);
+                set_int  ("wave_overhang_outer_perimeters", 2);
+                set_float("wave_overhang_line_spacing",     0.28);
+                set_float("wave_overhang_line_width",       0.38);
+                set_float("wave_overhang_print_speed",      1.5);
+                set_float("wave_overhang_travel_speed",     30.0);
+                set_int  ("wave_overhang_fan_speed",        100);
+                set_float("wave_overhang_laso_overlap",     0.25);
+                set_top  (wotmDefault);
+                break;
+            case wortStructural:
+                set_algo(woaAnderson);
+                set_int  ("wave_overhang_outer_perimeters", 2);
+                set_float("wave_overhang_line_spacing",     0.30);
+                set_float("wave_overhang_line_width",       0.42);
+                set_float("wave_overhang_print_speed",      2.0);
+                set_float("wave_overhang_travel_speed",     40.0);
+                set_int  ("wave_overhang_fan_speed",        100);
+                set_float("wave_overhang_laso_overlap",     0.25);
+                set_top  (wotmExtra);
+                set_int  ("wave_overhang_extra_top_layers", 2);
+                break;
+            case wortFast:
+                set_algo(woaAnderson);
+                set_int  ("wave_overhang_outer_perimeters", 1);
+                set_float("wave_overhang_line_spacing",     0.45);
+                set_float("wave_overhang_line_width",       0.45);
+                set_float("wave_overhang_print_speed",      4.0);
+                set_float("wave_overhang_travel_speed",     60.0);
+                set_int  ("wave_overhang_fan_speed",        100);
+                set_float("wave_overhang_laso_overlap",     0.10);
+                set_top  (wotmSkip);
+                break;
+            default:
+                break;
+            }
+            // Snap recipe back to 'custom' so the dropdown doesn't stick on a
+            // named recipe once individual fields diverge from it.
+            new_conf.set_key_value("wave_overhang_recipe", new ConfigOptionEnum<WaveOverhangRecipe>(wortCustom));
+            apply(config, &new_conf);
+        }
     }
 }
 

@@ -80,6 +80,15 @@ enum WaveOverhangAlgorithm {
     woaKaiser
 };
 
+// Orca: named preset bundle for wave-overhang parameters.
+enum WaveOverhangRecipe {
+    wortCustom,
+    wortBalanced,
+    wortAesthetic,
+    wortStructural,
+    wortFast
+};
+
 enum AuthorizationType {
     atKeyPassword, atUserPassword
 };
@@ -536,6 +545,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangTopMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangAlgorithm)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangRecipe)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -1140,6 +1150,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,                       wave_overhang_extra_top_layers))
     ((ConfigOptionEnum<WaveOverhangAlgorithm>, wave_overhang_algorithm))
     ((ConfigOptionFloat,                     wave_overhang_laso_overlap))
+    ((ConfigOptionEnum<WaveOverhangRecipe>,  wave_overhang_recipe))
     ((ConfigOptionInt, wall_filament))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloat, inner_wall_speed))

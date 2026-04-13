@@ -184,6 +184,16 @@ static t_config_enum_values s_keys_map_WaveOverhangAlgorithm {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangAlgorithm)
 
+// Orca: wave-overhang recipe (named preset bundles)
+static t_config_enum_values s_keys_map_WaveOverhangRecipe {
+    { "custom",     wortCustom },
+    { "balanced",   wortBalanced },
+    { "aesthetic",  wortAesthetic },
+    { "structural", wortStructural },
+    { "fast",       wortFast }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangRecipe)
+
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
     { "external",       int(FuzzySkinType::External) },
@@ -4702,6 +4712,25 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = 10;
     def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("wave_overhang_recipe", coEnum);
+    def->label = L("Wave overhang recipe");
+    def->category = L("Strength");
+    def->tooltip = L("Preset bundle of wave-overhang parameters. Pick a named recipe to auto-fill "
+                     "all underlying wave_overhang_* settings, or 'Custom' to keep your manual values.");
+    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangRecipe>::get_enum_values();
+    def->enum_values.push_back("custom");
+    def->enum_values.push_back("balanced");
+    def->enum_values.push_back("aesthetic");
+    def->enum_values.push_back("structural");
+    def->enum_values.push_back("fast");
+    def->enum_labels.push_back(L("Custom (manual settings)"));
+    def->enum_labels.push_back(L("Balanced"));
+    def->enum_labels.push_back(L("Aesthetic (slower, prettier)"));
+    def->enum_labels.push_back(L("Structural (stronger)"));
+    def->enum_labels.push_back(L("Fast (speed priority)"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangRecipe>(wortCustom));
 
     def = this->add("wall_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
