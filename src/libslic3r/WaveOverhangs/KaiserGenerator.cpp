@@ -156,6 +156,32 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
         const double max_rings_estimate = std::max(4.0, double(max_extent) / double(base_step));
         size_t       ring_index = 0;
 
+        // Anchor passes: emit a few extra rings very close to the seed (root edge)
+        // before the main wave fan. Each pass is offset by a fraction of line_width
+        // so they nest next to the supported edge and bond strongly to the lower layer.
+        const int anchor_passes = std::max(0, params.anchor_passes);
+        for (int i = 0; i < anchor_passes; ++i) {
+            const coord_t anchor_r = coord_t(scale_(std::max(0.01, params.line_width * 0.5 * double(i + 1))));
+            Polygons anchor_buffer = offset(seeds, float(anchor_r),
+                                            ClipperLib::jtRound, 0.,
+                                            ClipperLib::etOpenRound);
+            if (anchor_buffer.empty())
+                continue;
+            Polylines anchor_tracks = extract_offset_track(anchor_buffer, overhang);
+            if (anchor_tracks.empty())
+                continue;
+            for (Polyline &pl : anchor_tracks)
+                pl.simplify(params.scaled_resolution);
+            anchor_tracks.erase(
+                std::remove_if(anchor_tracks.begin(), anchor_tracks.end(),
+                               [](const Polyline &p) { return p.points.size() < 2; }),
+                anchor_tracks.end());
+            if (anchor_tracks.empty())
+                continue;
+            extrusion_paths_append(region_paths, anchor_tracks, erOverhangPerimeter,
+                                   wave_flow.mm3_per_mm(), wave_flow.width(), wave_flow.height());
+        }
+
         // Kaiser safety cap on total rings (0 = unlimited).
         const int kaiser_max_rings = std::max(0, params.kaiser_max_rings);
 

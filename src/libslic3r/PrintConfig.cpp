@@ -4829,6 +4829,17 @@ void PrintConfigDef::init_fff_params()
     def->max = 500;
     def->set_default_value(new ConfigOptionInt(0));
 
+    def = this->add("wave_overhang_anchor_passes", coInt);
+    def->label = L("Wave overhang anchor passes");
+    def->category = L("Strength");
+    def->tooltip = L("Number of additional rings emitted starting from the supported edge, before the "
+                     "main wave fan. More passes give stronger anchoring at the cost of extra "
+                     "plastic/time. 0 disables; 1 is default; 2-5 for extreme overhangs.");
+    def->mode = comDevelop;
+    def->min = 0;
+    def->max = 5;
+    def->set_default_value(new ConfigOptionInt(1));
+
     def = this->add("wall_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Walls");

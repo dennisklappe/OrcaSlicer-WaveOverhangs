@@ -1173,6 +1173,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                      wave_overhang_debug_gcode))
     ((ConfigOptionFloat,                     wave_overhang_min_length))
     ((ConfigOptionInt,                       wave_overhang_kaiser_max_rings))
+    ((ConfigOptionInt,                       wave_overhang_anchor_passes))
     ((ConfigOptionInt, wall_filament))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloat, inner_wall_speed))
