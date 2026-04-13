@@ -177,6 +177,13 @@ static t_config_enum_values s_keys_map_WaveOverhangTopMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangTopMode)
 
+// Orca: wave-overhang algorithm selection
+static t_config_enum_values s_keys_map_WaveOverhangAlgorithm {
+    { "anderson", woaAnderson },
+    { "kaiser",   woaKaiser }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangAlgorithm)
+
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
     { "external",       int(FuzzySkinType::External) },
@@ -4662,6 +4669,30 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Extra solid layers"));
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionEnum<WaveOverhangTopMode>(wotmDefault));
+
+    def = this->add("wave_overhang_algorithm", coEnum);
+    def->label = L("Wave overhang algorithm");
+    def->category = L("Strength");
+    def->tooltip = L("Algorithm used to generate wave-overhang extrusions. "
+                     "Anderson: outward expanding wavefronts (default, robust). "
+                     "Kaiser (LaSO): lateral seed-curve offsetting.");
+    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangAlgorithm>::get_enum_values();
+    def->enum_values.push_back("anderson");
+    def->enum_values.push_back("kaiser");
+    def->enum_labels.push_back(L("Anderson (wavefront)"));
+    def->enum_labels.push_back(L("Kaiser LaSO (lateral offset)"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangAlgorithm>(woaAnderson));
+
+    def = this->add("wave_overhang_laso_overlap", coFloat);
+    def->label = L("Kaiser LaSO overlap");
+    def->category = L("Strength");
+    def->tooltip = L("Overlap fraction between successive Kaiser LaSO offset rings. "
+                     "Higher values produce denser, more solid wave fills.");
+    def->mode = comDevelop;
+    def->min = 0.0;
+    def->max = 0.9;
+    def->set_default_value(new ConfigOptionFloat(0.15));
 
     def = this->add("wave_overhang_extra_top_layers", coInt);
     def->label = L("Wave overhang extra top layers");

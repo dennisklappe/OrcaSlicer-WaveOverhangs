@@ -74,6 +74,12 @@ enum WaveOverhangTopMode {
     wotmExtra
 };
 
+// Orca: which wave-overhang generation algorithm to use.
+enum WaveOverhangAlgorithm {
+    woaAnderson,
+    woaKaiser
+};
+
 enum AuthorizationType {
     atKeyPassword, atUserPassword
 };
@@ -529,6 +535,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerWallType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangTopMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangAlgorithm)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -1131,6 +1138,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,                  wave_overhang_fan_speed))
     ((ConfigOptionEnum<WaveOverhangTopMode>, wave_overhang_top_mode))
     ((ConfigOptionInt,                       wave_overhang_extra_top_layers))
+    ((ConfigOptionEnum<WaveOverhangAlgorithm>, wave_overhang_algorithm))
+    ((ConfigOptionFloat,                     wave_overhang_laso_overlap))
     ((ConfigOptionInt, wall_filament))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloat, inner_wall_speed))

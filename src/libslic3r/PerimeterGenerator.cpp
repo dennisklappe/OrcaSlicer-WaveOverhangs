@@ -10,6 +10,8 @@
 #include "VariableWidth.hpp"
 #include "Arachne/WallToolPaths.hpp"
 #include "WaveOverhangs/WaveOverhangs.hpp"
+#include "WaveOverhangs/AndersonGenerator.hpp"
+#include "WaveOverhangs/KaiserGenerator.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "ExPolygonCollection.hpp"
 #include "Geometry.hpp"
@@ -1091,15 +1093,25 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     const int desired_wave_perimeters = std::min(region_config.wave_overhang_outer_perimeters.value,
                                                  perimeter_count);
     const int additional_shell_count  = std::max(0, desired_wave_perimeters - perimeter_count);
-    return WaveOverhangs::generate(
-        std::move(infill_area),
-        lower_slices_polygons,
-        perimeter_count,
-        additional_shell_count,
-        region_config.wave_overhang_line_spacing.value,
-        region_config.wave_overhang_line_width.value,
-        overhang_flow,
-        scaled_resolution);
+
+    WaveOverhangs::CommonParams params;
+    params.perimeter_count        = perimeter_count;
+    params.additional_shell_count = additional_shell_count;
+    params.line_spacing           = region_config.wave_overhang_line_spacing.value;
+    params.line_width             = region_config.wave_overhang_line_width.value;
+    params.overhang_flow          = overhang_flow;
+    params.scaled_resolution      = scaled_resolution;
+
+    WaveOverhangs::GenerateResult res;
+    if (region_config.wave_overhang_algorithm == woaKaiser) {
+        WaveOverhangs::KaiserGenerator gen;
+        gen.overlap = region_config.wave_overhang_laso_overlap.value;
+        res = gen.generate(infill_area, lower_slices_polygons, params);
+    } else {
+        WaveOverhangs::AndersonGenerator gen;
+        res = gen.generate(infill_area, lower_slices_polygons, params);
+    }
+    return { std::move(res.paths), std::move(res.residual) };
 }
 
 // TODO: plumb wave_overhang_top_mode / wave_overhang_extra_top_layers to surface classification.
