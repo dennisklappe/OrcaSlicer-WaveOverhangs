@@ -4572,6 +4572,73 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    // Wave Overhangs (Janis A. Andersons algorithm — port of stmcculloch/PrusaSlicer-WaveOverhangs)
+    def = this->add("wave_overhangs", coBool);
+    def->label = L("Use wave overhangs (Experimental)");
+    def->category = L("Strength");
+    def->tooltip = L("Generate wave-patterned perimeters over overhangs to print steep angles "
+                     "without supports. Algorithm by Janis A. Andersons.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("wave_overhang_outer_perimeters", coInt);
+    def->label = L("Outer perimeters during wave overhangs");
+    def->category = L("Strength");
+    def->tooltip = L("Number of additional concentric outer-shell perimeters printed inside the "
+                     "overhang region before the wave fill. 1 is usually enough.");
+    def->mode = comDevelop;
+    def->min = 0;
+    def->set_default_value(new ConfigOptionInt(1));
+
+    def = this->add("wave_overhang_line_spacing", coFloat);
+    def->label = L("Wave overhang line spacing");
+    def->category = L("Strength");
+    def->tooltip = L("Center-to-center distance between adjacent wave-overhang extrusions.");
+    def->sidetext = L("mm");
+    def->mode = comDevelop;
+    def->min = 0.01;
+    def->set_default_value(new ConfigOptionFloat(0.35));
+
+    def = this->add("wave_overhang_line_width", coFloat);
+    def->label = L("Wave overhang line width");
+    def->category = L("Strength");
+    def->tooltip = L("Extrusion width used for wave-overhang lines. Typically a bit narrower "
+                     "than the nozzle diameter.");
+    def->sidetext = L("mm");
+    def->mode = comDevelop;
+    def->min = 0.1;
+    def->set_default_value(new ConfigOptionFloat(0.4));
+
+    def = this->add("wave_overhang_print_speed", coFloat);
+    def->label = L("Wave overhang print speed");
+    def->category = L("Speed");
+    def->tooltip = L("Print speed for wave-overhang extrusions. Slow speeds give better cooling "
+                     "and adhesion of the cantilevered tracks.");
+    def->sidetext = L("mm/s");
+    def->mode = comAdvanced;
+    def->min = 0.1;
+    def->set_default_value(new ConfigOptionFloat(2.0));
+
+    def = this->add("wave_overhang_travel_speed", coFloat);
+    def->label = L("Wave overhang travel speed");
+    def->category = L("Speed");
+    def->tooltip = L("Travel speed within wave-overhang regions (between non-extruding hops).");
+    def->sidetext = L("mm/s");
+    def->mode = comDevelop;
+    def->min = 1.0;
+    def->set_default_value(new ConfigOptionFloat(40.0));
+
+    def = this->add("wave_overhang_fan_speed", coInt);
+    def->label = L("Wave overhang fan speed");
+    def->category = L("Cooling");
+    def->tooltip = L("Part-cooling fan percentage forced during wave-overhang extrusions. "
+                     "Maximum cooling is usually best.");
+    def->sidetext = L("%");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionInt(100));
+
     def = this->add("wall_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Walls");
