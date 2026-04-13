@@ -1174,6 +1174,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                     wave_overhang_min_length))
     ((ConfigOptionInt,                       wave_overhang_kaiser_max_rings))
     ((ConfigOptionInt,                       wave_overhang_anchor_passes))
+    ((ConfigOptionFloat,                     wave_overhang_direction_bias))
     ((ConfigOptionInt, wall_filament))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloat, inner_wall_speed))

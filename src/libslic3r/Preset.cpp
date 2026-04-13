@@ -898,7 +898,7 @@ static std::vector<std::string> s_Preset_print_options {
     "wave_overhang_min_angle", "wave_overhang_anchor_bite",
     "wave_overhang_spacing_mode", "wave_overhang_seam_mode",
     "wave_overhang_debug_gcode", "wave_overhang_min_length", "wave_overhang_kaiser_max_rings",
-    "wave_overhang_anchor_passes",
+    "wave_overhang_anchor_passes", "wave_overhang_direction_bias",
     "seam_position", "staggered_inner_seams", "wall_sequence", "is_infill_first", "sparse_infill_density","fill_multiline", "sparse_infill_pattern", "lateral_lattice_angle_1", "lateral_lattice_angle_2", "infill_overhang_angle", "top_surface_pattern", "bottom_surface_pattern",
     "infill_direction", "solid_infill_direction", "counterbore_hole_bridging","infill_shift_step", "sparse_infill_rotate_template", "solid_infill_rotate_template", "symmetric_infill_y_axis","skeleton_infill_density", "infill_lock_depth", "skin_infill_depth", "skin_infill_density",
     "align_infill_direction_to_model", "extra_solid_infills",

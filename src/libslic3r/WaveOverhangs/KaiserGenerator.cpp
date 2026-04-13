@@ -151,6 +151,28 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
         if (seeds.empty())
             continue; // No supported edge found; this is a floating island, skip.
 
+        // Optional seed-direction bias: rotate each seed polyline around its centroid.
+        if (std::abs(params.direction_bias_deg) > 1e-6) {
+            const double ang = params.direction_bias_deg * M_PI / 180.0;
+            const double ca  = std::cos(ang);
+            const double sa  = std::sin(ang);
+            for (Polyline &pl : seeds) {
+                if (pl.points.size() < 2)
+                    continue;
+                // Centroid (simple mean of points).
+                double cx = 0, cy = 0;
+                for (const Point &p : pl.points) { cx += double(p.x()); cy += double(p.y()); }
+                cx /= double(pl.points.size());
+                cy /= double(pl.points.size());
+                for (Point &p : pl.points) {
+                    const double dx = double(p.x()) - cx;
+                    const double dy = double(p.y()) - cy;
+                    p.x() = coord_t(cx + dx * ca - dy * sa);
+                    p.y() = coord_t(cy + dx * sa + dy * ca);
+                }
+            }
+        }
+
         ExtrusionPaths region_paths;
         // Estimate max ring count for progressive-step normalization.
         const double max_rings_estimate = std::max(4.0, double(max_extent) / double(base_step));

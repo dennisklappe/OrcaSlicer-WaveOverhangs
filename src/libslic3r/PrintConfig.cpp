@@ -4840,6 +4840,18 @@ void PrintConfigDef::init_fff_params()
     def->max = 5;
     def->set_default_value(new ConfigOptionInt(1));
 
+    def = this->add("wave_overhang_direction_bias", coFloat);
+    def->label = L("Wave overhang direction bias");
+    def->category = L("Strength");
+    def->tooltip = L("Kaiser algorithm only: rotate the wave-direction seed by this many degrees. "
+                     "0 follows the natural overhang root edge. Positive/negative biases tilt the "
+                     "wave pattern for aesthetic tuning. Experimental — may cause out-of-boundary rings.");
+    def->sidetext = L("°");
+    def->mode = comDevelop;
+    def->min = -90.0;
+    def->max = 90.0;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
     def = this->add("wall_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Walls");
