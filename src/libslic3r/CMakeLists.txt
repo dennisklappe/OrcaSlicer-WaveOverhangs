@@ -128,6 +128,11 @@ set(lisbslic3r_sources
     ExtrusionEntity.hpp
     WaveOverhangs/WaveOverhangs.cpp
     WaveOverhangs/WaveOverhangs.hpp
+    WaveOverhangs/IGenerator.hpp
+    WaveOverhangs/AndersonGenerator.cpp
+    WaveOverhangs/AndersonGenerator.hpp
+    WaveOverhangs/KaiserGenerator.cpp
+    WaveOverhangs/KaiserGenerator.hpp
     ExtrusionSimulator.cpp
     ExtrusionSimulator.hpp
     FaceDetector.cpp
