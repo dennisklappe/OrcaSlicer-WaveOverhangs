@@ -169,6 +169,14 @@ static t_config_enum_values s_keys_map_PowerLossRecoveryMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
 
+// Orca: wave-overhang top layer treatment
+static t_config_enum_values s_keys_map_WaveOverhangTopMode {
+    { "default", wotmDefault },
+    { "skip",    wotmSkip },
+    { "extra",   wotmExtra }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangTopMode)
+
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
     { "external",       int(FuzzySkinType::External) },
@@ -4638,6 +4646,31 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = 100;
     def->set_default_value(new ConfigOptionInt(100));
+
+    def = this->add("wave_overhang_top_mode", coEnum);
+    def->label = L("Wave overhang top layers");
+    def->category = L("Strength");
+    def->tooltip = L("How to treat layers directly above wave-overhang regions. "
+                     "Default: normal top-solid fill. Skip: no solid fill (wave surface is already structural). "
+                     "Extra: additional solid layers for stiffness.");
+    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangTopMode>::get_enum_values();
+    def->enum_values.push_back("default");
+    def->enum_values.push_back("skip");
+    def->enum_values.push_back("extra");
+    def->enum_labels.push_back(L("Default (normal solid fill)"));
+    def->enum_labels.push_back(L("Skip solid fill"));
+    def->enum_labels.push_back(L("Extra solid layers"));
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangTopMode>(wotmDefault));
+
+    def = this->add("wave_overhang_extra_top_layers", coInt);
+    def->label = L("Wave overhang extra top layers");
+    def->category = L("Strength");
+    def->tooltip = L("Number of additional solid layers above wave-overhang regions. Only used when top mode is 'Extra'.");
+    def->mode = comDevelop;
+    def->min = 0;
+    def->max = 10;
+    def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("wall_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;

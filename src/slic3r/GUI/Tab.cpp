@@ -2406,6 +2406,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("wave_overhang_line_spacing");
         optgroup->append_single_option_line("wave_overhang_line_width");
         optgroup->append_single_option_line("wave_overhang_fan_speed");
+        optgroup->append_single_option_line("wave_overhang_top_mode");
+        optgroup->append_single_option_line("wave_overhang_extra_top_layers");
 
     page = add_options_page(L("Strength"), "custom-gcode_strength"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Walls"), L"param_wall");

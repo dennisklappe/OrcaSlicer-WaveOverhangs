@@ -67,6 +67,13 @@ enum PrintHostType {
     htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink
 };
 
+// Orca: how to treat the layers directly above wave-overhang regions
+enum WaveOverhangTopMode {
+    wotmDefault,
+    wotmSkip,
+    wotmExtra
+};
+
 enum AuthorizationType {
     atKeyPassword, atUserPassword
 };
@@ -521,6 +528,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AuthorizationType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerWallType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangTopMode)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -1121,6 +1129,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                wave_overhang_print_speed))
     ((ConfigOptionFloat,                wave_overhang_travel_speed))
     ((ConfigOptionInt,                  wave_overhang_fan_speed))
+    ((ConfigOptionEnum<WaveOverhangTopMode>, wave_overhang_top_mode))
+    ((ConfigOptionInt,                       wave_overhang_extra_top_layers))
     ((ConfigOptionInt, wall_filament))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloat, inner_wall_speed))
