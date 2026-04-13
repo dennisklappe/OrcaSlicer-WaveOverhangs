@@ -4800,6 +4800,14 @@ void PrintConfigDef::init_fff_params()
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionEnum<WaveOverhangSeamMode>(woseAlternating));
 
+    def = this->add("wave_overhang_debug_gcode", coBool);
+    def->label = L("Wave overhang debug g-code");
+    def->category = L("Strength");
+    def->tooltip = L("Emit ';WAVE_OVERHANG_START'/';WAVE_OVERHANG_END' comments around wave-overhang "
+                     "extrusions in the G-code. Useful for post-process inspection and debugging.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("wall_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Walls");

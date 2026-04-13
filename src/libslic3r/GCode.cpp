@@ -6169,6 +6169,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 {
     std::string gcode;
 
+    // Orca: wave-overhang debug-gcode markers (per-path scope).
+    const bool emit_wave_overhang_markers = path.wave_overhang && m_config.wave_overhang_debug_gcode.value;
+    if (emit_wave_overhang_markers)
+        gcode += "; WAVE_OVERHANG_START\n";
+
     if (is_bridge(path.role()))
         description += " (bridge)";
 
@@ -6997,6 +7002,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     }
 
     this->set_last_pos(path.last_point());
+
+    if (emit_wave_overhang_markers)
+        gcode += "; WAVE_OVERHANG_END\n";
+
     return gcode;
 }
 
