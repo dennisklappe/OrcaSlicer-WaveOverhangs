@@ -1111,7 +1111,8 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     case woseAlternating:
     default:          params.seam_mode = WaveOverhangs::SeamMode::Alternating; break;
     }
-    params.min_length_mm = region_config.wave_overhang_min_length.value;
+    params.min_length_mm    = region_config.wave_overhang_min_length.value;
+    params.kaiser_max_rings = region_config.wave_overhang_kaiser_max_rings.value;
 
     // TODO: plumb wave_overhang_min_angle. Computing overhang steepness requires per-layer
     // delta-Z / slope analysis that isn't readily available at this call site; defined as

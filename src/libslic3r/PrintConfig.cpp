@@ -4819,6 +4819,16 @@ void PrintConfigDef::init_fff_params()
     def->max = 50;
     def->set_default_value(new ConfigOptionFloat(0.0));
 
+    def = this->add("wave_overhang_kaiser_max_rings", coInt);
+    def->label = L("Kaiser max rings");
+    def->category = L("Strength");
+    def->tooltip = L("Kaiser algorithm only: maximum number of wave rings generated per overhang "
+                     "region. 0 = unlimited. Useful as a safety cap on large overhangs to bound print time.");
+    def->mode = comDevelop;
+    def->min = 0;
+    def->max = 500;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("wall_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Walls");

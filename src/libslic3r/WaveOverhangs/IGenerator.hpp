@@ -33,6 +33,7 @@ struct CommonParams {
     SpacingMode spacing_mode           = SpacingMode::Uniform;
     SeamMode    seam_mode              = SeamMode::Alternating;
     double      min_length_mm          = 0.0;   // mm; skip overhangs whose contour length is below this.
+    int         kaiser_max_rings       = 0;     // Kaiser only: 0 = unlimited.
 };
 
 struct GenerateResult {

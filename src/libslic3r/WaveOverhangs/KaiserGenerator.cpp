@@ -156,8 +156,13 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
         const double max_rings_estimate = std::max(4.0, double(max_extent) / double(base_step));
         size_t       ring_index = 0;
 
+        // Kaiser safety cap on total rings (0 = unlimited).
+        const int kaiser_max_rings = std::max(0, params.kaiser_max_rings);
+
         // Iteratively grow the seed outward.
         for (coord_t r = 0; r <= max_extent + base_step; ) {
+            if (kaiser_max_rings > 0 && int(ring_index) >= kaiser_max_rings)
+                break;
             // Compute this ring's step based on spacing_mode.
             coord_t step;
             if (params.spacing_mode == SpacingMode::Progressive) {
