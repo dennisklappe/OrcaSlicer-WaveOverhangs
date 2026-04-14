@@ -4660,7 +4660,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("zigzag");
     def->enum_values.push_back("smart");
     def->enum_labels.push_back(L("Monotonic"));
-    def->enum_labels.push_back(L("Zig Zag"));
+    def->enum_labels.push_back(L("Zigzag"));
     def->enum_labels.push_back(L("Smart"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<WaveOverhangPattern>(WaveOverhangPattern::Smart));
