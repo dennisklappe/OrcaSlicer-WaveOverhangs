@@ -1736,19 +1736,26 @@ void PrintObject::detect_surfaces_type()
         // ==============================================================================================================
         {
             const PrintRegionConfig &rconf = this->printing_region(region_id).config();
-            const int floor_layers = rconf.wave_overhang_floor_layers.value;
+            const int floor_layers        = rconf.wave_overhang_floor_layers.value;
+            const int bottom_shell_layers = rconf.bottom_shell_layers.value;
+            const int top_shell_layers    = rconf.top_shell_layers.value;
+            // Shadow-influence radius: a layer must be masked from shell-seed propagation
+            // if it's within this many layers of any wave region. We cover both directions:
+            //   - upward  ≤ max(floor_layers, bottom_shell_layers) so Orca's bottom-shell
+            //     doesn't add extra solid layers beyond floor_layers
+            //   - downward ≤ top_shell_layers so a top surface nearby doesn't pull the
+            //     wave region into a top-solid shell
+            // This is what makes floor_layers=0 truly produce zero solid above the wave.
+            const int shadow_up   = std::max(floor_layers, bottom_shell_layers);
+            const int shadow_down = top_shell_layers;
             if (rconf.wave_overhangs.value) {
                 tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
-                    [this, region_id, floor_layers](const tbb::blocked_range<size_t> &range) {
+                    [this, region_id, floor_layers, shadow_up, shadow_down](const tbb::blocked_range<size_t> &range) {
                         for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++idx_layer) {
                             m_print->throw_if_canceled();
                             Layer *layer = m_layers[idx_layer];
 
-                            // Union wave polygons from layers [idx_layer - floor_layers, idx_layer - 1]
-                            // that sit directly below this layer and whose N-layer floor window includes it.
-                            // Also track distance to the nearest wave layer below so we can promote
-                            // the first layer above as stBottomBridge (actually bridges the cantilever)
-                            // and subsequent layers as stInternalSolid (regular solid infill).
+                            // Track distance to the nearest wave layer BELOW (for promotion).
                             Polygons wave_floor;
                             int dist_to_wave = 0;
                             for (int k = 1; k <= floor_layers; ++k) {
@@ -1760,17 +1767,22 @@ void PrintObject::detect_surfaces_type()
                                 }
                             }
 
-                            // Shadow for seed-suppression purposes is the union of:
-                            //  - this layer's own wave-overhang footprint (layer L case), and
-                            //  - the shell-promotion window from the N layers below (layer L+1..L+N case).
-                            // Using a dedicated storage so other layers see the final value.
-                            // Accumulate across regions (outer loop iterates region_id).
-                            // wave_overhang_floor_polygons is already union-of-regions; we
-                            // just add this region's contribution of the N-window.
+                            // Shadow = union of wave footprints in the shell-influence window
+                            // around THIS layer (both directions). Used for seed-suppression
+                            // in discover_vertical_shells / discover_horizontal_shells — any
+                            // bottom-shell or top-shell propagation that would enter the
+                            // shadow region is dropped, so wave_overhang_floor_layers is the
+                            // authoritative solid-layer count above the wave.
                             Polygons shadow = std::move(layer->wave_overhang_shadow_polygons);
-                            if (shadow.empty())
-                                append(shadow, layer->wave_overhang_floor_polygons);
-                            append(shadow, wave_floor);
+                            append(shadow, layer->wave_overhang_floor_polygons);  // this layer (wave strip itself)
+                            for (int k = 1; k <= shadow_up; ++k) {                // layers above wave (mask up)
+                                if ((int)idx_layer - k < 0) break;
+                                append(shadow, m_layers[idx_layer - k]->wave_overhang_floor_polygons);
+                            }
+                            for (int k = 1; k <= shadow_down; ++k) {              // layers below wave (mask down)
+                                if (idx_layer + k >= m_layers.size()) break;
+                                append(shadow, m_layers[idx_layer + k]->wave_overhang_floor_polygons);
+                            }
                             if (!shadow.empty())
                                 shadow = union_(shadow);
                             layer->wave_overhang_shadow_polygons = std::move(shadow);
