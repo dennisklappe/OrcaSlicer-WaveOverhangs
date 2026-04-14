@@ -35,8 +35,8 @@ The whole feature is 100% opt-in: leave the master toggle off and the fork behav
 ## Credits & research references
 
 **Wave overhang algorithm research**
-> **Data for: Wave-inspired path-planning strategy for support-free horizontal overhangs in FDM**
-> Published: 8 April 2026 · Version 1 · DOI: [10.17632/xhw8xkjyc2.1](https://data.mendeley.com/datasets/xhw8xkjyc2/1)
+> **Wave-inspired path-planning strategy for support-free horizontal overhangs in FDM** — paper to be published. The accompanying dataset (linked below) is a placeholder while the paper is in review; some fields may still be tentative.
+> Dataset: [10.17632/xhw8xkjyc2.1](https://data.mendeley.com/datasets/xhw8xkjyc2/1) · v1 · 8 April 2026
 > Contributors: **Janis A. Andersons**, **Solemé Sanchez**, **Tom Vaneker**
 
 **Arc-overhang algorithm** (predecessor that wave overhangs builds on)
@@ -52,10 +52,7 @@ The whole feature is 100% opt-in: leave the master toggle off and the fork behav
 > This code was written in the context of Rieks Kaiser's master thesis, for the study Mechanical Engineering at the University of Twente."
 
 **OrcaSlicer base**
-> SoftFever / OrcaSlicer team — https://github.com/SoftFever/OrcaSlicer
-
-**This fork** — Port to OrcaSlicer + algorithm abstraction + Kaiser LaSO C++ port + 20+ expert config parameters + recipe system + build fixes for openSUSE Tumbleweed
-> Dennis Klappe — https://github.com/dennisklappe
+> OrcaSlicer team — https://github.com/OrcaSlicer/OrcaSlicer
 
 ---
 
@@ -75,7 +72,7 @@ The whole feature is 100% opt-in: leave the master toggle off and the fork behav
 
 ## Building
 
-Dependencies are the same as upstream OrcaSlicer: CMake ≥ 3.13, gcc or clang, GTK3, plus the bundled deps under `deps/`. See the upstream [OrcaSlicer build docs](https://github.com/SoftFever/OrcaSlicer/wiki/How-to-build) for the full platform-by-platform guide.
+Dependencies are the same as upstream OrcaSlicer: CMake ≥ 3.13, gcc or clang, GTK3, plus the bundled deps under `deps/`. See the upstream [OrcaSlicer build docs](https://github.com/OrcaSlicer/OrcaSlicer/wiki/How-to-build) for the full platform-by-platform guide.
 
 On **openSUSE Tumbleweed** there's a specific `lib64` path fix already patched in `deps/MPFR/MPFR.cmake` and a system `gstreamer-video-1.0` link in `src/slic3r/CMakeLists.txt` — these are already committed; no manual patching needed.
 
