@@ -5,6 +5,7 @@ on:
     branches:
      - main
      - release/*
+     - wave-overhangs
     paths:
      - 'deps/**'
      - 'src/**'
@@ -19,6 +20,7 @@ on:
     branches:
      - main
      - release/*
+     - wave-overhangs
     paths:
      - 'deps/**'
      - 'deps_src/**'
