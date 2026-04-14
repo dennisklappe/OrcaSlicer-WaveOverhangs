@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*-*'
+
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (e.g. v0.1.0-alpha.1). If empty, uses the workflow ref.'
+        required: false
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build_linux:
+    name: Build Linux (AppImage)
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: ubuntu-24.04
+    secrets: inherit
+
+  build_windows:
+    name: Build Windows (zip + installer)
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: windows-latest
+    secrets: inherit
+
+  build_macos_arch:
+    name: Build macOS ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - arm64
+          - x86_64
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: macos-14
+      arch: ${{ matrix.arch }}
+    secrets: inherit
+
+  build_macos_universal:
+    name: Build macOS Universal (DMG)
+    needs: build_macos_arch
+    if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' }}
+    uses: ./.github/workflows/build_orca.yml
+    with:
+      os: macos-14
+      arch: universal
+      macos-combine-only: true
+    secrets: inherit
+
+  publish_release:
+    name: Publish GitHub Release
+    needs:
+      - build_linux
+      - build_windows
+      - build_macos_universal
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      - name: Stage release assets
+        id: stage
+        shell: bash
+        run: |
+          mkdir -p release_assets
+          # Linux AppImage
+          find artifacts -type f -name '*.AppImage' -exec cp -v {} release_assets/ \;
+          # Windows portable zip — artifact is the unzipped folder; re-zip it
+          for d in artifacts/OrcaSlicer_Windows_*_portable; do
+            [ -d "$d" ] || continue
+            name=$(basename "$d")
+            (cd "$d" && zip -r "../../release_assets/${name}.zip" .)
+          done
+          # Windows installer .exe (artifact dir contains the .exe directly)
+          find artifacts -type f -name 'OrcaSlicer*Installer*.exe' -exec cp -v {} release_assets/ \;
+          # macOS DMG (universal)
+          find artifacts -type f -name '*.dmg' -exec cp -v {} release_assets/ \;
+          echo "--- Release assets ---"
+          ls -lh release_assets/
+
+      - name: Resolve tag name
+        id: tag
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create draft GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: ${{ steps.tag.outputs.name }}
+          draft: true
+          prerelease: ${{ contains(steps.tag.outputs.name, '-') }}
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          files: |
+            release_assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
