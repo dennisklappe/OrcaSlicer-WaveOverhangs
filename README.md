@@ -125,7 +125,6 @@ For a full reference of every config option with tuning hints and the exact reci
 ## Current limitations
 
 - **Kaiser pin supports are not ported.** Kaiser's original places discrete pin-support nubs under overhangs. Not planned — the goal here is fully support-free overhangs; use `support_remaining_areas_after_wave_overhangs` + Orca's normal supports if wave can't cover everything.
-- **`wave_overhang_travel_speed` and `wave_overhang_fan_speed`** are saved per-profile and visible in the GUI, but the per-path override during G-code emission isn't fully wired yet (Orca's `GCodeWriter::travel_to_*` doesn't accept a per-move speed, and fan cooling comes through `CoolingBuffer` from the filament profile). Print-speed override (`wave_overhang_print_speed`) does work. Travel+fan plumbing is on the to-do list.
 - **Not tested on Windows / macOS** — only Linux (openSUSE Tumbleweed) so far.
 
 ---

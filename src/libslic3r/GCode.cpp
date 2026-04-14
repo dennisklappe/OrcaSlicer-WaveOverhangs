@@ -6211,6 +6211,21 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     if (emit_wave_overhang_markers)
         gcode += "; WAVE_OVERHANG_START\n";
 
+    // Orca: wave-overhang — set state flag BEFORE the leading travel_to below so the
+    //       travel uses the wave travel-speed override. Cleared at end of _extrude().
+    //       Also emit a fan marker that CoolingBuffer post-processes; the fan % is
+    //       encoded inline so CoolingBuffer doesn't need access to region config.
+    const bool wave_fan_active = path.wave_overhang && m_config.wave_overhang_fan_speed.value >= 0
+                                 && m_enable_cooling_markers;
+    if (path.wave_overhang)
+        m_inside_wave_overhang = true;
+    if (wave_fan_active) {
+        char buf[64];
+        snprintf(buf, sizeof(buf), ";_WAVE_OVERHANG_FAN_START %d\n",
+                 m_config.wave_overhang_fan_speed.value);
+        gcode += buf;
+    }
+
     if (is_bridge(path.role()))
         description += " (bridge)";
 
@@ -7040,6 +7055,12 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
     this->set_last_pos(path.last_point());
 
+    // Orca: wave-overhang — close fan-override scope and clear state flag.
+    if (wave_fan_active)
+        gcode += ";_WAVE_OVERHANG_FAN_END\n";
+    if (path.wave_overhang)
+        m_inside_wave_overhang = false;
+
     if (emit_wave_overhang_markers)
         gcode += "; WAVE_OVERHANG_END\n";
 
@@ -7228,20 +7249,25 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
     // if needed, write the gcode_label_objects_end then gcode_label_objects_start
     m_writer.add_object_change_labels(gcode);
 
+    // Orca: wave-overhang — if we're traveling into/within a wave-overhang path, honor
+    // the per-profile travel-speed override. 0 disables the override.
+    const double wave_travel_speed = (m_inside_wave_overhang && m_config.wave_overhang_travel_speed.value > 0)
+                                     ? m_config.wave_overhang_travel_speed.value : 0.0;
+
     // use G1 because we rely on paths being straight (G0 may make round paths)
     if (travel.size() >= 2) {
         // Orca: use `travel_to_xyz` to ensure we start at the correct z, in case we moved z in custom/filament change gcode
         if (false/*m_spiral_vase*/) {
             // No lazy z lift for spiral vase mode
             for (size_t i = 1; i < travel.size(); ++i) {
-                gcode += m_writer.travel_to_xy(this->point_to_gcode(travel.points[i]), comment);
+                gcode += m_writer.travel_to_xy(this->point_to_gcode(travel.points[i]), wave_travel_speed, comment);
             }
         } else {
             if (travel.size() == 2) {
                 // No extra movements emitted by avoid_crossing_perimeters, simply move to the end point with z change
                 const auto& dest2d = this->point_to_gcode(travel.points.back());
                 Vec3d dest3d(dest2d(0), dest2d(1), z == DBL_MAX ? m_nominal_z : z);
-                gcode += m_writer.travel_to_xyz(dest3d, comment, m_need_change_layer_lift_z);
+                gcode += m_writer.travel_to_xyz(dest3d, wave_travel_speed, comment, m_need_change_layer_lift_z);
                 m_need_change_layer_lift_z = false;
             } else {
                 // Extra movements emitted by avoid_crossing_perimeters, lift the z to normal height at the beginning, then apply the z
@@ -7251,16 +7277,16 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
                         // Lift to normal z at beginning
                         Vec2d dest2d = this->point_to_gcode(travel.points[i]);
                         Vec3d dest3d(dest2d(0), dest2d(1), m_nominal_z);
-                        gcode += m_writer.travel_to_xyz(dest3d, comment, m_need_change_layer_lift_z);
+                        gcode += m_writer.travel_to_xyz(dest3d, wave_travel_speed, comment, m_need_change_layer_lift_z);
                         m_need_change_layer_lift_z = false;
                     } else if (z != DBL_MAX && i == travel.size() - 1) {
                         // Apply z_ratio for the very last point
                         Vec2d dest2d = this->point_to_gcode(travel.points[i]);
                         Vec3d dest3d(dest2d(0), dest2d(1), z);
-                        gcode += m_writer.travel_to_xyz(dest3d, comment);
+                        gcode += m_writer.travel_to_xyz(dest3d, wave_travel_speed, comment);
                     } else {
                         // For all points in between, no z change
-                        gcode += m_writer.travel_to_xy(this->point_to_gcode(travel.points[i]), comment);
+                        gcode += m_writer.travel_to_xy(this->point_to_gcode(travel.points[i]), wave_travel_speed, comment);
                     }
                 }
             }

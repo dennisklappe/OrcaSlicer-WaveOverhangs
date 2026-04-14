@@ -1126,11 +1126,16 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     params.min_new_area             = region_config.wave_overhang_min_new_area.value;
     params.arc_resolution           = region_config.wave_overhang_arc_resolution.value;
 
-    // TODO: plumb wave_overhang_min_angle. Computing overhang steepness requires per-layer
-    // delta-Z / slope analysis that isn't readily available at this call site; defined as
-    // config-only for now. When plumbed, gate the call below: if the estimated steepest
-    // overhang angle from vertical is below `region_config.wave_overhang_min_angle`, return
-    // an empty GenerateResult so the standard perimeter logic runs instead.
+    // wave_overhang_min_angle is intentionally NOT enforced here. The incoming
+    // overhang region has already been classified as erOverhangPerimeter upstream
+    // by Orca's detect_overhang_wall + overhang_reverse_threshold pipeline, which
+    // is the authoritative slope filter. Any local re-threshold we tried here
+    // (layer_height * tan(angle) envelope) was over-eager and rejected every
+    // legitimate overhang strip, because by construction the strip extends
+    // roughly one layer-height beyond the support. The config key is kept for
+    // profile compatibility and potential future use; see tooltip.
+    if (infill_area.empty())
+        return { {}, {} };
 
     WaveOverhangs::GenerateResult res;
     if (region_config.wave_overhang_algorithm == woaKaiser) {
@@ -1184,6 +1189,14 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
             // generated wave paths.
             if (use_wave_overhangs && this->config->wave_overhang_floor_layers.value > 0) {
                 append(this->out_wave_overhang_floor_polygons, filled_area);
+            }
+
+            // Orca: stash wave-overhang coverage footprint unconditionally whenever
+            // wave paths were generated (independent of floor_layers). Consumer:
+            // support pipeline when support_remaining_areas_after_wave_overhangs is
+            // enabled. See Layer::wave_overhang_covered_polygons.
+            if (use_wave_overhangs) {
+                append(this->out_wave_overhang_covered_polygons, filled_area);
             }
         }
     }

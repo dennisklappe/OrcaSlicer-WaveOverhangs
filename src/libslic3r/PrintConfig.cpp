@@ -4697,8 +4697,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wave_overhang_travel_speed", coFloat);
     def->label = L("Wave overhang travel speed");
     def->category = L("Speed");
-    def->tooltip = L("Travel speed within wave-overhang regions (between non-extruding hops). "
-                     "Saved per-profile but not yet applied per-path — wiring pending.");
+    def->tooltip = L("Travel speed within wave-overhang regions (between non-extruding hops).");
     def->sidetext = L("mm/s");
     def->mode = comAdvanced;
     def->min = 1.0;
@@ -4708,8 +4707,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Wave overhang fan speed");
     def->category = L("Cooling");
     def->tooltip = L("Part-cooling fan percentage forced during wave-overhang extrusions. "
-                     "Maximum cooling is usually best. "
-                     "Saved per-profile but not yet applied per-path — wiring pending.");
+                     "Maximum cooling is usually best.");
     def->sidetext = L("%");
     def->mode = comAdvanced;
     def->min = 0;
@@ -4773,15 +4771,16 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wave_overhang_min_angle", coFloat);
     def->label = L("Wave overhang min angle");
     def->category = L("Strength");
-    def->tooltip = L("Minimum overhang angle (from vertical) at which wave-overhang generation activates. "
-                     "Below this threshold, shallow overhangs use normal perimeters instead. "
-                     "0 = always on, 90 = never. "
-                     "Saved per-profile but not yet applied — angle estimation wiring pending.");
+    def->tooltip = L("Soft limit only — currently NOT enforced. Orca's upstream overhang "
+                     "detection (Strength → Detect overhang walls / Overhang reverse "
+                     "threshold) is the primary slope filter that decides which regions "
+                     "become wave-overhang candidates. This value is kept as metadata on "
+                     "the profile for potential future use. 0 = no filtering.");
     def->sidetext = L("°");
     def->mode = comAdvanced;
     def->min = 0;
     def->max = 90;
-    def->set_default_value(new ConfigOptionFloat(45));
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("wave_overhang_anchor_bite", coFloat);
     def->label = L("Wave overhang anchor bite");
@@ -4941,8 +4940,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Support unfilled wave overhang areas");
     def->category = L("Support");
     def->tooltip = L("When wave overhangs are enabled, generate supports only for overhang areas that were not filled "
-                     "by propagated wave toolpaths. Explicit support enforcers still apply normally. "
-                     "Saved per-profile but not yet applied — support-pipeline integration pending.");
+                     "by propagated wave toolpaths. Explicit support enforcers still apply normally.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 

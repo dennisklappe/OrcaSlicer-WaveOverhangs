@@ -163,6 +163,23 @@ public:
     // to upgrade stInternal -> stBottomBridge on the floor_layers immediately
     // above so they get solid bridge fill.
     Polygons                wave_overhang_floor_polygons;
+
+    // Orca: 2D footprint of wave-overhang coverage in this layer, populated
+    // unconditionally whenever wave paths were generated (independent of
+    // wave_overhang_floor_layers). Consumed by the support pipeline when
+    // support_remaining_areas_after_wave_overhangs is enabled to subtract
+    // wave-covered regions from detected overhangs, so supports only fill
+    // the residual (uncovered) areas.
+    Polygons                wave_overhang_covered_polygons;
+
+    // Orca: wave-overhang "shadow" region on this layer — the subset of the
+    // layer that was force-classified as stBottomBridge by the wave-overhang
+    // authoritative floor-layer promotion (see PrintObject::detect_surfaces_type).
+    // Consumed by discover_vertical_shells / discover_horizontal_shells so that
+    // these promoted bottom-bridge surfaces do NOT propagate additional solid
+    // shells above them. This is what makes wave_overhang_floor_layers
+    // authoritative rather than additive with bottom_shell_layers.
+    Polygons                wave_overhang_shadow_polygons;
     size_t                  region_count() const { return m_regions.size(); }
     const LayerRegion*      get_region(int idx) const { return m_regions[idx]; }
     LayerRegion*            get_region(int idx) { return m_regions[idx]; }

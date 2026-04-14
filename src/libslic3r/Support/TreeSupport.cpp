@@ -1067,6 +1067,25 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
             m_object->remove_bridges_from_contacts(lower_layer, layer, extrusion_width_scaled, &layer->loverhangs, max_bridge_length, break_bridge);
         }
 
+        // Orca: subtract wave-overhang coverage from detected overhangs when the
+        // user opted into "support only remaining areas after wave overhangs".
+        // Done AFTER bridge-from-contact removal but BEFORE enforcers are appended,
+        // so explicit support enforcers still apply normally. Gate: any printing
+        // region with wave_overhangs && support_remaining_areas_after_wave_overhangs.
+        if (!layer->loverhangs.empty() && !layer->wave_overhang_covered_polygons.empty()) {
+            bool wave_support_gate = false;
+            for (size_t ri = 0; ri < m_object->num_printing_regions(); ++ri) {
+                const PrintRegionConfig &rc = m_object->printing_region(ri).config();
+                if (rc.wave_overhangs.value && rc.support_remaining_areas_after_wave_overhangs.value) {
+                    wave_support_gate = true;
+                    break;
+                }
+            }
+            if (wave_support_gate) {
+                layer->loverhangs = diff_ex(layer->loverhangs, layer->wave_overhang_covered_polygons);
+            }
+        }
+
 		int nDetected = layer->loverhangs.size();
         // enforcers now follow same logic as normal support. See STUDIO-3692
         if (layer_nr < enforcers.size() && lower_layer) {

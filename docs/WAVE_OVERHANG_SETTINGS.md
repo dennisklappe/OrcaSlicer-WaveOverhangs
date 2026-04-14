@@ -80,11 +80,11 @@ Every option below appears on the **Wave overhangs** page in Advanced mode, grou
 
 #### `wave_overhang_min_angle`
 
-Minimum overhang angle (from vertical) above which wave generation activates.
+Soft/metadata-only slope threshold. **Currently not enforced** — retained on the profile for future use.
 
-- **Type:** float (°) · **Default:** `45` · **Range:** `0 – 90`
-- `0` = always on (every detected overhang gets waved), `90` = never.
-- **Tuning:** raise toward 55–65° if waves are triggering on shallow bridges that would print fine with normal perimeters. Lower toward 30° if you want wave coverage on milder slopes.
+- **Type:** float (°) · **Default:** `0` · **Range:** `0 – 90`
+- **Why it's inert:** the actual slope filter for what becomes an overhang is Orca's upstream *Strength → Detect overhang walls* + *Overhang reverse threshold* pipeline. By the time a region reaches the wave generator, it has already been classified as `erOverhangPerimeter`. A secondary local envelope check (earlier implementations) rejected every legitimate strip because the strip extends roughly one layer-height beyond the supported region by construction. If you want fewer or more overhangs flagged, adjust Orca's upstream thresholds instead.
+- **What to do today:** leave it at `0`. Use *Overhang reverse threshold* (Strength tab) to control which walls the slicer considers overhangs.
 
 #### `wave_overhang_min_length`
 
@@ -277,11 +277,13 @@ Part-cooling fan percentage forced during wave extrusions.
 
 #### `wave_overhang_floor_layers`
 
-Number of solid floor layers placed directly above wave regions. These layers bridge over the wave surface and give the cantilever mechanical backing.
+Number of solid floor layers placed directly above a wave region. **Authoritative**: this value overrides Orca's `bottom_shell_layers` behavior within the wave shadow — `N` means *exactly* N solid layers above the wave, not N-plus-whatever-bottom-shell-layers-adds.
 
 - **Type:** int · **Default:** `2` · **Range:** `0 – 20`
-- `0` = no wave-specific override; Orca's normal top-shell-layers handles it.
-- **Tuning:** `2` default. `3` for structural parts, `1` for speed-priority (the waves become a visible surface).
+- `N = 0` = zero solid layers above the wave footprint. The layer directly above the wave strip goes straight to sparse infill. Use for max material savings on purely aesthetic overhangs.
+- `N = 2` (default) = two solid bridge/solid-infill layers above the wave before sparse infill resumes. Standard mechanical backing.
+- `N = 3+` = heavier structural cap (slower, more filament, but stiffer).
+- **Interaction with `bottom_shell_layers`:** inside the wave shadow, the floor_layers value wins. Outside the wave shadow, Orca's normal shell rules still apply. Implementation: each affected layer gets a `wave_overhang_shadow_polygons` mask that is subtracted from the bottom-shell seed set in both `discover_vertical_shells` and `discover_horizontal_shells`, preventing further solid propagation above N.
 
 ### Support integration
 
@@ -337,15 +339,17 @@ Selecting a named recipe in `wave_overhang_recipe` rewrites every key below. Val
 
 ## Known limitations
 
-Some options are fully plumbed end-to-end; others save into your profile and show up in the GUI but aren't yet applied by the G-code emitter.
+All user-facing options are now plumbed end-to-end. The table below notes mode exposure and any gotchas.
 
 | Option | Status |
 |---|---|
-| `wave_overhang_print_speed` | Fully plumbed — per-path speed override works. |
-| `wave_overhang_travel_speed` | **Save-only.** `GCodeWriter::travel_to_*` doesn't yet accept a per-move speed. |
-| `wave_overhang_fan_speed` | **Save-only.** Fan cooling currently comes through `CoolingBuffer` from the filament profile. |
-| `wave_overhang_min_new_area` | Anderson-only, exposed in Develop mode only. |
-| `wave_overhang_arc_resolution` | Anderson-only, exposed in Develop mode only. |
+| `wave_overhang_print_speed` | Fully plumbed — per-path speed override. |
+| `wave_overhang_travel_speed` | Fully plumbed — `GCodeWriter::travel_to_*` extended with optional per-move override, applied around wave extrusions. |
+| `wave_overhang_fan_speed` | Fully plumbed — new `;_WAVE_OVERHANG_FAN_START/END` marker emitted around wave paths and handled in `CoolingBuffer` to drive the part-cooling fan percentage. |
+| `wave_overhang_min_angle` | **Inert (save-only).** Kept on the profile but not enforced; Orca's upstream *Detect overhang walls* + *Overhang reverse threshold* (Strength tab) is the real slope filter. See key description above. |
+| `support_remaining_areas_after_wave_overhangs` | Fully plumbed — residual polygons (wave-uncovered area) are collected and passed into Orca's support generation as enforcer regions. |
+| `wave_overhang_min_new_area` | Anderson-only, Develop mode only. |
+| `wave_overhang_arc_resolution` | Anderson-only, Develop mode only. |
 
 Andersons-reference-parameter tunables (`wavefront_advance`, `discretization`, `anderson_max_iterations`, `min_new_area`, `arc_resolution`) only apply when the Anderson algorithm is selected. Kaiser-only tunables (`laso_overlap`, `kaiser_max_rings`, `direction_bias`) only apply when Kaiser is selected.
 
@@ -372,4 +376,4 @@ G1 X... Y... E...
 ; WAVE_OVERHANG_END
 ```
 
-**Verifying waves were emitted:** slice your model, then grep the output for `WAVE_OVERHANG_START`. No matches means either the detector didn't flag any overhangs, `wave_overhangs` is off, or your `min_angle` / `min_length` thresholds filtered everything out. If you want the markers off for a production print, set `wave_overhang_debug_gcode = false`.
+**Verifying waves were emitted:** slice your model, then grep the output for `WAVE_OVERHANG_START`. No matches means either Orca's upstream overhang-wall detection didn't flag any regions (check *Strength → Detect overhang walls* / *Overhang reverse threshold*), `wave_overhangs` is off, or your `min_length` threshold filtered everything. If you want the markers off for a production print, set `wave_overhang_debug_gcode = false`.
