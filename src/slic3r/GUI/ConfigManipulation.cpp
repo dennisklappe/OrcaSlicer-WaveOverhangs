@@ -1001,12 +1001,18 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhang_pattern"),
         std::string("wave_overhang_perimeter_overlap"),
         std::string("wave_overhang_narrow_split_threshold"),
+        std::string("wave_overhang_wavefront_advance"),
+        std::string("wave_overhang_discretization"),
+        std::string("wave_overhang_anderson_max_iterations"),
+        std::string("wave_overhang_min_new_area"),
+        std::string("wave_overhang_arc_resolution"),
     })
         toggle_line(k, wo_enabled && is_anderson);
 
     for (const std::string &k : {
         std::string("wave_overhang_laso_overlap"),
         std::string("wave_overhang_kaiser_max_rings"),
+        std::string("wave_overhang_direction_bias"),
     })
         toggle_line(k, wo_enabled && is_kaiser);
 }
