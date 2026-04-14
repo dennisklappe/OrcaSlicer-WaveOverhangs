@@ -4939,10 +4939,12 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_remaining_areas_after_wave_overhangs", coBool);
     def->label = L("Support unfilled wave overhang areas");
     def->category = L("Support");
-    def->tooltip = L("When wave overhangs are enabled, generate supports only for overhang areas that were not filled "
-                     "by propagated wave toolpaths. Explicit support enforcers still apply normally.");
+    def->tooltip = L("When wave overhangs are enabled AND supports are on, only generate supports "
+                     "for overhang areas the wave toolpaths did NOT cover. Explicit support enforcers "
+                     "still apply normally. Disable to let the support generator ignore wave coverage "
+                     "(treats every overhang as if waves weren't there).");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
+    def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("wall_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
