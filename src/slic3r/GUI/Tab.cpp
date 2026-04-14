@@ -2401,25 +2401,46 @@ void TabPrint::build()
         optgroup->append_single_option_line("overhang_reverse", "quality_settings_overhangs#reverse-on-even");
         optgroup->append_single_option_line("overhang_reverse_internal_only", "quality_settings_overhangs#reverse-internal-only");
         optgroup->append_single_option_line("overhang_reverse_threshold", "quality_settings_overhangs#reverse-threshold");
-        optgroup->append_single_option_line("wave_overhang_recipe");
+
+    // Dedicated Wave Overhangs page — all wave-overhang options grouped here
+    // (master toggle + recipe, algorithm, geometry, motion, cooling, top layers, debug).
+    page = add_options_page(L("Wave overhangs"), "custom-gcode_quality");
+        optgroup = page->new_optgroup(L("General"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhangs");
+        optgroup->append_single_option_line("wave_overhang_recipe");
         optgroup->append_single_option_line("wave_overhang_algorithm");
-        optgroup->append_single_option_line("wave_overhang_laso_overlap");
+        optgroup->append_single_option_line("wave_overhang_min_angle");
+        optgroup->append_single_option_line("wave_overhang_min_length");
+
+        optgroup = page->new_optgroup(L("Geometry"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_outer_perimeters");
         optgroup->append_single_option_line("wave_overhang_line_spacing");
         optgroup->append_single_option_line("wave_overhang_line_width");
-        optgroup->append_single_option_line("wave_overhang_fan_speed");
-        optgroup->append_single_option_line("wave_overhang_top_mode");
-        optgroup->append_single_option_line("wave_overhang_extra_top_layers");
-        optgroup->append_single_option_line("wave_overhang_min_angle");
-        optgroup->append_single_option_line("wave_overhang_anchor_bite");
         optgroup->append_single_option_line("wave_overhang_spacing_mode");
         optgroup->append_single_option_line("wave_overhang_seam_mode");
-        optgroup->append_single_option_line("wave_overhang_debug_gcode");
-        optgroup->append_single_option_line("wave_overhang_min_length");
-        optgroup->append_single_option_line("wave_overhang_kaiser_max_rings");
-        optgroup->append_single_option_line("wave_overhang_anchor_passes");
         optgroup->append_single_option_line("wave_overhang_direction_bias");
+
+        optgroup = page->new_optgroup(L("Anchoring"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_anchor_bite");
+        optgroup->append_single_option_line("wave_overhang_anchor_passes");
+
+        optgroup = page->new_optgroup(L("Kaiser LaSO"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_laso_overlap");
+        optgroup->append_single_option_line("wave_overhang_kaiser_max_rings");
+
+        optgroup = page->new_optgroup(L("Speed"), L"param_speed");
+        optgroup->append_single_option_line("wave_overhang_print_speed");
+        optgroup->append_single_option_line("wave_overhang_travel_speed");
+
+        optgroup = page->new_optgroup(L("Cooling"), L"param_cooling");
+        optgroup->append_single_option_line("wave_overhang_fan_speed");
+
+        optgroup = page->new_optgroup(L("Top layers"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_top_mode");
+        optgroup->append_single_option_line("wave_overhang_extra_top_layers");
+
+        optgroup = page->new_optgroup(L("Debug"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_debug_gcode");
 
     page = add_options_page(L("Strength"), "custom-gcode_strength"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Walls"), L"param_wall");
@@ -2510,8 +2531,6 @@ void TabPrint::build()
         line.append_option(optgroup->get_option("bridge_speed"));
         line.append_option(optgroup->get_option("internal_bridge_speed"));
         optgroup->append_line(line);
-        optgroup->append_single_option_line("wave_overhang_print_speed");
-        optgroup->append_single_option_line("wave_overhang_travel_speed");
 
         optgroup = page->new_optgroup(L("Travel speed"), L"param_travel_speed", 15);
         optgroup->append_single_option_line("travel_speed", "speed_settings_travel");
