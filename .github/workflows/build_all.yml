@@ -4,8 +4,6 @@ on:
   push:
     branches:
      - main
-     - release/*
-     - wave-overhangs
     paths:
      - 'deps/**'
      - 'src/**'
@@ -19,8 +17,6 @@ on:
   pull_request:
     branches:
      - main
-     - release/*
-     - wave-overhangs
     paths:
      - 'deps/**'
      - 'deps_src/**'
