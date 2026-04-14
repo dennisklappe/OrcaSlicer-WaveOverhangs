@@ -4643,7 +4643,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wave_overhang_narrow_split_threshold", coFloat);
     def->label = L("Wave overhang narrow split threshold");
     def->category = L("Strength");
-    def->tooltip = L("If a narrow neck in the wave region is smaller than this multiplier times the wave line spacing, a thin split is inserted there before propagation. "
+    def->tooltip = L("Anderson algorithm only. If a narrow neck in the wave region is smaller than this multiplier times the wave line spacing, a thin split is inserted there before propagation. "
                      "Larger values split more aggressively.");
     def->sidetext = L("x spacing");
     def->min = 0;
@@ -4697,7 +4697,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wave_overhang_travel_speed", coFloat);
     def->label = L("Wave overhang travel speed");
     def->category = L("Speed");
-    def->tooltip = L("Travel speed within wave-overhang regions (between non-extruding hops).");
+    def->tooltip = L("Travel speed within wave-overhang regions (between non-extruding hops). "
+                     "Saved per-profile but not yet applied per-path — wiring pending.");
     def->sidetext = L("mm/s");
     def->mode = comAdvanced;
     def->min = 1.0;
@@ -4707,7 +4708,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Wave overhang fan speed");
     def->category = L("Cooling");
     def->tooltip = L("Part-cooling fan percentage forced during wave-overhang extrusions. "
-                     "Maximum cooling is usually best.");
+                     "Maximum cooling is usually best. "
+                     "Saved per-profile but not yet applied per-path — wiring pending.");
     def->sidetext = L("%");
     def->mode = comAdvanced;
     def->min = 0;
@@ -4863,11 +4865,12 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(1));
 
     def = this->add("wave_overhang_direction_bias", coFloat);
-    def->label = L("Wave overhang direction bias");
+    def->label = L("Wave overhang direction bias (Experimental)");
     def->category = L("Strength");
     def->tooltip = L("Kaiser algorithm only: rotate the wave-direction seed by this many degrees. "
                      "0 follows the natural overhang root edge. Positive/negative biases tilt the "
-                     "wave pattern for aesthetic tuning. Experimental — may cause out-of-boundary rings.");
+                     "wave pattern for aesthetic tuning. Experimental — extreme angles may cause "
+                     "out-of-boundary rings; verify in G-code preview before printing.");
     def->sidetext = L("°");
     def->mode = comAdvanced;
     def->min = -90.0;
@@ -4903,7 +4906,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Safety cap on the number of wavefronts emitted per overhang region. "
                      "0 = unlimited (stops naturally when no new area is gained). Mirrors the "
-                     "wave_overhang_kaiser_max_rings option for the Kaiser algorithm.");
+                     "Kaiser max rings option for the Kaiser algorithm.");
     def->mode = comAdvanced;
     def->min = 0;
     def->max = 500;
@@ -4915,7 +4918,8 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Termination threshold for Anderson propagation: when a new wavefront adds less "
                      "than this much new area over the previous wavefront, stop propagating. "
                      "Lower = longer propagation, potentially denser coverage. Higher = earlier "
-                     "termination. Andersons' reference: 1e-4 mm^2 (very small).");
+                     "termination. Our default 0.01 mm² is a safer early-stop than Andersons' "
+                     "research-code value of 1e-4 mm²; lower toward 0.0001 for maximum coverage.");
     def->sidetext = L("mm²");
     def->mode = comDevelop;
     def->min = 0.0;
