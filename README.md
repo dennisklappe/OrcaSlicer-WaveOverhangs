@@ -118,6 +118,8 @@ make -j$(nproc)
 
 > Simple mode exposes the master toggle + algorithm + recipe. Switch to **Advanced** (top-right mode selector) if you want to tune individual parameters like line spacing, anchor bite, or the Kaiser LaSO overlap. Editing any advanced tunable automatically snaps the recipe dropdown to "Custom".
 
+For a full reference of every config option with tuning hints and the exact recipe bundles, see [docs/WAVE_OVERHANG_SETTINGS.md](docs/WAVE_OVERHANG_SETTINGS.md).
+
 ---
 
 ## Current limitations
