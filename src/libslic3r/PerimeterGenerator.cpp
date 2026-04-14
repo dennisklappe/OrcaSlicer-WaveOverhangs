@@ -1115,6 +1115,10 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     params.kaiser_max_rings = region_config.wave_overhang_kaiser_max_rings.value;
     params.anchor_passes      = region_config.wave_overhang_anchor_passes.value;
     params.direction_bias_deg = region_config.wave_overhang_direction_bias.value;
+    // stmcculloch alpha.6 additions:
+    params.perimeter_overlap      = region_config.wave_overhang_perimeter_overlap.value;
+    params.narrow_split_threshold = region_config.wave_overhang_narrow_split_threshold.value;
+    params.pattern                = region_config.wave_overhang_pattern.value;
 
     // TODO: plumb wave_overhang_min_angle. Computing overhang steepness requires per-layer
     // delta-Z / slope analysis that isn't readily available at this call site; defined as

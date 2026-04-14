@@ -95,6 +95,13 @@ enum WaveOverhangSeamMode {
     woseRandom
 };
 
+// Wave-overhang fill pattern (ported from stmcculloch alpha.6).
+enum class WaveOverhangPattern : int {
+    Monotonic,
+    ZigZag,
+    Smart
+};
+
 enum AuthorizationType {
     atKeyPassword, atUserPassword
 };
@@ -553,6 +560,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangAlgorithm)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangRecipe)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangSpacingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangSeamMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangPattern)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -1148,6 +1156,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Wave Overhangs — Janis A. Andersons' algorithm, ported from stmcculloch/PrusaSlicer-WaveOverhangs
     ((ConfigOptionBool,                 wave_overhangs))
     ((ConfigOptionInt,                  wave_overhang_outer_perimeters))
+    ((ConfigOptionFloat,                wave_overhang_perimeter_overlap))
+    ((ConfigOptionFloat,                wave_overhang_narrow_split_threshold))
+    ((ConfigOptionEnum<WaveOverhangPattern>, wave_overhang_pattern))
     ((ConfigOptionFloat,                wave_overhang_line_spacing))
     ((ConfigOptionFloat,                wave_overhang_line_width))
     ((ConfigOptionFloat,                wave_overhang_print_speed))
@@ -1166,6 +1177,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,                       wave_overhang_kaiser_max_rings))
     ((ConfigOptionInt,                       wave_overhang_anchor_passes))
     ((ConfigOptionFloat,                     wave_overhang_direction_bias))
+    ((ConfigOptionBool,                      support_remaining_areas_after_wave_overhangs))
     ((ConfigOptionInt, wall_filament))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloat, inner_wall_speed))

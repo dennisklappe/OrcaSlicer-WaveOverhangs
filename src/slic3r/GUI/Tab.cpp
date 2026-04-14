@@ -2414,6 +2414,9 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Geometry"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_outer_perimeters");
+        optgroup->append_single_option_line("wave_overhang_pattern");
+        optgroup->append_single_option_line("wave_overhang_perimeter_overlap");
+        optgroup->append_single_option_line("wave_overhang_narrow_split_threshold");
         optgroup->append_single_option_line("wave_overhang_line_spacing");
         optgroup->append_single_option_line("wave_overhang_line_width");
         optgroup->append_single_option_line("wave_overhang_spacing_mode");
@@ -2437,6 +2440,9 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Floor layers"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_floor_layers");
+
+        optgroup = page->new_optgroup(L("Support integration"), L"param_overhang");
+        optgroup->append_single_option_line("support_remaining_areas_after_wave_overhangs");
 
         optgroup = page->new_optgroup(L("Debug"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_debug_gcode");

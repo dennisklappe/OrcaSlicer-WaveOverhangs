@@ -12,6 +12,7 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r::WaveOverhangs {
 
@@ -36,6 +37,10 @@ struct CommonParams {
     int         kaiser_max_rings       = 0;     // Kaiser only: 0 = unlimited.
     int         anchor_passes          = 1;     // Kaiser only: extra near-seed rings for root anchoring.
     double      direction_bias_deg     = 0.0;   // Kaiser only: rotate seed polylines by this many degrees.
+    // Alpha.6 tunables (Anderson only).
+    double      perimeter_overlap      = 0.1;   // mm; extend wave propagation toward perimeters.
+    double      narrow_split_threshold = 2.0;   // x spacing; split wave region on narrow necks.
+    WaveOverhangPattern pattern        = WaveOverhangPattern::Smart;
 };
 
 struct GenerateResult {

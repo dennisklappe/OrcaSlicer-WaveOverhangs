@@ -17,6 +17,7 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r::WaveOverhangs {
 
@@ -25,6 +26,9 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     const Polygons &lower_slices_polygons,
     int             perimeter_count,
     int             additional_shell_count,
+    double          wave_perimeter_overlap,
+    double          wave_narrow_split_threshold,
+    WaveOverhangPattern wave_pattern,
     double          wave_line_spacing,
     double          wave_line_width,
     const Flow     &overhang_flow,
