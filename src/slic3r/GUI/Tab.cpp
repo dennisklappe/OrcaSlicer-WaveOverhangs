@@ -1934,6 +1934,106 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         return;
     }
 
+    // Orca: wave-overhang recipe expansion.
+    // When the user picks a named recipe, fill the underlying wave_overhang_*
+    // keys from the recipe table. Runs here (not in update_print_fff_config)
+    // because m_applying_keys is only populated inside apply() — direct widget
+    // edits reach us through on_value_change first, before any apply().
+    if (opt_key == "wave_overhang_recipe") {
+        auto recipe = m_config->opt_enum<WaveOverhangRecipe>("wave_overhang_recipe");
+        if (recipe != wortCustom) {
+            DynamicPrintConfig new_conf = *m_config;
+            auto set_algo  = [&](WaveOverhangAlgorithm v) { new_conf.set_key_value("wave_overhang_algorithm", new ConfigOptionEnum<WaveOverhangAlgorithm>(v)); };
+            auto set_int   = [&](const char *k, int v)    { new_conf.set_key_value(k, new ConfigOptionInt(v)); };
+            auto set_float = [&](const char *k, double v) { new_conf.set_key_value(k, new ConfigOptionFloat(v)); };
+
+            switch (recipe) {
+            case wortBalanced:
+                set_algo(woaAnderson);
+                set_int  ("wave_overhang_outer_perimeters", 1);
+                set_float("wave_overhang_line_spacing",     0.35);
+                set_float("wave_overhang_line_width",       0.40);
+                set_float("wave_overhang_print_speed",      2.0);
+                set_float("wave_overhang_travel_speed",     40.0);
+                set_int  ("wave_overhang_fan_speed",        100);
+                set_float("wave_overhang_laso_overlap",     0.15);
+                set_int  ("wave_overhang_floor_layers",     2);
+                break;
+            case wortAesthetic:
+                set_algo(woaKaiser);
+                set_int  ("wave_overhang_outer_perimeters", 2);
+                set_float("wave_overhang_line_spacing",     0.28);
+                set_float("wave_overhang_line_width",       0.38);
+                set_float("wave_overhang_print_speed",      1.5);
+                set_float("wave_overhang_travel_speed",     30.0);
+                set_int  ("wave_overhang_fan_speed",        100);
+                set_float("wave_overhang_laso_overlap",     0.25);
+                set_int  ("wave_overhang_floor_layers",     2);
+                break;
+            case wortStructural:
+                set_algo(woaAnderson);
+                set_int  ("wave_overhang_outer_perimeters", 2);
+                set_float("wave_overhang_line_spacing",     0.30);
+                set_float("wave_overhang_line_width",       0.42);
+                set_float("wave_overhang_print_speed",      2.0);
+                set_float("wave_overhang_travel_speed",     40.0);
+                set_int  ("wave_overhang_fan_speed",        100);
+                set_float("wave_overhang_laso_overlap",     0.25);
+                set_int  ("wave_overhang_floor_layers",     3);
+                break;
+            case wortFast:
+                set_algo(woaAnderson);
+                set_int  ("wave_overhang_outer_perimeters", 1);
+                set_float("wave_overhang_line_spacing",     0.45);
+                set_float("wave_overhang_line_width",       0.45);
+                set_float("wave_overhang_print_speed",      4.0);
+                set_float("wave_overhang_travel_speed",     60.0);
+                set_int  ("wave_overhang_fan_speed",        100);
+                set_float("wave_overhang_laso_overlap",     0.10);
+                set_int  ("wave_overhang_floor_layers",     1);
+                break;
+            default:
+                break;
+            }
+            m_config_manipulation.apply(m_config, &new_conf);
+        }
+    }
+
+    // Orca: snap wave_overhang_recipe to Custom when user edits an individual
+    // wave_overhang_* tunable while the dropdown is still on a named preset.
+    static const std::vector<std::string> kWaveAdvancedKeys = {
+        "wave_overhang_algorithm",
+        "wave_overhang_outer_perimeters",
+        "wave_overhang_line_spacing",
+        "wave_overhang_line_width",
+        "wave_overhang_print_speed",
+        "wave_overhang_travel_speed",
+        "wave_overhang_fan_speed",
+        "wave_overhang_laso_overlap",
+        "wave_overhang_floor_layers",
+        "wave_overhang_min_angle",
+        "wave_overhang_anchor_bite",
+        "wave_overhang_spacing_mode",
+        "wave_overhang_seam_mode",
+        "wave_overhang_debug_gcode",
+        "wave_overhang_min_length",
+        "wave_overhang_kaiser_max_rings",
+        "wave_overhang_anchor_passes",
+        "wave_overhang_direction_bias",
+        "wave_overhang_pattern",
+        "wave_overhang_perimeter_overlap",
+        "wave_overhang_narrow_split_threshold",
+        "support_remaining_areas_after_wave_overhangs",
+    };
+    if (std::find(kWaveAdvancedKeys.begin(), kWaveAdvancedKeys.end(), opt_key) != kWaveAdvancedKeys.end()) {
+        auto current = m_config->opt_enum<WaveOverhangRecipe>("wave_overhang_recipe");
+        if (current != wortCustom) {
+            DynamicPrintConfig snap = *m_config;
+            snap.set_key_value("wave_overhang_recipe", new ConfigOptionEnum<WaveOverhangRecipe>(wortCustom));
+            m_config_manipulation.apply(m_config, &snap);
+        }
+    }
+
     update();
     if(m_active_page)
         m_active_page->update_visibility(m_mode, true);
