@@ -543,11 +543,11 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
 
     // Orca: wave-overhang recipe preset expansion.
-    // When the user picks a named recipe in the dropdown, auto-fill the
-    // underlying wave_overhang_* keys from the table, then snap the recipe
-    // key itself back to 'custom' so subsequent manual edits don't re-trigger.
-    if (m_applying_keys.empty() ||
-        std::find(m_applying_keys.begin(), m_applying_keys.end(), std::string("wave_overhang_recipe")) != m_applying_keys.end())
+    // Fills the underlying wave_overhang_* keys from the recipe table whenever
+    // the current recipe is non-custom. The dropdown stays on the chosen recipe
+    // name (no snap-back) so the user can see what's active. Runs on every
+    // config update while recipe != custom — the apply() diff ensures we only
+    // actually write when values differ, so the loop is a no-op once expanded.
     {
         auto recipe = config->opt_enum<WaveOverhangRecipe>("wave_overhang_recipe");
         if (recipe != wortCustom) {
@@ -607,9 +607,6 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
             default:
                 break;
             }
-            // Snap recipe back to 'custom' so the dropdown doesn't stick on a
-            // named recipe once individual fields diverge from it.
-            new_conf.set_key_value("wave_overhang_recipe", new ConfigOptionEnum<WaveOverhangRecipe>(wortCustom));
             apply(config, &new_conf);
         }
     }
