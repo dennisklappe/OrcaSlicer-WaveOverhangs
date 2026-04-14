@@ -1081,6 +1081,50 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
     toggle_line("enable_wrapping_detection", DevPrinterConfigUtil::support_wrapping_detection(printer_type));
+
+    // Orca: wave-overhangs conditional visibility.
+    // - Master toggle off → hide every wave_overhang_* tunable (only master + recipe stay).
+    // - Anderson selected → hide Kaiser-only tunables.
+    // - Kaiser selected   → hide Anderson-only tunables.
+    const bool wo_enabled = config->opt_bool("wave_overhangs");
+    const auto wo_algo    = config->opt_enum<WaveOverhangAlgorithm>("wave_overhang_algorithm");
+    const bool is_anderson = wo_algo == woaAnderson;
+    const bool is_kaiser   = wo_algo == woaKaiser;
+
+    for (const std::string &k : {
+        std::string("wave_overhang_algorithm"),
+        std::string("wave_overhang_recipe"),
+        std::string("wave_overhang_outer_perimeters"),
+        std::string("wave_overhang_line_spacing"),
+        std::string("wave_overhang_line_width"),
+        std::string("wave_overhang_print_speed"),
+        std::string("wave_overhang_travel_speed"),
+        std::string("wave_overhang_fan_speed"),
+        std::string("wave_overhang_floor_layers"),
+        std::string("wave_overhang_min_angle"),
+        std::string("wave_overhang_min_length"),
+        std::string("wave_overhang_anchor_bite"),
+        std::string("wave_overhang_anchor_passes"),
+        std::string("wave_overhang_spacing_mode"),
+        std::string("wave_overhang_seam_mode"),
+        std::string("wave_overhang_direction_bias"),
+        std::string("wave_overhang_debug_gcode"),
+        std::string("support_remaining_areas_after_wave_overhangs"),
+    })
+        toggle_line(k, wo_enabled);
+
+    for (const std::string &k : {
+        std::string("wave_overhang_pattern"),
+        std::string("wave_overhang_perimeter_overlap"),
+        std::string("wave_overhang_narrow_split_threshold"),
+    })
+        toggle_line(k, wo_enabled && is_anderson);
+
+    for (const std::string &k : {
+        std::string("wave_overhang_laso_overlap"),
+        std::string("wave_overhang_kaiser_max_rings"),
+    })
+        toggle_line(k, wo_enabled && is_kaiser);
 }
 
 void ConfigManipulation::update_print_sla_config(DynamicPrintConfig* config, const bool is_global_config/* = false*/)
