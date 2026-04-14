@@ -592,13 +592,6 @@ void PrintObject::prepare_infill()
     } // for each region
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
-    // Orca: authoritative wave-overhang floor-layer pass. Runs AFTER all surface-type
-    // classification (detect_surfaces_type + discover_vertical_shells + discover_horizontal_shells)
-    // so that whatever Orca decided inside the wave shadow gets overridden: N=0 => all stInternal,
-    // N>=1 => exactly N uniform stInternalSolid layers above each wave strip.
-    this->apply_wave_overhang_floor_layer_authority();
-    m_print->throw_if_canceled();
-
     // this will detect bridges and reverse bridges
     // and rearrange top/bottom/internal surfaces
     // It produces enlarged overlapping bridging areas.
@@ -609,6 +602,15 @@ void PrintObject::prepare_infill()
     // 4) Merge surfaces with the same style. This will mostly get rid of the overlaps.
     //FIXME This does not likely merge surfaces, which are supported by a material with different colors, but same properties.
     this->process_external_surfaces();
+    m_print->throw_if_canceled();
+
+    // Orca: authoritative wave-overhang floor-layer pass. Must run AFTER
+    // process_external_surfaces (which rearranges bridges / top / bottom /
+    // internal surfaces via 3 mm offset+overlap logic and would undo our
+    // overrides if run before). This is the LAST classifier — everything in
+    // the wave-shadow footprint now wins: N=0 => stInternal for 0 solid
+    // layers, N>=1 => N uniform stInternalSolid layers.
+    this->apply_wave_overhang_floor_layer_authority();
     m_print->throw_if_canceled();
 
     // Debugging output.
