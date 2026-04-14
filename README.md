@@ -44,9 +44,10 @@ The whole feature is 100% opt-in: leave the master toggle off and the fork behav
 ## Credits & research references
 
 **Wave overhang algorithm research**
-> **Wave-inspired path-planning strategy for support-free horizontal overhangs in FDM** — paper to be published. The accompanying dataset (linked below) is a placeholder while the paper is in review; some fields may still be tentative.
-> Dataset: [10.17632/xhw8xkjyc2.1](https://data.mendeley.com/datasets/xhw8xkjyc2/1) · v1 · 8 April 2026
-> Contributors: **Janis A. Andersons**, **Solemé Sanchez**, **Tom Vaneker**
+> **Wave-inspired path-planning strategy for support-free horizontal overhangs in FDM** — paper to be published.
+> Reference Python implementation + interactive visualiser: [andersonsjanis/Wave-overhangs](https://github.com/andersonsjanis/Wave-overhangs).
+> Accompanying dataset (placeholder while paper is in review): [10.17632/xhw8xkjyc2.1](https://data.mendeley.com/datasets/xhw8xkjyc2/1).
+> Authors: **Janis A. Andersons**, **Solemé Sanchez**, **Tom Vaneker**
 
 **Arc-overhang algorithm** (predecessor that wave overhangs builds on)
 > Steven McCulloch — https://github.com/stmcculloch/arc-overhang
