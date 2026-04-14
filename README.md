@@ -67,7 +67,7 @@ For the full reference of every config option with tuning hints and exact recipe
 | **Geometric primitive** | Concentric arcs grown from interior seed points, clipped to the overhang boundary | Lateral offsets of a root‑edge seed curve, buffered by `line_width × (1 − overlap)` each ring |
 | **Seed** | Interior points where medial‑axis fronts propagate | Curve anchored to the supported edge (auto‑detected in our port as overhang‑boundary ∩ lower‑slice‑boundary) |
 | **Propagation** | Radial: arcs fan out | Boustrophedon: parallel rings alternate direction |
-| **Research origin** | Andersons / Sanchez / Vaneker wave‑overhang work (see Credits) | Kaiser's MSc thesis, University of Twente |
+| **Research origin** | Wave‑overhang research by Andersons (PhD candidate, University of Twente) / Sanchez / Vaneker; arc‑overhang predecessor + PrusaSlicer port by Steven McCulloch (see Credits) | Kaiser's MSc thesis, University of Twente |
 
 Both algorithms have strengths and weaknesses depending on overhang geometry — try both on your model and compare.
 
