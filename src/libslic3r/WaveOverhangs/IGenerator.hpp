@@ -29,7 +29,7 @@ struct CommonParams {
     double      line_width             = 0.4;
     Flow        overhang_flow;
     double      scaled_resolution      = 1.0;
-    // Expert tunables (Kaiser-plumbed; Anderson ignores).
+    // Expert tunables (Kaiser-plumbed; Andersons ignores).
     double      anchor_bite            = 1.0;   // mm; seed-curve pre-offset into supported band.
     SpacingMode spacing_mode           = SpacingMode::Uniform;
     SeamMode    seam_mode              = SeamMode::Alternating;
@@ -37,14 +37,14 @@ struct CommonParams {
     int         kaiser_max_rings       = 0;     // Kaiser only: 0 = unlimited.
     int         anchor_passes          = 1;     // Kaiser only: extra near-seed rings for root anchoring.
     double      direction_bias_deg     = 0.0;   // Kaiser only: rotate seed polylines by this many degrees.
-    // Alpha.6 tunables (Anderson only).
+    // Alpha.6 tunables (Andersons only).
     double      perimeter_overlap      = 0.1;   // mm; extend wave propagation toward perimeters.
     double      narrow_split_threshold = 2.0;   // x spacing; split wave region on narrow necks.
     WaveOverhangPattern pattern        = WaveOverhangPattern::Smart;
-    // Andersons' PropagationParams mirror (Anderson only).
-    double      wavefront_advance      = 0.7;   // mm; distance per wavefront iteration (Anderson wavelength).
+    // Andersons' PropagationParams mirror (Andersons only).
+    double      wavefront_advance      = 0.7;   // mm; distance per wavefront iteration (Andersons wavelength).
     double      discretization         = 0.35;  // mm; sample spacing along each wavefront.
-    int         anderson_max_iterations = 0;    // 0 = unlimited; cap on wavefronts per region.
+    int         andersons_max_iterations = 0;    // 0 = unlimited; cap on wavefronts per region.
     double      min_new_area           = 0.01;  // mm^2; early-termination threshold on new-area growth.
     int         arc_resolution         = 24;    // segments per full circle for arc approximation.
 };

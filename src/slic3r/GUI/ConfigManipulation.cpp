@@ -542,7 +542,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         is_msg_dlg_already_exist = false;
     }
 
-    // Wave-overhang recipe expansion + snap-to-Custom are handled in
+    // Wave-overhang preset expansion + snap-to-Custom are handled in
     // Tab::on_value_change (direct widget edits reach it first, and apply()
     // there populates m_applying_keys correctly for downstream updates).
 }
@@ -967,17 +967,17 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("enable_wrapping_detection", DevPrinterConfigUtil::support_wrapping_detection(printer_type));
 
     // Orca: wave-overhangs conditional visibility.
-    // - Master toggle off → hide every wave_overhang_* tunable (only master + recipe stay).
-    // - Anderson selected → hide Kaiser-only tunables.
-    // - Kaiser selected   → hide Anderson-only tunables.
+    // - Master toggle off → hide every wave_overhang_* tunable (only master + preset stay).
+    // - Andersons selected → hide Kaiser-only tunables.
+    // - Kaiser selected    → hide Andersons-only tunables.
     const bool wo_enabled = config->opt_bool("wave_overhangs");
     const auto wo_algo    = config->opt_enum<WaveOverhangAlgorithm>("wave_overhang_algorithm");
-    const bool is_anderson = wo_algo == woaAnderson;
+    const bool is_andersons = wo_algo == woaAndersons;
     const bool is_kaiser   = wo_algo == woaKaiser;
 
     for (const std::string &k : {
         std::string("wave_overhang_algorithm"),
-        std::string("wave_overhang_recipe"),
+        std::string("wave_overhang_preset"),
         std::string("wave_overhang_outer_perimeters"),
         std::string("wave_overhang_line_spacing"),
         std::string("wave_overhang_line_width"),
@@ -1002,11 +1002,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhang_narrow_split_threshold"),
         std::string("wave_overhang_wavefront_advance"),
         std::string("wave_overhang_discretization"),
-        std::string("wave_overhang_anderson_max_iterations"),
+        std::string("wave_overhang_andersons_max_iterations"),
         std::string("wave_overhang_min_new_area"),
         std::string("wave_overhang_arc_resolution"),
     })
-        toggle_line(k, wo_enabled && is_anderson);
+        toggle_line(k, wo_enabled && is_andersons);
 
     for (const std::string &k : {
         std::string("wave_overhang_laso_overlap"),

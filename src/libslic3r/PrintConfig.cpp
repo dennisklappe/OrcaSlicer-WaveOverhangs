@@ -171,20 +171,20 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
 
 // Orca: wave-overhang algorithm selection
 static t_config_enum_values s_keys_map_WaveOverhangAlgorithm {
-    { "anderson", woaAnderson },
+    { "andersons", woaAndersons },
     { "kaiser",   woaKaiser }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangAlgorithm)
 
-// Orca: wave-overhang recipe (named preset bundles)
-static t_config_enum_values s_keys_map_WaveOverhangRecipe {
-    { "custom",     wortCustom },
-    { "balanced",   wortBalanced },
-    { "aesthetic",  wortAesthetic },
-    { "structural", wortStructural },
-    { "fast",       wortFast }
+// Orca: wave-overhang preset (named preset bundles)
+static t_config_enum_values s_keys_map_WaveOverhangPreset {
+    { "custom",     woptCustom },
+    { "balanced",   woptBalanced },
+    { "aesthetic",  woptAesthetic },
+    { "structural", woptStructural },
+    { "fast",       woptFast }
 };
-CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangRecipe)
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangPreset)
 
 // Orca: wave-overhang ring spacing mode
 static t_config_enum_values s_keys_map_WaveOverhangSpacingMode {
@@ -4643,7 +4643,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wave_overhang_narrow_split_threshold", coFloat);
     def->label = L("Wave overhang narrow split threshold");
     def->category = L("Strength");
-    def->tooltip = L("Anderson algorithm only. If a narrow neck in the wave region is smaller than this multiplier times the wave line spacing, a thin split is inserted there before propagation. "
+    def->tooltip = L("Andersons algorithm only. If a narrow neck in the wave region is smaller than this multiplier times the wave line spacing, a thin split is inserted there before propagation. "
                      "Larger values split more aggressively.");
     def->sidetext = L("x spacing");
     def->min = 0;
@@ -4729,15 +4729,15 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Wave overhang algorithm");
     def->category = L("Strength");
     def->tooltip = L("Algorithm used to generate wave-overhang extrusions. "
-                     "Anderson: outward expanding wavefronts (default, robust). "
+                     "Andersons: outward expanding wavefronts (default, robust). "
                      "Kaiser (LaSO): lateral seed-curve offsetting.");
     def->enum_keys_map = &ConfigOptionEnum<WaveOverhangAlgorithm>::get_enum_values();
-    def->enum_values.push_back("anderson");
+    def->enum_values.push_back("andersons");
     def->enum_values.push_back("kaiser");
-    def->enum_labels.push_back(L("Anderson (wavefront)"));
+    def->enum_labels.push_back(L("Andersons (wavefront)"));
     def->enum_labels.push_back(L("Kaiser LaSO (lateral offset)"));
     def->mode = comSimple;
-    def->set_default_value(new ConfigOptionEnum<WaveOverhangAlgorithm>(woaAnderson));
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangAlgorithm>(woaAndersons));
 
     def = this->add("wave_overhang_laso_overlap", coFloat);
     def->label = L("Kaiser LaSO overlap");
@@ -4749,12 +4749,12 @@ void PrintConfigDef::init_fff_params()
     def->max = 0.9;
     def->set_default_value(new ConfigOptionFloat(0.15));
 
-    def = this->add("wave_overhang_recipe", coEnum);
-    def->label = L("Wave overhang recipe");
+    def = this->add("wave_overhang_preset", coEnum);
+    def->label = L("Wave overhang preset");
     def->category = L("Strength");
-    def->tooltip = L("Preset bundle of wave-overhang parameters. Pick a named recipe to auto-fill "
+    def->tooltip = L("Preset bundle of wave-overhang parameters. Pick a named preset to auto-fill "
                      "all underlying wave_overhang_* settings, or 'Custom' to keep your manual values.");
-    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangRecipe>::get_enum_values();
+    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangPreset>::get_enum_values();
     def->enum_values.push_back("custom");
     def->enum_values.push_back("balanced");
     def->enum_values.push_back("aesthetic");
@@ -4766,7 +4766,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Structural (stronger)"));
     def->enum_labels.push_back(L("Fast (speed priority)"));
     def->mode = comSimple;
-    def->set_default_value(new ConfigOptionEnum<WaveOverhangRecipe>(wortCustom));
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangPreset>(woptCustom));
 
     def = this->add("wave_overhang_min_angle", coFloat);
     def->label = L("Wave overhang min angle");
@@ -4878,9 +4878,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.0));
 
     def = this->add("wave_overhang_wavefront_advance", coFloat);
-    def->label = L("Anderson wavefront advance");
+    def->label = L("Andersons wavefront advance");
     def->category = L("Strength");
-    def->tooltip = L("Distance the Anderson wavefront advances per iteration. Smaller = more rings, "
+    def->tooltip = L("Distance the Andersons wavefront advances per iteration. Smaller = more rings, "
                      "smoother surface, longer print. Larger = fewer rings, rougher but faster. "
                      "Andersons' reference value: 0.7mm.");
     def->sidetext = L("mm");
@@ -4890,7 +4890,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.7));
 
     def = this->add("wave_overhang_discretization", coFloat);
-    def->label = L("Anderson discretization");
+    def->label = L("Andersons discretization");
     def->category = L("Strength");
     def->tooltip = L("Spacing between sample points along each wavefront when emitting the next wave. "
                      "Smaller = smoother but slower, larger = faster but potentially polygonal-looking. "
@@ -4901,8 +4901,8 @@ void PrintConfigDef::init_fff_params()
     def->max = 2.0;
     def->set_default_value(new ConfigOptionFloat(0.35));
 
-    def = this->add("wave_overhang_anderson_max_iterations", coInt);
-    def->label = L("Anderson max iterations");
+    def = this->add("wave_overhang_andersons_max_iterations", coInt);
+    def->label = L("Andersons max iterations");
     def->category = L("Strength");
     def->tooltip = L("Safety cap on the number of wavefronts emitted per overhang region. "
                      "0 = unlimited (stops naturally when no new area is gained). Mirrors the "
@@ -4913,9 +4913,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("wave_overhang_min_new_area", coFloat);
-    def->label = L("Anderson min new area");
+    def->label = L("Andersons min new area");
     def->category = L("Strength");
-    def->tooltip = L("Termination threshold for Anderson propagation: when a new wavefront adds less "
+    def->tooltip = L("Termination threshold for Andersons propagation: when a new wavefront adds less "
                      "than this much new area over the previous wavefront, stop propagating. "
                      "Lower = longer propagation, potentially denser coverage. Higher = earlier "
                      "termination. Our default 0.01 mm² is a safer early-stop than Andersons' "
@@ -4927,9 +4927,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.01));
 
     def = this->add("wave_overhang_arc_resolution", coInt);
-    def->label = L("Anderson arc resolution");
+    def->label = L("Andersons arc resolution");
     def->category = L("Strength");
-    def->tooltip = L("Number of segments used to approximate circular arcs in Anderson wavefront "
+    def->tooltip = L("Number of segments used to approximate circular arcs in Andersons wavefront "
                      "geometry. Higher = smoother arcs, larger G-code. Andersons' reference: 24.");
     def->mode = comDevelop;
     def->min = 4;

@@ -11,14 +11,14 @@ This document describes every config option added by the wave-overhangs fork of 
    - [General](#general)
    - [Geometry](#geometry)
    - [Anchoring](#anchoring)
-   - [Anderson-specific](#anderson-specific)
+   - [Andersons-specific](#andersons-specific)
    - [Kaiser LaSO](#kaiser-laso)
    - [Speed](#speed)
    - [Cooling](#cooling)
    - [Floor layers](#floor-layers)
    - [Support integration](#support-integration)
    - [Debug](#debug)
-5. [Recipe bundles](#recipe-bundles)
+5. [Preset bundles](#preset-bundles)
 6. [Known limitations](#known-limitations)
 7. [G-code markers](#g-code-markers)
 
@@ -26,18 +26,18 @@ This document describes every config option added by the wave-overhangs fork of 
 
 ## What wave overhangs are
 
-Wave overhangs let you print steep cantilevered overhangs without supports. Instead of dropping support columns from the bed, each ring of extrusion anchors to the one before it and the nozzle marches outward into empty space one fused-plastic rung at a time. Two algorithms are bundled: **Anderson** (outward-expanding wavefronts, based on Janis A. Andersons' research) and **Kaiser LaSO** (lateral seed-curve offsetting, based on Rieks Kaiser's master thesis).
+Wave overhangs let you print steep cantilevered overhangs without supports. Instead of dropping support columns from the bed, each ring of extrusion anchors to the one before it and the nozzle marches outward into empty space one fused-plastic rung at a time. Two algorithms are bundled: **Andersons** (outward-expanding wavefronts, based on Janis A. Andersons' research) and **Kaiser LaSO** (lateral seed-curve offsetting, based on Rieks Kaiser's master thesis).
 
 ## How to enable
 
 1. Open a model with an overhang.
 2. Go to **Print Settings → Wave overhangs**.
 3. Toggle **Use wave overhangs (Experimental)** on.
-4. Pick an algorithm (Anderson or Kaiser).
-5. Optionally pick a recipe (Balanced is a good starting point — named recipes auto-fill every underlying tunable).
+4. Pick an algorithm (Andersons or Kaiser).
+5. Optionally pick a preset (Balanced is a good starting point — named presets auto-fill every underlying tunable).
 6. Slice. Wave extrusions will appear in the G-code preview wherever overhangs are detected.
 
-Simple mode only shows the 3 top-level controls (master toggle + algorithm + recipe). Switch the top-right mode selector to **Advanced** to see individual tunables. Editing any tunable automatically snaps the recipe dropdown to "Custom" so you don't silently override a preset.
+Simple mode only shows the 3 top-level controls (master toggle + algorithm + preset). Switch the top-right mode selector to **Advanced** to see individual tunables. Editing any tunable automatically snaps the preset dropdown to "Custom" so you don't silently override a preset.
 
 ---
 
@@ -55,20 +55,20 @@ Master on/off switch. When off, none of the other wave-overhang settings have an
 
 Which generator produces the wave pattern.
 
-- **Type:** enum — `anderson` | `kaiser` · **Default:** `anderson`
+- **Type:** enum — `andersons` | `kaiser` · **Default:** `andersons`
 
 | Choice | What it does | Pick when |
 |---|---|---|
-| **Anderson (wavefront)** | Expands a wavefront outward from the supported edge in fixed-distance steps; each new ring anchors to the previous one. | Most geometries. Robust default, handles complex overhang shapes, good surface quality. |
+| **Andersons (wavefront)** | Expands a wavefront outward from the supported edge in fixed-distance steps; each new ring anchors to the previous one. | Most geometries. Robust default, handles complex overhang shapes, good surface quality. |
 | **Kaiser LaSO (lateral offset)** | Detects a seed curve at the root of the overhang and emits progressively offset rings laterally from it. | Long, fairly straight overhang ridges where you want a very regular, directional pattern. |
 
-### `wave_overhang_recipe`
+### `wave_overhang_preset`
 
 Preset bundle that fills every underlying tunable in one shot.
 
 - **Type:** enum — `custom` | `balanced` | `aesthetic` | `structural` | `fast` · **Default:** `custom`
 
-See [Recipe bundles](#recipe-bundles) below for the exact values each preset applies.
+See [Preset bundles](#preset-bundles) below for the exact values each preset applies.
 
 ---
 
@@ -123,7 +123,7 @@ Extends the wave propagation boundary outward toward kept perimeter lines so the
 
 #### `wave_overhang_narrow_split_threshold`
 
-If a neck in the wave region is narrower than `threshold × line_spacing`, insert a thin split there before propagation (Anderson-only — the narrow-region handling from upstream alpha.6).
+If a neck in the wave region is narrower than `threshold × line_spacing`, insert a thin split there before propagation (Andersons-only — the narrow-region handling from upstream alpha.6).
 
 - **Type:** float (multiplier of line spacing) · **Default:** `2.0` · **Range:** `0 – unbounded`
 - **Tuning:** raise to split more aggressively if wave rings skip over thin necks between lobes. Lower to `0` to disable splitting.
@@ -184,9 +184,9 @@ Extra rings emitted starting from the supported edge before the main wave fan.
 - **Type:** int · **Default:** `1` · **Range:** `0 – 5`
 - **Tuning:** `0` disables. `1` default. `2–5` for extreme >70° overhangs where the foot needs reinforcement. Each pass adds plastic and time.
 
-### Anderson-specific
+### Andersons-specific
 
-These control the Anderson wavefront propagation. No effect when `wave_overhang_algorithm = kaiser`.
+These control the Andersons wavefront propagation. No effect when `wave_overhang_algorithm = kaiser`.
 
 #### `wave_overhang_wavefront_advance`
 
@@ -204,7 +204,7 @@ Sample spacing along each wavefront when emitting the next ring.
 - Andersons' reference: 0.35 mm.
 - **Tuning:** smaller = smoother arcs, heavier CPU. Larger = faster, can look polygonal.
 
-#### `wave_overhang_anderson_max_iterations`
+#### `wave_overhang_andersons_max_iterations`
 
 Safety cap on the number of wavefronts per overhang region.
 
@@ -222,7 +222,7 @@ Terminate propagation when a new wavefront adds less than this much new area.
 
 #### `wave_overhang_arc_resolution`
 
-Arc-approximation segment count in Anderson wavefront geometry.
+Arc-approximation segment count in Andersons wavefront geometry.
 
 - **Type:** int · **Default:** `24` · **Range:** `4 – 128`
 - Mode: Develop.
@@ -245,7 +245,7 @@ Overlap fraction between successive Kaiser offset rings.
 Safety cap on ring count per region.
 
 - **Type:** int · **Default:** `0` (= unlimited) · **Range:** `0 – 500`
-- Mirrors `wave_overhang_anderson_max_iterations` for the Kaiser side.
+- Mirrors `wave_overhang_andersons_max_iterations` for the Kaiser side.
 
 ### Speed
 
@@ -307,9 +307,9 @@ Emit `;WAVE_OVERHANG_START` / `;WAVE_OVERHANG_END` comments around wave extrusio
 
 ---
 
-## Recipe bundles
+## Preset bundles
 
-Selecting a named recipe in `wave_overhang_recipe` rewrites every key below. Values are read from `Tab::on_value_change` in the current source.
+Selecting a named preset in `wave_overhang_preset` rewrites every key below. Values are read from `Tab::on_value_change` in the current source.
 
 | Key | Balanced | Aesthetic | Structural | Fast |
 |---|---|---|---|---|
@@ -323,7 +323,7 @@ Selecting a named recipe in `wave_overhang_recipe` rewrites every key below. Val
 | `wave_overhang_floor_layers` | 2 | 2 | 3 | 1 |
 | `wave_overhang_wavefront_advance` (mm) | 0.7 | 0.5 | 0.8 | 1.0 |
 | `wave_overhang_discretization` (mm) | 0.35 | 0.25 | 0.35 | 0.5 |
-| `wave_overhang_anderson_max_iterations` | 0 | 0 | 0 | 100 |
+| `wave_overhang_andersons_max_iterations` | 0 | 0 | 0 | 100 |
 | `wave_overhang_min_new_area` (mm²) | 0.01 | 0.005 | 0.01 | 0.1 |
 | `wave_overhang_arc_resolution` | 24 | 48 | 24 | 12 |
 
@@ -349,10 +349,10 @@ All user-facing options are now plumbed end-to-end. The table below notes mode e
 | `wave_overhang_fan_speed` | Fully plumbed — new `;_WAVE_OVERHANG_FAN_START/END` marker emitted around wave paths and handled in `CoolingBuffer` to drive the part-cooling fan percentage. |
 | `wave_overhang_min_angle` | **Inert (save-only).** Kept on the profile but not enforced; Orca's upstream *Detect overhang walls* + *Overhang reverse threshold* (Strength tab) is the real slope filter. See key description above. |
 | `support_remaining_areas_after_wave_overhangs` | Fully plumbed — residual polygons (wave-uncovered area) are collected and passed into Orca's support generation as enforcer regions. |
-| `wave_overhang_min_new_area` | Anderson-only, Develop mode only. |
-| `wave_overhang_arc_resolution` | Anderson-only, Develop mode only. |
+| `wave_overhang_min_new_area` | Andersons-only, Develop mode only. |
+| `wave_overhang_arc_resolution` | Andersons-only, Develop mode only. |
 
-Andersons-reference-parameter tunables (`wavefront_advance`, `discretization`, `anderson_max_iterations`, `min_new_area`, `arc_resolution`) only apply when the Anderson algorithm is selected. Kaiser-only tunables (`laso_overlap`, `kaiser_max_rings`, `direction_bias`) only apply when Kaiser is selected.
+Andersons-reference-parameter tunables (`wavefront_advance`, `discretization`, `anderson_max_iterations`, `min_new_area`, `arc_resolution`) only apply when the Andersons algorithm is selected. Kaiser-only tunables (`laso_overlap`, `kaiser_max_rings`, `direction_bias`) only apply when Kaiser is selected.
 
 Kaiser's original post-processor places discrete pin-support nubs under overhangs. Those are **not** ported and not planned — use `support_remaining_areas_after_wave_overhangs` with Orca's normal supports instead.
 
@@ -365,7 +365,7 @@ When `wave_overhang_debug_gcode = true` (the default), three kinds of comments a
 **Region banner** (once per wave region, before any extrusion):
 
 ```
-; WAVE_OVERHANG_CONFIG region=<N> algo=<anderson|kaiser> recipe=<name> outer_perim=<int> spacing=<mm> width=<mm> speed=<mm/s> travel=<mm/s> fan=<%> floor_layers=<int> min_angle=<deg> min_length=<mm> anchor_bite=<mm> anchor_passes=<int> laso_overlap=<frac> kaiser_max_rings=<int> direction_bias=<deg>
+; WAVE_OVERHANG_CONFIG region=<N> algo=<andersons|kaiser> preset=<name> outer_perim=<int> spacing=<mm> width=<mm> speed=<mm/s> travel=<mm/s> fan=<%> floor_layers=<int> min_angle=<deg> min_length=<mm> anchor_bite=<mm> anchor_passes=<int> laso_overlap=<frac> kaiser_max_rings=<int> direction_bias=<deg>
 ```
 
 **Extrusion block markers** (wrap every wave extrusion):

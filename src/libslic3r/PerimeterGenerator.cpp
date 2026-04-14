@@ -10,7 +10,7 @@
 #include "VariableWidth.hpp"
 #include "Arachne/WallToolPaths.hpp"
 #include "WaveOverhangs/WaveOverhangs.hpp"
-#include "WaveOverhangs/AndersonGenerator.hpp"
+#include "WaveOverhangs/AndersonsGenerator.hpp"
 #include "WaveOverhangs/KaiserGenerator.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "ExPolygonCollection.hpp"
@@ -1122,7 +1122,7 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     // Andersons' PropagationParams mirror (see Wave overhangs.py :: PropagationParams @ line 46).
     params.wavefront_advance        = region_config.wave_overhang_wavefront_advance.value;
     params.discretization           = region_config.wave_overhang_discretization.value;
-    params.anderson_max_iterations  = region_config.wave_overhang_anderson_max_iterations.value;
+    params.andersons_max_iterations  = region_config.wave_overhang_andersons_max_iterations.value;
     params.min_new_area             = region_config.wave_overhang_min_new_area.value;
     params.arc_resolution           = region_config.wave_overhang_arc_resolution.value;
 
@@ -1143,7 +1143,7 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
         gen.overlap = region_config.wave_overhang_laso_overlap.value;
         res = gen.generate(infill_area, lower_slices_polygons, params);
     } else {
-        WaveOverhangs::AndersonGenerator gen;
+        WaveOverhangs::AndersonsGenerator gen;
         res = gen.generate(infill_area, lower_slices_polygons, params);
     }
     return { std::move(res.paths), std::move(res.residual) };

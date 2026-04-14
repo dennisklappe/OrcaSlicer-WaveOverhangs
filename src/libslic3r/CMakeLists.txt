@@ -129,8 +129,8 @@ set(lisbslic3r_sources
     WaveOverhangs/WaveOverhangs.cpp
     WaveOverhangs/WaveOverhangs.hpp
     WaveOverhangs/IGenerator.hpp
-    WaveOverhangs/AndersonGenerator.cpp
-    WaveOverhangs/AndersonGenerator.hpp
+    WaveOverhangs/AndersonsGenerator.cpp
+    WaveOverhangs/AndersonsGenerator.hpp
     WaveOverhangs/KaiserGenerator.cpp
     WaveOverhangs/KaiserGenerator.hpp
     ExtrusionSimulator.cpp

@@ -69,17 +69,17 @@ enum PrintHostType {
 
 // Orca: which wave-overhang generation algorithm to use.
 enum WaveOverhangAlgorithm {
-    woaAnderson,
+    woaAndersons,
     woaKaiser
 };
 
 // Orca: named preset bundle for wave-overhang parameters.
-enum WaveOverhangRecipe {
-    wortCustom,
-    wortBalanced,
-    wortAesthetic,
-    wortStructural,
-    wortFast
+enum WaveOverhangPreset {
+    woptCustom,
+    woptBalanced,
+    woptAesthetic,
+    woptStructural,
+    woptFast
 };
 
 // Orca: wave-overhang ring spacing mode.
@@ -557,7 +557,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerWallType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangAlgorithm)
-CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangRecipe)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangPreset)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangSpacingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangSeamMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangPattern)
@@ -1167,7 +1167,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,                       wave_overhang_floor_layers))
     ((ConfigOptionEnum<WaveOverhangAlgorithm>, wave_overhang_algorithm))
     ((ConfigOptionFloat,                     wave_overhang_laso_overlap))
-    ((ConfigOptionEnum<WaveOverhangRecipe>,  wave_overhang_recipe))
+    ((ConfigOptionEnum<WaveOverhangPreset>,  wave_overhang_preset))
     ((ConfigOptionFloat,                     wave_overhang_min_angle))
     ((ConfigOptionFloat,                     wave_overhang_anchor_bite))
     ((ConfigOptionEnum<WaveOverhangSpacingMode>, wave_overhang_spacing_mode))
@@ -1179,7 +1179,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                     wave_overhang_direction_bias))
     ((ConfigOptionFloat,                     wave_overhang_wavefront_advance))
     ((ConfigOptionFloat,                     wave_overhang_discretization))
-    ((ConfigOptionInt,                       wave_overhang_anderson_max_iterations))
+    ((ConfigOptionInt,                       wave_overhang_andersons_max_iterations))
     ((ConfigOptionFloat,                     wave_overhang_min_new_area))
     ((ConfigOptionInt,                       wave_overhang_arc_resolution))
     ((ConfigOptionBool,                      support_remaining_areas_after_wave_overhangs))

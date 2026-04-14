@@ -602,7 +602,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     double          scaled_resolution,
     double          wavefront_advance,
     double          discretization,
-    int             anderson_max_iterations,
+    int             andersons_max_iterations,
     double          min_new_area_mm2,
     int             arc_resolution)
 {
@@ -610,9 +610,9 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     const Flow    wave_flow          = wave_line_width > 0. ? overhang_flow.with_width(float(wave_line_width)) : overhang_flow;
     const coord_t perimeter_overlap  = std::max<coord_t>(0, wave_perimeter_overlap > 0. ? coord_t(scale_(wave_perimeter_overlap)) : 0);
     // Andersons' wavelength: if wave_line_spacing is not set, fall back to wavefront_advance
-    // (the Anderson-side equivalent from the reference PropagationParams). Otherwise they act
+    // (the Andersons-side equivalent from the reference PropagationParams). Otherwise they act
     // independently — wave_line_spacing wins as the ring-spacing knob, wavefront_advance is a
-    // save-only alternative slot for future Anderson-specific propagation control.
+    // save-only alternative slot for future Andersons-specific propagation control.
     const double  effective_spacing_mm = wave_line_spacing > 0. ? wave_line_spacing
                                        : (wavefront_advance > 0. ? wavefront_advance : 0.0);
     const coord_t wave_spacing       = std::max<coord_t>(1, effective_spacing_mm > 0. ? coord_t(scale_(effective_spacing_mm)) : base_spacing);
@@ -694,7 +694,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
                 double accumulated_area = area(accumulated_region);
                 int    iteration        = 0;
                 for (;;) {
-                    if (anderson_max_iterations > 0 && iteration >= anderson_max_iterations)
+                    if (andersons_max_iterations > 0 && iteration >= andersons_max_iterations)
                         break;
                     ++iteration;
 

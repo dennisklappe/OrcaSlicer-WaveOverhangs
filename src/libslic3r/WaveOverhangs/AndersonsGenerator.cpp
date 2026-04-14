@@ -5,12 +5,12 @@
 ///|/
 ///|/ Released under the terms of the AGPLv3 or higher.
 ///|/
-#include "AndersonGenerator.hpp"
+#include "AndersonsGenerator.hpp"
 #include "WaveOverhangs.hpp"
 
 namespace Slic3r::WaveOverhangs {
 
-GenerateResult AndersonGenerator::generate(const ExPolygons   &overhang_area,
+GenerateResult AndersonsGenerator::generate(const ExPolygons   &overhang_area,
                                            const Polygons     &lower_slices_polygons,
                                            const CommonParams &params)
 {
@@ -40,7 +40,7 @@ GenerateResult AndersonGenerator::generate(const ExPolygons   &overhang_area,
         params.scaled_resolution,
         params.wavefront_advance,
         params.discretization,
-        params.anderson_max_iterations,
+        params.andersons_max_iterations,
         params.min_new_area,
         params.arc_resolution);
 
