@@ -543,12 +543,13 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
 
     // Orca: wave-overhang recipe preset expansion.
-    // Fills the underlying wave_overhang_* keys from the recipe table whenever
-    // the current recipe is non-custom. The dropdown stays on the chosen recipe
-    // name (no snap-back) so the user can see what's active. Runs on every
-    // config update while recipe != custom — the apply() diff ensures we only
-    // actually write when values differ, so the loop is a no-op once expanded.
-    {
+    // Fills the underlying wave_overhang_* keys from the recipe table ONLY when
+    // the recipe field itself was just changed (i.e. user picked a new recipe).
+    // Guarded by m_applying_keys so we don't overwrite user edits of individual
+    // tunables while the recipe dropdown still reads non-custom.
+    const bool recipe_key_changed = std::find(m_applying_keys.begin(), m_applying_keys.end(),
+        std::string("wave_overhang_recipe")) != m_applying_keys.end();
+    if (recipe_key_changed) {
         auto recipe = config->opt_enum<WaveOverhangRecipe>("wave_overhang_recipe");
         if (recipe != wortCustom) {
             DynamicPrintConfig new_conf = *config;
@@ -605,6 +606,59 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
                 break;
             }
             apply(config, &new_conf);
+        }
+    }
+
+    // Orca: snap recipe to Custom when the user manually edits any recipe-controlled
+    // wave_overhang_* tunable while the dropdown is still on a named preset. This
+    // keeps the dropdown honest — once you diverge from a preset, the label reflects
+    // that. We only act when one of those keys is in m_applying_keys (so the
+    // expansion block above — which also writes those keys — doesn't trigger us,
+    // because when it runs, m_applying_keys contains wave_overhang_recipe, not the
+    // tunables).
+    if (!recipe_key_changed) {
+        // Any advanced wave_overhang_* tunable — editing one implies the current
+        // config no longer matches a named recipe, so snap the dropdown to Custom.
+        // Excludes the three Simple-mode keys (wave_overhangs, wave_overhang_algorithm,
+        // wave_overhang_recipe); wave_overhang_algorithm is intentionally included
+        // here because it's part of the recipe definition — changing it mid-recipe
+        // breaks the recipe identity.
+        static const std::vector<std::string> advanced_wave_keys = {
+            "wave_overhang_outer_perimeters",
+            "wave_overhang_line_spacing",
+            "wave_overhang_line_width",
+            "wave_overhang_print_speed",
+            "wave_overhang_travel_speed",
+            "wave_overhang_fan_speed",
+            "wave_overhang_laso_overlap",
+            "wave_overhang_floor_layers",
+            "wave_overhang_min_angle",
+            "wave_overhang_anchor_bite",
+            "wave_overhang_spacing_mode",
+            "wave_overhang_seam_mode",
+            "wave_overhang_debug_gcode",
+            "wave_overhang_min_length",
+            "wave_overhang_kaiser_max_rings",
+            "wave_overhang_anchor_passes",
+            "wave_overhang_direction_bias",
+            "wave_overhang_pattern",
+            "wave_overhang_perimeter_overlap",
+            "wave_overhang_narrow_split_threshold",
+            "support_remaining_areas_after_wave_overhangs",
+            "wave_overhang_algorithm",
+        };
+        const bool user_edited_advanced_key = std::any_of(
+            advanced_wave_keys.begin(), advanced_wave_keys.end(),
+            [this](const std::string &k) {
+                return std::find(m_applying_keys.begin(), m_applying_keys.end(), k) != m_applying_keys.end();
+            });
+        if (user_edited_advanced_key) {
+            const auto recipe = config->opt_enum<WaveOverhangRecipe>("wave_overhang_recipe");
+            if (recipe != wortCustom) {
+                DynamicPrintConfig new_conf = *config;
+                new_conf.set_key_value("wave_overhang_recipe", new ConfigOptionEnum<WaveOverhangRecipe>(wortCustom));
+                apply(config, &new_conf);
+            }
         }
     }
 }

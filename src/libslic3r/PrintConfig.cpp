@@ -201,6 +201,14 @@ static t_config_enum_values s_keys_map_WaveOverhangSeamMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangSeamMode)
 
+// Wave-overhang fill pattern (ported from stmcculloch alpha.6).
+static t_config_enum_values s_keys_map_WaveOverhangPattern {
+    { "monotonic", int(WaveOverhangPattern::Monotonic) },
+    { "zigzag",    int(WaveOverhangPattern::ZigZag) },
+    { "smart",     int(WaveOverhangPattern::Smart) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangPattern)
+
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
     { "external",       int(FuzzySkinType::External) },
@@ -4610,7 +4618,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Generate wave-patterned perimeters over overhangs to print steep angles "
                      "without supports. Algorithm by Janis A. Andersons.");
-    def->mode = comAdvanced;
+    def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("wave_overhang_outer_perimeters", coInt);
@@ -4618,16 +4626,51 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Number of additional concentric outer-shell perimeters printed inside the "
                      "overhang region before the wave fill. 1 is usually enough.");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->min = 0;
     def->set_default_value(new ConfigOptionInt(1));
+
+    def = this->add("wave_overhang_perimeter_overlap", coFloat);
+    def->label = L("Wave overhang perimeter overlap");
+    def->category = L("Strength");
+    def->tooltip = L("Extends the wave propagation boundary toward nearby perimeter lines so the last wave sits closer to the kept perimeter. "
+                     "This reduces the gap between wave lines and perimeter shells.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.1));
+
+    def = this->add("wave_overhang_narrow_split_threshold", coFloat);
+    def->label = L("Wave overhang narrow split threshold");
+    def->category = L("Strength");
+    def->tooltip = L("If a narrow neck in the wave region is smaller than this multiplier times the wave line spacing, a thin split is inserted there before propagation. "
+                     "Larger values split more aggressively.");
+    def->sidetext = L("x spacing");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(2.0));
+
+    def = this->add("wave_overhang_pattern", coEnum);
+    def->label = L("Wave overhang pattern");
+    def->category = L("Strength");
+    def->tooltip = L("Controls whether wave-overhang tracks are printed one direction at a time (monotonic), "
+                     "connected into a back-and-forth meander (zig-zag), or started from the better-supported end of each new wave line (smart).");
+    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangPattern>::get_enum_values();
+    def->enum_values.push_back("monotonic");
+    def->enum_values.push_back("zigzag");
+    def->enum_values.push_back("smart");
+    def->enum_labels.push_back(L("Monotonic"));
+    def->enum_labels.push_back(L("Zig Zag"));
+    def->enum_labels.push_back(L("Smart"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<WaveOverhangPattern>(WaveOverhangPattern::Smart));
 
     def = this->add("wave_overhang_line_spacing", coFloat);
     def->label = L("Wave overhang line spacing");
     def->category = L("Strength");
     def->tooltip = L("Center-to-center distance between adjacent wave-overhang extrusions.");
     def->sidetext = L("mm");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->min = 0.01;
     def->set_default_value(new ConfigOptionFloat(0.35));
 
@@ -4637,7 +4680,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Extrusion width used for wave-overhang lines. Typically a bit narrower "
                      "than the nozzle diameter.");
     def->sidetext = L("mm");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->min = 0.1;
     def->set_default_value(new ConfigOptionFloat(0.4));
 
@@ -4656,7 +4699,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Speed");
     def->tooltip = L("Travel speed within wave-overhang regions (between non-extruding hops).");
     def->sidetext = L("mm/s");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->min = 1.0;
     def->set_default_value(new ConfigOptionFloat(40.0));
 
@@ -4693,7 +4736,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("kaiser");
     def->enum_labels.push_back(L("Anderson (wavefront)"));
     def->enum_labels.push_back(L("Kaiser LaSO (lateral offset)"));
-    def->mode = comAdvanced;
+    def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<WaveOverhangAlgorithm>(woaAnderson));
 
     def = this->add("wave_overhang_laso_overlap", coFloat);
@@ -4701,7 +4744,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Overlap fraction between successive Kaiser LaSO offset rings. "
                      "Higher values produce denser, more solid wave fills.");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->min = 0.0;
     def->max = 0.9;
     def->set_default_value(new ConfigOptionFloat(0.15));
@@ -4722,7 +4765,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Aesthetic (slower, prettier)"));
     def->enum_labels.push_back(L("Structural (stronger)"));
     def->enum_labels.push_back(L("Fast (speed priority)"));
-    def->mode = comAdvanced;
+    def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<WaveOverhangRecipe>(wortCustom));
 
     def = this->add("wave_overhang_min_angle", coFloat);
@@ -4732,7 +4775,7 @@ void PrintConfigDef::init_fff_params()
                      "Below this threshold, shallow overhangs use normal perimeters instead. "
                      "0 = always on, 90 = never.");
     def->sidetext = L("°");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->min = 0;
     def->max = 90;
     def->set_default_value(new ConfigOptionFloat(45));
@@ -4743,7 +4786,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Distance the wave pattern extends into the supported region beyond the overhang's "
                      "root edge. Improves adhesion of the first wave rings. 0 = no bite (seed stays exactly at root).");
     def->sidetext = L("mm");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->min = 0;
     def->max = 5.0;
     def->set_default_value(new ConfigOptionFloat(1.0));
@@ -4759,7 +4802,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("progressive");
     def->enum_labels.push_back(L("Uniform (constant step)"));
     def->enum_labels.push_back(L("Progressive (tight at root, wide at tip)"));
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<WaveOverhangSpacingMode>(wosmUniform));
 
     def = this->add("wave_overhang_seam_mode", coEnum);
@@ -4775,7 +4818,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Alternating (boustrophedon)"));
     def->enum_labels.push_back(L("Aligned (same direction)"));
     def->enum_labels.push_back(L("Random (hide seam)"));
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<WaveOverhangSeamMode>(woseAlternating));
 
     def = this->add("wave_overhang_debug_gcode", coBool);
@@ -4783,7 +4826,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Emit ';WAVE_OVERHANG_START'/';WAVE_OVERHANG_END' comments around wave-overhang "
                      "extrusions in the G-code. Useful for post-process inspection and debugging.");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("wave_overhang_min_length", coFloat);
@@ -4792,7 +4835,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Minimum overhang perimeter length (in mm) below which wave-overhang generation "
                      "is skipped. Useful to avoid waving tiny overhangs where normal perimeters are fine.");
     def->sidetext = L("mm");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->min = 0;
     def->max = 50;
     def->set_default_value(new ConfigOptionFloat(0.0));
@@ -4802,7 +4845,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Kaiser algorithm only: maximum number of wave rings generated per overhang "
                      "region. 0 = unlimited. Useful as a safety cap on large overhangs to bound print time.");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->min = 0;
     def->max = 500;
     def->set_default_value(new ConfigOptionInt(0));
@@ -4813,7 +4856,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Number of additional rings emitted starting from the supported edge, before the "
                      "main wave fan. More passes give stronger anchoring at the cost of extra "
                      "plastic/time. 0 disables; 1 is default; 2-5 for extreme overhangs.");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->min = 0;
     def->max = 5;
     def->set_default_value(new ConfigOptionInt(1));
@@ -4825,10 +4868,18 @@ void PrintConfigDef::init_fff_params()
                      "0 follows the natural overhang root edge. Positive/negative biases tilt the "
                      "wave pattern for aesthetic tuning. Experimental — may cause out-of-boundary rings.");
     def->sidetext = L("°");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->min = -90.0;
     def->max = 90.0;
     def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("support_remaining_areas_after_wave_overhangs", coBool);
+    def->label = L("Support unfilled wave overhang areas");
+    def->category = L("Support");
+    def->tooltip = L("When wave overhangs are enabled, generate supports only for overhang areas that were not filled "
+                     "by propagated wave toolpaths. Explicit support enforcers still apply normally.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("wall_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
