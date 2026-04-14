@@ -8,16 +8,13 @@ Fork of OrcaSlicer adding wave-pattern overhang printing with pluggable algorith
 
 ## Status / Download
 
-Prebuilt binaries:
-
-- **Tagged releases** → https://github.com/dennisklappe/OrcaSlicer-WaveOverhangs/releases — produces ready-to-run binaries for Linux (AppImage), Windows (portable zip + installer), and macOS (universal DMG).
-- **Untagged / in-development builds** → https://github.com/dennisklappe/OrcaSlicer-WaveOverhangs/actions — every push to `wave-overhangs` runs the full build matrix; download the per-OS artifacts from any recent successful run.
+Prebuilt binaries for tagged releases → [github.com/dennisklappe/OrcaSlicer-WaveOverhangs/releases](https://github.com/dennisklappe/OrcaSlicer-WaveOverhangs/releases). Linux AppImage, Windows portable zip + installer, macOS universal DMG.
 
 ---
 
 ## What this is
 
-Wave overhangs let you print steep cantilevered overhangs without supports by laying down concentric or lateral wave patterns that each use the previous pass as their own support. Instead of dropping support columns from the bed, each sweep of extrusion anchors to the one before it, and the nozzle marches outward into empty space one fused-plastic rung at a time.
+Wave overhangs let you print steep overhangs without supports. Instead of using support structures, the slicer lays down wave-patterned perimeters where each pass anchors to the previous one, extending further out layer by layer.
 
 Two algorithms are available in this fork:
 
@@ -35,9 +32,9 @@ The whole feature is 100% opt-in: leave the master toggle off and the fork behav
 | **Geometric primitive** | Concentric arcs grown from interior seed points, clipped to the overhang boundary | Lateral offsets of a root-edge seed curve, buffered by `line_width × (1 − overlap)` each ring |
 | **Seed** | Interior points where medial-axis fronts propagate | Curve anchored to the supported edge (auto-detected in our port as overhang-boundary ∩ lower-slice-boundary) |
 | **Propagation** | Radial: arcs fan out | Boustrophedon: parallel rings alternate direction |
-| **Best for** | Round, concave overhangs | Straight-edge, wedge, rectangular overhangs |
-| **Thermal behavior** | Nozzle dwells near arc centers | More uniform tool speed |
-| **Research origin** | Anderson / Sanchez / Vaneker wave-overhang work (Mendeley DOI below) | Kaiser's MSc thesis, University of Twente |
+| **Research origin** | Andersons / Sanchez / Vaneker wave-overhang work (see below) | Kaiser's MSc thesis, University of Twente |
+
+Both algorithms have strengths and weaknesses depending on the overhang geometry — try both on your model and compare.
 
 ---
 

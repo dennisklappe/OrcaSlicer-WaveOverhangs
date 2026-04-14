@@ -527,6 +527,10 @@ private:
     void bridge_over_infill();
     void clip_fill_surfaces();
     void discover_horizontal_shells();
+    // Orca: wave-overhang floor-layer authority — runs after all surface-classification
+    // passes to authoritatively set surface types within the wave shadow (N=0 => all
+    // stInternal; N>=1 => N layers of uniform stInternalSolid above each wave strip).
+    void apply_wave_overhang_floor_layer_authority();
     void combine_infill();
     void _generate_support_material();
     std::pair<FillAdaptive::OctreePtr, FillAdaptive::OctreePtr> prepare_adaptive_infill_data(

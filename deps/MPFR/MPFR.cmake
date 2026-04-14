@@ -29,6 +29,11 @@ else ()
     # autoreconf + configure with the right --with-gmp-lib and --libdir. Using
     # a script file avoids CMake/sh quoting pitfalls that arose with an inline
     # `sh -c "..."` command.
+    # Flatten CMake lists (e.g. Apple's _gmp_build_tgt = "--build=...;--host=...")
+    # to space-separated strings. Without this the generated shell script would
+    # see `;` as a statement separator and try to exec the second flag as a command.
+    string(REPLACE ";" " " _mpfr_build_tgt_str "${_gmp_build_tgt}")
+    string(REPLACE ";" " " _mpfr_cross_arg_str "${_cross_compile_arg}")
     set(_mpfr_configure_script ${CMAKE_CURRENT_BINARY_DIR}/configure_mpfr.sh)
     file(WRITE ${_mpfr_configure_script}
 "#!/bin/bash
@@ -40,7 +45,7 @@ for ext in a so dylib; do
 done
 echo \"MPFR: using GMP from $DESTDIR/$GMP_LIBDIR\"
 autoreconf -f -i
-env CC='${CMAKE_C_COMPILER}' CXX='${CMAKE_CXX_COMPILER}' CFLAGS='${_gmp_ccflags}' CXXFLAGS='${_gmp_ccflags}' LDFLAGS='${CMAKE_EXE_LINKER_FLAGS}' ./configure ${_cross_compile_arg} --prefix='${DESTDIR}' --enable-shared=no --enable-static=yes --with-gmp-lib=\"$DESTDIR/$GMP_LIBDIR\" --with-gmp-include=\"$DESTDIR/include\" --libdir=\"$DESTDIR/$GMP_LIBDIR\" ${_gmp_build_tgt}
+env CC='${CMAKE_C_COMPILER}' CXX='${CMAKE_CXX_COMPILER}' CFLAGS='${_gmp_ccflags}' CXXFLAGS='${_gmp_ccflags}' LDFLAGS='${CMAKE_EXE_LINKER_FLAGS}' ./configure ${_mpfr_cross_arg_str} --prefix='${DESTDIR}' --enable-shared=no --enable-static=yes --with-gmp-lib=\"$DESTDIR/$GMP_LIBDIR\" --with-gmp-include=\"$DESTDIR/include\" --libdir=\"$DESTDIR/$GMP_LIBDIR\" ${_mpfr_build_tgt_str}
 ")
     ExternalProject_Add(dep_MPFR
         URL https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.2.tar.bz2

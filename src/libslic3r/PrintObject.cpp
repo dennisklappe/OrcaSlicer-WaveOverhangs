@@ -592,6 +592,13 @@ void PrintObject::prepare_infill()
     } // for each region
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
+    // Orca: authoritative wave-overhang floor-layer pass. Runs AFTER all surface-type
+    // classification (detect_surfaces_type + discover_vertical_shells + discover_horizontal_shells)
+    // so that whatever Orca decided inside the wave shadow gets overridden: N=0 => all stInternal,
+    // N>=1 => exactly N uniform stInternalSolid layers above each wave strip.
+    this->apply_wave_overhang_floor_layer_authority();
+    m_print->throw_if_canceled();
+
     // this will detect bridges and reverse bridges
     // and rearrange top/bottom/internal surfaces
     // It produces enlarged overlapping bridging areas.
@@ -1719,60 +1726,28 @@ void PrintObject::detect_surfaces_type()
         // ==============================================================================================================
 
         // ==============================================================================================================
-        // === ORCA: Wave-overhang floor layers (authoritative) =========================================================
-        // For each layer L with wave-overhang extrusions, we want exactly N = wave_overhang_floor_layers solid layers
-        // above the wave footprint — no more, no less. That means:
-        //   1. Promote ALL surfaces on layers L+1..L+N whose footprint intersects the wave shadow to stBottomBridge.
-        //      This overrides whatever Orca's own classifier produced (stInternal, stBottom, stTop, stBottomBridge,
-        //      etc.) within the shadow footprint. Done here.
-        //   2. Record the promoted region on each affected layer as `wave_overhang_shadow_polygons`. The shell
-        //      passes (discover_vertical_shells, discover_horizontal_shells) mask OUT these shadow regions when
-        //      harvesting bottom-shell seeds so they do not propagate additional solid layers above L+N.
-        //      This is what makes floor_layers authoritative rather than additive.
-        //   3. Layer L itself also contributes its `wave_overhang_floor_polygons` as a shadow for shell-seed
-        //      suppression purposes — otherwise Orca's own detection of the overhang strip as stBottomBridge on
-        //      layer L would seed `bottom_shell_layers` more solid layers above even when N=0.
-        // Zero behavior change when wave_overhangs=false: both loops early-out, shadow stays empty.
+        // === ORCA: Wave-overhang shadow computation ===================================================================
+        // Populate Layer::wave_overhang_shadow_polygons — the union of wave footprints in the shell-influence
+        // window around each layer (both directions). Used as a first-line defense by discover_vertical_shells /
+        // discover_horizontal_shells to suppress shell-seed propagation into the wave region. Authoritative
+        // promotion of surface types has been MOVED to apply_wave_overhang_floor_layer_authority(), which runs
+        // AFTER all surface-classification passes so its results cannot be overwritten.
+        // Zero behavior change when wave_overhangs=false: loop early-outs, shadow stays empty.
         // ==============================================================================================================
         {
             const PrintRegionConfig &rconf = this->printing_region(region_id).config();
             const int floor_layers        = rconf.wave_overhang_floor_layers.value;
             const int bottom_shell_layers = rconf.bottom_shell_layers.value;
             const int top_shell_layers    = rconf.top_shell_layers.value;
-            // Shadow-influence radius: a layer must be masked from shell-seed propagation
-            // if it's within this many layers of any wave region. We cover both directions:
-            //   - upward  ≤ max(floor_layers, bottom_shell_layers) so Orca's bottom-shell
-            //     doesn't add extra solid layers beyond floor_layers
-            //   - downward ≤ top_shell_layers so a top surface nearby doesn't pull the
-            //     wave region into a top-solid shell
-            // This is what makes floor_layers=0 truly produce zero solid above the wave.
             const int shadow_up   = std::max(floor_layers, bottom_shell_layers);
             const int shadow_down = top_shell_layers;
             if (rconf.wave_overhangs.value) {
                 tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
-                    [this, region_id, floor_layers, shadow_up, shadow_down](const tbb::blocked_range<size_t> &range) {
-                        for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++idx_layer) {
+                    [this, shadow_up, shadow_down](const tbb::blocked_range<size_t> &range) {
+                        for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
                             m_print->throw_if_canceled();
                             Layer *layer = m_layers[idx_layer];
 
-                            // Track distance to the nearest wave layer BELOW (for promotion).
-                            Polygons wave_floor;
-                            int dist_to_wave = 0;
-                            for (int k = 1; k <= floor_layers; ++k) {
-                                if ((int)idx_layer - k < 0) break;
-                                const Layer *below = m_layers[idx_layer - k];
-                                if (!below->wave_overhang_floor_polygons.empty()) {
-                                    if (dist_to_wave == 0) dist_to_wave = k;
-                                    append(wave_floor, below->wave_overhang_floor_polygons);
-                                }
-                            }
-
-                            // Shadow = union of wave footprints in the shell-influence window
-                            // around THIS layer (both directions). Used for seed-suppression
-                            // in discover_vertical_shells / discover_horizontal_shells — any
-                            // bottom-shell or top-shell propagation that would enter the
-                            // shadow region is dropped, so wave_overhang_floor_layers is the
-                            // authoritative solid-layer count above the wave.
                             Polygons shadow = std::move(layer->wave_overhang_shadow_polygons);
                             append(shadow, layer->wave_overhang_floor_polygons);  // this layer (wave strip itself)
                             for (int k = 1; k <= shadow_up; ++k) {                // layers above wave (mask up)
@@ -1786,48 +1761,13 @@ void PrintObject::detect_surfaces_type()
                             if (!shadow.empty())
                                 shadow = union_(shadow);
                             layer->wave_overhang_shadow_polygons = std::move(shadow);
-
-                            if (floor_layers <= 0 || wave_floor.empty())
-                                continue;
-
-                            // Authoritative promotion: any surface whose area intersects wave_floor
-                            // gets promoted. Layer directly above wave (dist=1) → stBottomBridge
-                            // (a real bridge across the cantilever). Layers further above
-                            // (dist>=2) → stInternalSolid (solid infill on top of the bridge).
-                            // This matches expected behavior: N=3 produces 1 bridge layer + 2
-                            // solid-infill layers, not 3 consecutive bridge layers.
-                            const SurfaceType promote_to = (dist_to_wave == 1) ? stBottomBridge : stInternalSolid;
-                            LayerRegion *layerm = layer->m_regions[region_id];
-                            Surfaces &surfs = layerm->slices.surfaces;
-                            Surfaces new_surfaces;
-                            new_surfaces.reserve(surfs.size());
-                            for (Surface &s : surfs) {
-                                if (s.surface_type == promote_to) {
-                                    // Already the target type; keep whole.
-                                    new_surfaces.push_back(std::move(s));
-                                    continue;
-                                }
-                                Polygons   p_up      = to_polygons(s);
-                                ExPolygons overlap   = intersection_ex(p_up, wave_floor, ApplySafetyOffset::Yes);
-                                if (overlap.empty()) {
-                                    new_surfaces.push_back(std::move(s));
-                                    continue;
-                                }
-                                ExPolygons remainder = diff_ex(p_up, to_polygons(overlap), ApplySafetyOffset::Yes);
-                                const SurfaceType orig = s.surface_type;
-                                for (auto &ex_rem : union_safety_offset_ex(remainder))
-                                    new_surfaces.emplace_back(orig, std::move(ex_rem));
-                                for (auto &ex_over : union_safety_offset_ex(overlap))
-                                    new_surfaces.emplace_back(promote_to, std::move(ex_over));
-                            }
-                            surfs = std::move(new_surfaces);
                         }
                     });
                 m_print->throw_if_canceled();
             }
         }
         // ==============================================================================================================
-        // === ORCA: End of wave-overhang floor-layer promotion =========================================================
+        // === ORCA: End of wave-overhang shadow computation ============================================================
         // ==============================================================================================================
 
         BOOST_LOG_TRIVIAL(debug) << "Detecting solid surfaces for region " << region_id << " - clipping in parallel - start";
@@ -1851,6 +1791,101 @@ void PrintObject::detect_surfaces_type()
     // Mark the object to have the region slices classified (typed, which also means they are split based on whether they are supported, bridging, top layers etc.)
     m_typed_slices = true;
 }
+
+// ==============================================================================================================
+// === ORCA: Authoritative wave-overhang floor-layer pass =======================================================
+// Runs AFTER detect_surfaces_type / discover_vertical_shells / discover_horizontal_shells and BEFORE
+// clip_fill_surfaces / bridge_over_infill / combine_infill. At this point every earlier pass has had
+// its chance to (re)classify surfaces; any stInternalSolid / stBottom / stBottomBridge / stTop / stInternal
+// values Orca chose within the wave shadow get OVERRIDDEN here so that wave_overhang_floor_layers is
+// authoritative:
+//   * N == 0 : every surface inside the wave shadow reverts to stInternal (sparse infill)
+//   * N >= 1 : layer L+k (k = 1..N) above the wave is stInternalSolid (regular solid infill on top of the
+//              wave extrusions — NOT stBottomBridge since it's supported by the wave strands, not air).
+//              Layers L+k for k > N revert to stInternal.
+// Operates on LayerRegion::fill_surfaces.surfaces (what later passes and gcode generation consume).
+// No-op when no region has wave_overhangs = true.
+// ==============================================================================================================
+void PrintObject::apply_wave_overhang_floor_layer_authority()
+{
+    bool any_wave = false;
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id)
+        if (this->printing_region(region_id).config().wave_overhangs.value) {
+            any_wave = true;
+            break;
+        }
+    if (!any_wave)
+        return;
+
+    BOOST_LOG_TRIVIAL(info) << "Applying wave-overhang floor-layer authority...";
+
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        const PrintRegionConfig &rconf = this->printing_region(region_id).config();
+        if (!rconf.wave_overhangs.value)
+            continue;
+        const int floor_layers = rconf.wave_overhang_floor_layers.value;
+
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
+            [this, region_id, floor_layers](const tbb::blocked_range<size_t> &range) {
+                for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
+                    m_print->throw_if_canceled();
+                    Layer *layer = m_layers[idx_layer];
+                    if (layer->wave_overhang_shadow_polygons.empty())
+                        continue;
+
+                    // Distance k (in layers) to the nearest wave-producing layer at or below
+                    // this one. k = 0 means THIS layer is the wave layer itself.
+                    int k = -1;
+                    for (int d = 0; d <= floor_layers && (int)idx_layer - d >= 0; ++d) {
+                        if (!m_layers[idx_layer - d]->wave_overhang_floor_polygons.empty()) {
+                            k = d;
+                            break;
+                        }
+                    }
+                    // Authority target for the shadow region on THIS layer:
+                    //   k == 0            : wave layer itself — leave fill_surfaces untouched there,
+                    //                       the wave extrusions don't come from fill_surfaces.
+                    //                       Inside-shadow still becomes stInternal so no extra fill.
+                    //   1 <= k <= N       : stInternalSolid (bug B: never stBottomBridge)
+                    //   k > N or k == -1  : stInternal (bug A: N=0 ⇒ zero solid above wave)
+                    SurfaceType inside_type;
+                    if (k >= 1 && k <= floor_layers)
+                        inside_type = stInternalSolid;
+                    else
+                        inside_type = stInternal;
+
+                    const Polygons &shadow = layer->wave_overhang_shadow_polygons;
+                    LayerRegion *layerm = layer->m_regions[region_id];
+                    Surfaces &surfs = layerm->fill_surfaces.surfaces;
+                    Surfaces new_surfaces;
+                    new_surfaces.reserve(surfs.size() + 4);
+                    for (Surface &s : surfs) {
+                        Polygons   p         = to_polygons(s);
+                        ExPolygons inside    = intersection_ex(p, shadow, ApplySafetyOffset::Yes);
+                        if (inside.empty()) {
+                            new_surfaces.push_back(std::move(s));
+                            continue;
+                        }
+                        ExPolygons outside = diff_ex(p, to_polygons(inside), ApplySafetyOffset::Yes);
+                        const SurfaceType orig = s.surface_type;
+                        for (auto &ex_out : union_safety_offset_ex(outside))
+                            new_surfaces.emplace_back(orig, std::move(ex_out));
+                        // Skip emitting inside-shadow surfaces on the wave layer itself (k==0);
+                        // we don't want any extra fill there — the wave paths ARE the fill.
+                        if (k == 0)
+                            continue;
+                        for (auto &ex_in : union_safety_offset_ex(inside))
+                            new_surfaces.emplace_back(inside_type, std::move(ex_in));
+                    }
+                    surfs = std::move(new_surfaces);
+                }
+            });
+        m_print->throw_if_canceled();
+    }
+}
+// ==============================================================================================================
+// === ORCA: End of apply_wave_overhang_floor_layer_authority ===================================================
+// ==============================================================================================================
 
 void PrintObject::process_external_surfaces()
 {

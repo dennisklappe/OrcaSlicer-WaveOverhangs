@@ -281,8 +281,9 @@ Number of solid floor layers placed directly above a wave region. **Authoritativ
 
 - **Type:** int · **Default:** `2` · **Range:** `0 – 20`
 - `N = 0` = zero solid layers above the wave footprint. The layer directly above the wave strip goes straight to sparse infill. Use for max material savings on purely aesthetic overhangs.
-- `N = 2` (default) = two solid bridge/solid-infill layers above the wave before sparse infill resumes. Standard mechanical backing.
+- `N = 2` (default) = two solid-infill layers above the wave before sparse infill resumes. Standard mechanical backing.
 - `N = 3+` = heavier structural cap (slower, more filament, but stiffer).
+- **All N layers are `stInternalSolid` (regular solid infill) — no bridge classification is used, since these layers sit on top of the wave extrusions (which are solid material) rather than spanning air.** Layer L+1 was previously misclassified as `stBottomBridge` and rendered as "Internal bridge" in the preview; that has been fixed so the whole floor window is uniform solid infill.
 - **Interaction with `bottom_shell_layers`:** inside the wave shadow, the floor_layers value wins. Outside the wave shadow, Orca's normal shell rules still apply. Implementation: each affected layer gets a `wave_overhang_shadow_polygons` mask that is subtracted from the bottom-shell seed set in both `discover_vertical_shells` and `discover_horizontal_shells`, preventing further solid propagation above N.
 
 ### Support integration
