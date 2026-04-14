@@ -553,7 +553,6 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         if (recipe != wortCustom) {
             DynamicPrintConfig new_conf = *config;
             auto set_algo    = [&](WaveOverhangAlgorithm v) { new_conf.set_key_value("wave_overhang_algorithm", new ConfigOptionEnum<WaveOverhangAlgorithm>(v)); };
-            auto set_top     = [&](WaveOverhangTopMode v)   { new_conf.set_key_value("wave_overhang_top_mode",  new ConfigOptionEnum<WaveOverhangTopMode>(v)); };
             auto set_int     = [&](const char* k, int v)    { new_conf.set_key_value(k, new ConfigOptionInt(v)); };
             auto set_float   = [&](const char* k, double v) { new_conf.set_key_value(k, new ConfigOptionFloat(v)); };
 
@@ -567,8 +566,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
                 set_float("wave_overhang_travel_speed",     40.0);
                 set_int  ("wave_overhang_fan_speed",        100);
                 set_float("wave_overhang_laso_overlap",     0.15);
-                set_top  (wotmDefault);
-                set_int  ("wave_overhang_extra_top_layers", 0);
+                set_int  ("wave_overhang_floor_layers",     2);
                 break;
             case wortAesthetic:
                 set_algo(woaKaiser);
@@ -579,7 +577,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
                 set_float("wave_overhang_travel_speed",     30.0);
                 set_int  ("wave_overhang_fan_speed",        100);
                 set_float("wave_overhang_laso_overlap",     0.25);
-                set_top  (wotmDefault);
+                set_int  ("wave_overhang_floor_layers",     2);
                 break;
             case wortStructural:
                 set_algo(woaAnderson);
@@ -590,8 +588,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
                 set_float("wave_overhang_travel_speed",     40.0);
                 set_int  ("wave_overhang_fan_speed",        100);
                 set_float("wave_overhang_laso_overlap",     0.25);
-                set_top  (wotmExtra);
-                set_int  ("wave_overhang_extra_top_layers", 2);
+                set_int  ("wave_overhang_floor_layers",     3);
                 break;
             case wortFast:
                 set_algo(woaAnderson);
@@ -602,7 +599,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
                 set_float("wave_overhang_travel_speed",     60.0);
                 set_int  ("wave_overhang_fan_speed",        100);
                 set_float("wave_overhang_laso_overlap",     0.10);
-                set_top  (wotmSkip);
+                set_int  ("wave_overhang_floor_layers",     1);
                 break;
             default:
                 break;

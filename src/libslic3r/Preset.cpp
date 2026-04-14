@@ -893,7 +893,7 @@ static std::vector<std::string> s_Preset_print_options {
     "extra_perimeters_on_overhangs", "ensure_vertical_shell_thickness", "reduce_crossing_wall", "detect_thin_wall", "detect_overhang_wall", "overhang_reverse", "overhang_reverse_threshold","overhang_reverse_internal_only", "wall_direction",
     "wave_overhangs", "wave_overhang_outer_perimeters", "wave_overhang_line_spacing", "wave_overhang_line_width",
     "wave_overhang_print_speed", "wave_overhang_travel_speed", "wave_overhang_fan_speed",
-    "wave_overhang_top_mode", "wave_overhang_extra_top_layers",
+    "wave_overhang_floor_layers",
     "wave_overhang_algorithm", "wave_overhang_laso_overlap", "wave_overhang_recipe",
     "wave_overhang_min_angle", "wave_overhang_anchor_bite",
     "wave_overhang_spacing_mode", "wave_overhang_seam_mode",
