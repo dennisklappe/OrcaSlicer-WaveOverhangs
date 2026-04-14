@@ -4775,7 +4775,8 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Minimum overhang angle (from vertical) at which wave-overhang generation activates. "
                      "Below this threshold, shallow overhangs use normal perimeters instead. "
-                     "0 = always on, 90 = never.");
+                     "0 = always on, 90 = never. "
+                     "Saved per-profile but not yet applied — angle estimation wiring pending.");
     def->sidetext = L("°");
     def->mode = comAdvanced;
     def->min = 0;
@@ -4940,7 +4941,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Support unfilled wave overhang areas");
     def->category = L("Support");
     def->tooltip = L("When wave overhangs are enabled, generate supports only for overhang areas that were not filled "
-                     "by propagated wave toolpaths. Explicit support enforcers still apply normally.");
+                     "by propagated wave toolpaths. Explicit support enforcers still apply normally. "
+                     "Saved per-profile but not yet applied — support-pipeline integration pending.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 

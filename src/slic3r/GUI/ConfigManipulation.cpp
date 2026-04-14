@@ -991,7 +991,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhang_anchor_passes"),
         std::string("wave_overhang_spacing_mode"),
         std::string("wave_overhang_seam_mode"),
-        std::string("wave_overhang_direction_bias"),
         std::string("wave_overhang_debug_gcode"),
         std::string("support_remaining_areas_after_wave_overhangs"),
     })
