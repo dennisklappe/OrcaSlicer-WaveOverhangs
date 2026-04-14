@@ -1713,7 +1713,60 @@ void PrintObject::detect_surfaces_type()
         // ==============================================================================================================
         // === ORCA: End of second external bridge layer changes  =======================================================
         // ==============================================================================================================
-        
+
+        // ==============================================================================================================
+        // === ORCA: Wave-overhang floor layers =========================================================================
+        // For each layer L with wave-overhang extrusions, force the N layers above (N = wave_overhang_floor_layers)
+        // to classify surfaces sitting directly over the wave footprint as stBottomBridge. Those become solid bridge
+        // fill via Orca's existing stBottomBridge -> solid-infill pipeline, giving the cantilever a solid mechanical
+        // backing. Zero behavior change when wave_overhangs=false or wave_overhang_floor_layers=0.
+        // ==============================================================================================================
+        {
+            const PrintRegionConfig &rconf = this->printing_region(region_id).config();
+            const int floor_layers = rconf.wave_overhang_floor_layers.value;
+            if (rconf.wave_overhangs.value && floor_layers > 0) {
+                tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
+                    [this, region_id, floor_layers](const tbb::blocked_range<size_t> &range) {
+                        for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++idx_layer) {
+                            m_print->throw_if_canceled();
+                            // Union wave polygons from layers [idx_layer - floor_layers, idx_layer - 1].
+                            Polygons wave_floor;
+                            for (int k = 1; k <= floor_layers; ++k) {
+                                if ((int)idx_layer - k < 0) break;
+                                const Layer *below = m_layers[idx_layer - k];
+                                append(wave_floor, below->wave_overhang_floor_polygons);
+                            }
+                            if (wave_floor.empty())
+                                continue;
+
+                            LayerRegion *layerm = m_layers[idx_layer]->m_regions[region_id];
+                            Surfaces &surfs = layerm->slices.surfaces;
+                            Surfaces new_surfaces;
+                            new_surfaces.reserve(surfs.size());
+                            for (Surface &s : surfs) {
+                                // Only promote stInternal; leave stTop/stBottom/stBottomBridge alone.
+                                if (s.surface_type != stInternal) {
+                                    new_surfaces.push_back(std::move(s));
+                                    continue;
+                                }
+                                Polygons p_up = to_polygons(s);
+                                ExPolygons overlap   = intersection_ex(p_up, wave_floor, ApplySafetyOffset::Yes);
+                                ExPolygons remainder = diff_ex(p_up, overlap, ApplySafetyOffset::Yes);
+                                for (auto &ex_rem : union_safety_offset_ex(remainder))
+                                    new_surfaces.emplace_back(stInternal, std::move(ex_rem));
+                                for (auto &ex_over : union_safety_offset_ex(overlap))
+                                    new_surfaces.emplace_back(stBottomBridge, std::move(ex_over));
+                            }
+                            surfs = std::move(new_surfaces);
+                        }
+                    });
+                m_print->throw_if_canceled();
+            }
+        }
+        // ==============================================================================================================
+        // === ORCA: End of wave-overhang floor-layer promotion =========================================================
+        // ==============================================================================================================
+
         BOOST_LOG_TRIVIAL(debug) << "Detecting solid surfaces for region " << region_id << " - clipping in parallel - start";
         // Fill in layerm->fill_surfaces by trimming the layerm->slices by the cummulative layerm->fill_surfaces.
         tbb::parallel_for(
