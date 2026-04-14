@@ -24,17 +24,40 @@ else ()
         set(_cross_compile_arg --host=${TOOLCHAIN_PREFIX})
     endif ()
 
-    # GMP's autoconf picks `lib/` or `lib64/` depending on the system. Rather than
-    # hard-code a choice (which was wrong for both openSUSE vs Ubuntu and Linux
-    # vs macOS), detect at MPFR configure-time which one GMP actually wrote into,
-    # and point MPFR at that path. MPFR then installs alongside.
+    # Write a tiny wrapper script that detects whether GMP landed in lib/ or
+    # lib64/ at MPFR-configure time (after dep_GMP installed), then invokes
+    # autoreconf + configure with the right --with-gmp-lib and --libdir. Using
+    # a script file avoids CMake/sh quoting pitfalls that arose with an inline
+    # `sh -c "..."` command.
+    set(_mpfr_configure_script ${CMAKE_CURRENT_BINARY_DIR}/configure_mpfr.sh)
+    file(WRITE ${_mpfr_configure_script}
+"#!/bin/bash
+set -e
+DESTDIR='${DESTDIR}'
+GMP_LIBDIR=lib
+for ext in a so dylib; do
+  if [ -f \"$DESTDIR/lib64/libgmp.$ext\" ]; then GMP_LIBDIR=lib64; break; fi
+done
+echo \"MPFR: using GMP from $DESTDIR/$GMP_LIBDIR\"
+autoreconf -f -i
+env CC='${CMAKE_C_COMPILER}' CXX='${CMAKE_CXX_COMPILER}' \\
+    CFLAGS='${_gmp_ccflags}' CXXFLAGS='${_gmp_ccflags}' \\
+    LDFLAGS='${CMAKE_EXE_LINKER_FLAGS}' \\
+  ./configure ${_cross_compile_arg} \\
+    --prefix='${DESTDIR}' \\
+    --enable-shared=no --enable-static=yes \\
+    --with-gmp-lib=\"$DESTDIR/$GMP_LIBDIR\" \\
+    --with-gmp-include=\"$DESTDIR/include\" \\
+    --libdir=\"$DESTDIR/$GMP_LIBDIR\" \\
+    ${_gmp_build_tgt}
+")
     ExternalProject_Add(dep_MPFR
         URL https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.2.tar.bz2
             https://www.mpfr.org/mpfr-4.2.2/mpfr-4.2.2.tar.bz2
         URL_HASH SHA256=9ad62c7dc910303cd384ff8f1f4767a655124980bb6d8650fe62c815a231bb7b
         DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/MPFR
         BUILD_IN_SOURCE ON
-        CONFIGURE_COMMAND sh -c "GMP_LIBDIR=lib; if [ -f ${DESTDIR}/lib64/libgmp.a ] || [ -f ${DESTDIR}/lib64/libgmp.so ] || [ -f ${DESTDIR}/lib64/libgmp.dylib ]; then GMP_LIBDIR=lib64; fi; autoreconf -f -i && env CC='${CMAKE_C_COMPILER}' CXX='${CMAKE_CXX_COMPILER}' CFLAGS='${_gmp_ccflags}' CXXFLAGS='${_gmp_ccflags}' LDFLAGS='${CMAKE_EXE_LINKER_FLAGS}' ./configure ${_cross_compile_arg} --prefix='${DESTDIR}' --enable-shared=no --enable-static=yes --with-gmp-lib='${DESTDIR}/$GMP_LIBDIR' --with-gmp-include='${DESTDIR}/include' --libdir='${DESTDIR}/'$GMP_LIBDIR ${_gmp_build_tgt}"
+        CONFIGURE_COMMAND bash ${_mpfr_configure_script}
         BUILD_COMMAND make -j
         INSTALL_COMMAND make install
         DEPENDS dep_GMP
