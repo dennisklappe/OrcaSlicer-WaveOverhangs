@@ -604,15 +604,6 @@ void PrintObject::prepare_infill()
     this->process_external_surfaces();
     m_print->throw_if_canceled();
 
-    // Orca: authoritative wave-overhang floor-layer pass. Must run AFTER
-    // process_external_surfaces (which rearranges bridges / top / bottom /
-    // internal surfaces via 3 mm offset+overlap logic and would undo our
-    // overrides if run before). This is the LAST classifier — everything in
-    // the wave-shadow footprint now wins: N=0 => stInternal for 0 solid
-    // layers, N>=1 => N uniform stInternalSolid layers.
-    this->apply_wave_overhang_floor_layer_authority();
-    m_print->throw_if_canceled();
-
     // Debugging output.
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
@@ -646,6 +637,16 @@ void PrintObject::prepare_infill()
     // the following step needs to be done before combination because it may need
     // to remove only half of the combined infill
     this->bridge_over_infill();
+    m_print->throw_if_canceled();
+
+    // Orca: authoritative wave-overhang floor-layer pass. MUST run LAST after
+    // every surface-classification stage (process_external_surfaces,
+    // clip_fill_surfaces, bridge_over_infill) — each of those can re-promote
+    // the wave shadow area into solid/bridge/internal-bridge. At this point
+    // all upstream classifiers have had their final say; we overwrite within
+    // the wave shadow: N=0 => stInternal (zero solid above wave, no spurious
+    // internal bridges), N>=1 => N uniform stInternalSolid layers.
+    this->apply_wave_overhang_floor_layer_authority();
     m_print->throw_if_canceled();
 
     // combine fill surfaces to honor the "infill every N layers" option
@@ -1836,7 +1837,7 @@ void PrintObject::apply_wave_overhang_floor_layer_authority()
                         continue;
 
                     // Distance k (in layers) to the nearest wave-producing layer at or below
-                    // this one. k = 0 means THIS layer is the wave layer itself.
+                    // this one. k == 0 means THIS layer is the wave layer itself.
                     int k = -1;
                     for (int d = 0; d <= floor_layers && (int)idx_layer - d >= 0; ++d) {
                         if (!m_layers[idx_layer - d]->wave_overhang_floor_polygons.empty()) {
@@ -1844,17 +1845,12 @@ void PrintObject::apply_wave_overhang_floor_layer_authority()
                             break;
                         }
                     }
-                    // Authority target for the shadow region on THIS layer:
-                    //   k == 0            : wave layer itself — leave fill_surfaces untouched there,
-                    //                       the wave extrusions don't come from fill_surfaces.
-                    //                       Inside-shadow still becomes stInternal so no extra fill.
-                    //   1 <= k <= N       : stInternalSolid (bug B: never stBottomBridge)
-                    //   k > N or k == -1  : stInternal (bug A: N=0 ⇒ zero solid above wave)
-                    SurfaceType inside_type;
-                    if (k >= 1 && k <= floor_layers)
-                        inside_type = stInternalSolid;
-                    else
-                        inside_type = stInternal;
+                    // Authority target for the shadow area on THIS layer:
+                    //   k == 0            : wave layer itself — skip inside-shadow fill; the
+                    //                       wave extrusions ARE the fill, no overlay needed.
+                    //   1 <= k <= N       : stInternalSolid — uniform solid infill above wave.
+                    //   k > N or k == -1  : stInternal — sparse infill (N=0 => zero solid).
+                    SurfaceType inside_type = (k >= 1 && k <= floor_layers) ? stInternalSolid : stInternal;
 
                     const Polygons &shadow = layer->wave_overhang_shadow_polygons;
                     LayerRegion *layerm = layer->m_regions[region_id];
@@ -1862,8 +1858,8 @@ void PrintObject::apply_wave_overhang_floor_layer_authority()
                     Surfaces new_surfaces;
                     new_surfaces.reserve(surfs.size() + 4);
                     for (Surface &s : surfs) {
-                        Polygons   p         = to_polygons(s);
-                        ExPolygons inside    = intersection_ex(p, shadow, ApplySafetyOffset::Yes);
+                        Polygons   p       = to_polygons(s);
+                        ExPolygons inside  = intersection_ex(p, shadow, ApplySafetyOffset::Yes);
                         if (inside.empty()) {
                             new_surfaces.push_back(std::move(s));
                             continue;
@@ -1872,10 +1868,8 @@ void PrintObject::apply_wave_overhang_floor_layer_authority()
                         const SurfaceType orig = s.surface_type;
                         for (auto &ex_out : union_safety_offset_ex(outside))
                             new_surfaces.emplace_back(orig, std::move(ex_out));
-                        // Skip emitting inside-shadow surfaces on the wave layer itself (k==0);
-                        // we don't want any extra fill there — the wave paths ARE the fill.
                         if (k == 0)
-                            continue;
+                            continue; // no fill on the wave layer itself
                         for (auto &ex_in : union_safety_offset_ex(inside))
                             new_surfaces.emplace_back(inside_type, std::move(ex_in));
                     }

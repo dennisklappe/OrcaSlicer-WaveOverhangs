@@ -1187,7 +1187,12 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
             // detect_surfaces_type) only fires when wave_overhang_floor_layers > 0
             // AND wave_overhangs is on, so it's safe to always stash here when we
             // generated wave paths.
-            if (use_wave_overhangs && this->config->wave_overhang_floor_layers.value > 0) {
+            // Stash wave-overhang footprint whenever wave paths were generated,
+            // independent of wave_overhang_floor_layers. Consumer (apply_wave_
+            // overhang_floor_layer_authority) needs this to compute the shadow
+            // mask even at floor_layers=0 so it can SUPPRESS Orca's default
+            // bottom_shell_layers from auto-adding solid layers above the wave.
+            if (use_wave_overhangs) {
                 append(this->out_wave_overhang_floor_polygons, filled_area);
             }
 
