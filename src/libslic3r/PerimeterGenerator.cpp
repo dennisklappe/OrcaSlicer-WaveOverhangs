@@ -1134,13 +1134,6 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     return { std::move(res.paths), std::move(res.residual) };
 }
 
-// TODO: plumb wave_overhang_top_mode / wave_overhang_extra_top_layers to surface classification.
-// The options are defined on PrintRegionConfig and visible in the UI, but the layer-above
-// surface reclassification (skip solid-top / add extra stTopSolid layers) is not yet wired in.
-// Implementation sketch: tag LayerRegion with a bool "contains_wave_overhang_extrusions" when
-// WaveOverhangs::generate() emits paths for it, then during surface classification in
-// PrintObject::discover_vertical_shells / LayerRegion::process_external_surfaces consult the
-// region below and override stTopSolid assignment per wave_overhang_top_mode.
 void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
 {
     const bool use_wave_overhangs = this->config->wave_overhangs;
@@ -1171,6 +1164,16 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
             for (const auto &surface : orig_surfaces.surfaces) {
                 auto new_surfaces = diff_ex({surface.expolygon}, filled_area);
                 this->fill_surfaces->append(new_surfaces, surface);
+            }
+
+            // Orca: stash wave-overhang footprint for floor-layer surface promotion
+            // above. filled_area is the union of regions actually filled by the
+            // WaveOverhangs algorithm in this region; the consumer (PrintObject::
+            // detect_surfaces_type) only fires when wave_overhang_floor_layers > 0
+            // AND wave_overhangs is on, so it's safe to always stash here when we
+            // generated wave paths.
+            if (use_wave_overhangs && this->config->wave_overhang_floor_layers.value > 0) {
+                append(this->out_wave_overhang_floor_polygons, filled_area);
             }
         }
     }

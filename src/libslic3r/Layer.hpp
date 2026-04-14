@@ -156,6 +156,13 @@ public:
     // BBS
     ExPolygons              loverhangs;
     BoundingBox             loverhangs_bbox;
+
+    // Orca: 2D footprint (union of areas filled by wave-overhang extrusions)
+    // emitted in this layer. Populated by PerimeterGenerator via
+    // LayerRegion::make_perimeters; consumed by PrintObject::detect_surfaces_type
+    // to upgrade stInternal -> stBottomBridge on the floor_layers immediately
+    // above so they get solid bridge fill.
+    Polygons                wave_overhang_floor_polygons;
     size_t                  region_count() const { return m_regions.size(); }
     const LayerRegion*      get_region(int idx) const { return m_regions[idx]; }
     LayerRegion*            get_region(int idx) { return m_regions[idx]; }
