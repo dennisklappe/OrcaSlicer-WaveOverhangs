@@ -6,6 +6,15 @@ Fork of OrcaSlicer adding wave-pattern overhang printing with pluggable algorith
 
 ---
 
+## Status / Download
+
+Prebuilt binaries:
+
+- **Tagged releases** → https://github.com/dennisklappe/OrcaSlicer-WaveOverhangs/releases — produces ready-to-run binaries for Linux (AppImage), Windows (portable zip + installer), and macOS (universal DMG).
+- **Untagged / in-development builds** → https://github.com/dennisklappe/OrcaSlicer-WaveOverhangs/actions — every push to `wave-overhangs` runs the full build matrix; download the per-OS artifacts from any recent successful run.
+
+---
+
 ## What this is
 
 Wave overhangs let you print steep cantilevered overhangs without supports by laying down concentric or lateral wave patterns that each use the previous pass as their own support. Instead of dropping support columns from the bed, each sweep of extrusion anchors to the one before it, and the nozzle marches outward into empty space one fused-plastic rung at a time.
