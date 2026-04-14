@@ -4825,9 +4825,10 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Wave overhang debug g-code");
     def->category = L("Strength");
     def->tooltip = L("Emit ';WAVE_OVERHANG_START'/';WAVE_OVERHANG_END' comments around wave-overhang "
-                     "extrusions in the G-code. Useful for post-process inspection and debugging.");
+                     "extrusions in the G-code. Useful for post-process inspection and debugging. "
+                     "Comments-only — no effect on the print.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
+    def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("wave_overhang_min_length", coFloat);
     def->label = L("Wave overhang min length");
