@@ -599,18 +599,43 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     double          wave_line_spacing,
     double          wave_line_width,
     const Flow     &overhang_flow,
-    double          scaled_resolution)
+    double          scaled_resolution,
+    double          wavefront_advance,
+    double          discretization,
+    int             anderson_max_iterations,
+    double          min_new_area_mm2,
+    int             arc_resolution)
 {
     const coord_t base_spacing       = overhang_flow.scaled_spacing();
     const Flow    wave_flow          = wave_line_width > 0. ? overhang_flow.with_width(float(wave_line_width)) : overhang_flow;
     const coord_t perimeter_overlap  = std::max<coord_t>(0, wave_perimeter_overlap > 0. ? coord_t(scale_(wave_perimeter_overlap)) : 0);
-    const coord_t wave_spacing       = std::max<coord_t>(1, wave_line_spacing > 0. ? coord_t(scale_(wave_line_spacing)) : base_spacing);
+    // Andersons' wavelength: if wave_line_spacing is not set, fall back to wavefront_advance
+    // (the Anderson-side equivalent from the reference PropagationParams). Otherwise they act
+    // independently — wave_line_spacing wins as the ring-spacing knob, wavefront_advance is a
+    // save-only alternative slot for future Anderson-specific propagation control.
+    const double  effective_spacing_mm = wave_line_spacing > 0. ? wave_line_spacing
+                                       : (wavefront_advance > 0. ? wavefront_advance : 0.0);
+    const coord_t wave_spacing       = std::max<coord_t>(1, effective_spacing_mm > 0. ? coord_t(scale_(effective_spacing_mm)) : base_spacing);
     const coord_t anchors_size       = std::min(coord_t(scale_(EXTERNAL_INFILL_MARGIN)), base_spacing * (perimeter_count + 1));
     const coord_t seed_expansion     = std::max<coord_t>(1, base_spacing / 10);
     const coord_t shell_inner_edge   = additional_shell_count > 0 ? overhang_flow.scaled_width() + (additional_shell_count - 1) * base_spacing : 0;
     const coord_t filled_area_regularization = std::max<coord_t>(1, base_spacing / 2);
     const coord_t zig_zag_connector_limit = std::max<coord_t>(wave_spacing, wave_flow.scaled_width()) + perimeter_overlap;
-    const double  min_area_growth    = 0.05 * double(wave_spacing) * double(wave_spacing);
+    // Map Andersons' min_new_area (mm^2) into Clipper's scaled area units. Fall back to the
+    // legacy 0.05 * spacing^2 heuristic when the user leaves it at 0.
+    const double  min_area_growth    = min_new_area_mm2 > 0.
+                                       ? scale_(1.) * scale_(1.) * min_new_area_mm2
+                                       : 0.05 * double(wave_spacing) * double(wave_spacing);
+    // TODO: plumb wave_overhang_discretization — stmcculloch's port uses Clipper jtRound offsets
+    // whose arc tolerance is derived from offset delta, not from a sample-spacing parameter.
+    // Currently save-only; will require rewriting the offset() calls with explicit per-segment
+    // resampling (or using Polyline::simplify with a spacing-based tolerance) to honor this knob.
+    (void)discretization;
+    // TODO: plumb wave_overhang_arc_resolution — Clipper's jtRound uses ArcTolerance internally;
+    // exposing a segments-per-circle control requires either switching to jtMiter+manual arc
+    // tessellation or threading a Clipper-specific arc-tolerance value through offset(). Save-only
+    // for now.
+    (void)arc_resolution;
 
     BoundingBox infill_area_bb       = get_extents(infill_area).inflated(SCALED_EPSILON);
     Polygons    optimized_lower      = ClipperUtils::clip_clipper_polygons_with_subject_bbox(lower_slices_polygons, infill_area_bb);
@@ -667,7 +692,12 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
 
                 std::vector<Polylines> front_levels;
                 double accumulated_area = area(accumulated_region);
+                int    iteration        = 0;
                 for (;;) {
+                    if (anderson_max_iterations > 0 && iteration >= anderson_max_iterations)
+                        break;
+                    ++iteration;
+
                     Polygons next_region = intersection(offset(accumulated_region, float(wave_spacing), jtRound, 0.), wave_cover_polygons);
                     if (next_region.empty())
                         break;

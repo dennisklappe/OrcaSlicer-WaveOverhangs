@@ -37,7 +37,12 @@ GenerateResult AndersonGenerator::generate(const ExPolygons   &overhang_area,
         params.line_spacing,
         params.line_width,
         params.overhang_flow,
-        params.scaled_resolution);
+        params.scaled_resolution,
+        params.wavefront_advance,
+        params.discretization,
+        params.anderson_max_iterations,
+        params.min_new_area,
+        params.arc_resolution);
 
     GenerateResult r;
     r.paths    = std::move(paths);

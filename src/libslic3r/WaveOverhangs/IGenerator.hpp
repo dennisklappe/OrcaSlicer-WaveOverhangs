@@ -41,6 +41,12 @@ struct CommonParams {
     double      perimeter_overlap      = 0.1;   // mm; extend wave propagation toward perimeters.
     double      narrow_split_threshold = 2.0;   // x spacing; split wave region on narrow necks.
     WaveOverhangPattern pattern        = WaveOverhangPattern::Smart;
+    // Andersons' PropagationParams mirror (Anderson only).
+    double      wavefront_advance      = 0.7;   // mm; distance per wavefront iteration (Anderson wavelength).
+    double      discretization         = 0.35;  // mm; sample spacing along each wavefront.
+    int         anderson_max_iterations = 0;    // 0 = unlimited; cap on wavefronts per region.
+    double      min_new_area           = 0.01;  // mm^2; early-termination threshold on new-area growth.
+    int         arc_resolution         = 24;    // segments per full circle for arc approximation.
 };
 
 struct GenerateResult {

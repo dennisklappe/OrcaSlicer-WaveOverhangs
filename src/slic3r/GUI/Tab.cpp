@@ -1958,6 +1958,11 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 set_int  ("wave_overhang_fan_speed",        100);
                 set_float("wave_overhang_laso_overlap",     0.15);
                 set_int  ("wave_overhang_floor_layers",     2);
+                set_float("wave_overhang_wavefront_advance",      0.7);
+                set_float("wave_overhang_discretization",         0.35);
+                set_int  ("wave_overhang_anderson_max_iterations", 0);
+                set_float("wave_overhang_min_new_area",           0.01);
+                set_int  ("wave_overhang_arc_resolution",         24);
                 break;
             case wortAesthetic:
                 set_algo(woaKaiser);
@@ -1969,6 +1974,11 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 set_int  ("wave_overhang_fan_speed",        100);
                 set_float("wave_overhang_laso_overlap",     0.25);
                 set_int  ("wave_overhang_floor_layers",     2);
+                set_float("wave_overhang_wavefront_advance",      0.5);
+                set_float("wave_overhang_discretization",         0.25);
+                set_int  ("wave_overhang_anderson_max_iterations", 0);
+                set_float("wave_overhang_min_new_area",           0.005);
+                set_int  ("wave_overhang_arc_resolution",         48);
                 break;
             case wortStructural:
                 set_algo(woaAnderson);
@@ -1980,6 +1990,11 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 set_int  ("wave_overhang_fan_speed",        100);
                 set_float("wave_overhang_laso_overlap",     0.25);
                 set_int  ("wave_overhang_floor_layers",     3);
+                set_float("wave_overhang_wavefront_advance",      0.8);
+                set_float("wave_overhang_discretization",         0.35);
+                set_int  ("wave_overhang_anderson_max_iterations", 0);
+                set_float("wave_overhang_min_new_area",           0.01);
+                set_int  ("wave_overhang_arc_resolution",         24);
                 break;
             case wortFast:
                 set_algo(woaAnderson);
@@ -1991,6 +2006,11 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 set_int  ("wave_overhang_fan_speed",        100);
                 set_float("wave_overhang_laso_overlap",     0.10);
                 set_int  ("wave_overhang_floor_layers",     1);
+                set_float("wave_overhang_wavefront_advance",      1.0);
+                set_float("wave_overhang_discretization",         0.5);
+                set_int  ("wave_overhang_anderson_max_iterations", 100);
+                set_float("wave_overhang_min_new_area",           0.1);
+                set_int  ("wave_overhang_arc_resolution",         12);
                 break;
             default:
                 break;
@@ -2023,6 +2043,11 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         "wave_overhang_pattern",
         "wave_overhang_perimeter_overlap",
         "wave_overhang_narrow_split_threshold",
+        "wave_overhang_wavefront_advance",
+        "wave_overhang_discretization",
+        "wave_overhang_anderson_max_iterations",
+        "wave_overhang_min_new_area",
+        "wave_overhang_arc_resolution",
         "support_remaining_areas_after_wave_overhangs",
     };
     if (std::find(kWaveAdvancedKeys.begin(), kWaveAdvancedKeys.end(), opt_key) != kWaveAdvancedKeys.end()) {
@@ -2526,6 +2551,13 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Anchoring"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_anchor_bite");
         optgroup->append_single_option_line("wave_overhang_anchor_passes");
+
+        optgroup = page->new_optgroup(L("Anderson"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_wavefront_advance");
+        optgroup->append_single_option_line("wave_overhang_discretization");
+        optgroup->append_single_option_line("wave_overhang_anderson_max_iterations");
+        optgroup->append_single_option_line("wave_overhang_min_new_area");
+        optgroup->append_single_option_line("wave_overhang_arc_resolution");
 
         optgroup = page->new_optgroup(L("Kaiser LaSO"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_laso_overlap");

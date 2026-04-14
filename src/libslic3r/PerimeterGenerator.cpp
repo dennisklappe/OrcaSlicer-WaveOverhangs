@@ -1119,6 +1119,12 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     params.perimeter_overlap      = region_config.wave_overhang_perimeter_overlap.value;
     params.narrow_split_threshold = region_config.wave_overhang_narrow_split_threshold.value;
     params.pattern                = region_config.wave_overhang_pattern.value;
+    // Andersons' PropagationParams mirror (see Wave overhangs.py :: PropagationParams @ line 46).
+    params.wavefront_advance        = region_config.wave_overhang_wavefront_advance.value;
+    params.discretization           = region_config.wave_overhang_discretization.value;
+    params.anderson_max_iterations  = region_config.wave_overhang_anderson_max_iterations.value;
+    params.min_new_area             = region_config.wave_overhang_min_new_area.value;
+    params.arc_resolution           = region_config.wave_overhang_arc_resolution.value;
 
     // TODO: plumb wave_overhang_min_angle. Computing overhang steepness requires per-layer
     // delta-Z / slope analysis that isn't readily available at this call site; defined as

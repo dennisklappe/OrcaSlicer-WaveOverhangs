@@ -4874,6 +4874,64 @@ void PrintConfigDef::init_fff_params()
     def->max = 90.0;
     def->set_default_value(new ConfigOptionFloat(0.0));
 
+    def = this->add("wave_overhang_wavefront_advance", coFloat);
+    def->label = L("Anderson wavefront advance");
+    def->category = L("Strength");
+    def->tooltip = L("Distance the Anderson wavefront advances per iteration. Smaller = more rings, "
+                     "smoother surface, longer print. Larger = fewer rings, rougher but faster. "
+                     "Andersons' reference value: 0.7mm.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->min = 0.1;
+    def->max = 5.0;
+    def->set_default_value(new ConfigOptionFloat(0.7));
+
+    def = this->add("wave_overhang_discretization", coFloat);
+    def->label = L("Anderson discretization");
+    def->category = L("Strength");
+    def->tooltip = L("Spacing between sample points along each wavefront when emitting the next wave. "
+                     "Smaller = smoother but slower, larger = faster but potentially polygonal-looking. "
+                     "Andersons' reference: 0.35mm.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->min = 0.05;
+    def->max = 2.0;
+    def->set_default_value(new ConfigOptionFloat(0.35));
+
+    def = this->add("wave_overhang_anderson_max_iterations", coInt);
+    def->label = L("Anderson max iterations");
+    def->category = L("Strength");
+    def->tooltip = L("Safety cap on the number of wavefronts emitted per overhang region. "
+                     "0 = unlimited (stops naturally when no new area is gained). Mirrors the "
+                     "wave_overhang_kaiser_max_rings option for the Kaiser algorithm.");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 500;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("wave_overhang_min_new_area", coFloat);
+    def->label = L("Anderson min new area");
+    def->category = L("Strength");
+    def->tooltip = L("Termination threshold for Anderson propagation: when a new wavefront adds less "
+                     "than this much new area over the previous wavefront, stop propagating. "
+                     "Lower = longer propagation, potentially denser coverage. Higher = earlier "
+                     "termination. Andersons' reference: 1e-4 mm^2 (very small).");
+    def->sidetext = L("mm²");
+    def->mode = comDevelop;
+    def->min = 0.0;
+    def->max = 100.0;
+    def->set_default_value(new ConfigOptionFloat(0.01));
+
+    def = this->add("wave_overhang_arc_resolution", coInt);
+    def->label = L("Anderson arc resolution");
+    def->category = L("Strength");
+    def->tooltip = L("Number of segments used to approximate circular arcs in Anderson wavefront "
+                     "geometry. Higher = smoother arcs, larger G-code. Andersons' reference: 24.");
+    def->mode = comDevelop;
+    def->min = 4;
+    def->max = 128;
+    def->set_default_value(new ConfigOptionInt(24));
+
     def = this->add("support_remaining_areas_after_wave_overhangs", coBool);
     def->label = L("Support unfilled wave overhang areas");
     def->category = L("Support");
