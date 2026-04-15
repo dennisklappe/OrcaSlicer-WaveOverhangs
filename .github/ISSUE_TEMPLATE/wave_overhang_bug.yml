@@ -1,0 +1,91 @@
+name: Wave Overhang Bug Report
+description: Report a problem specific to wave-overhang printing (bad print, wrong G-code, crash during slice, etc.)
+labels: ["bug", "wave-overhangs"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing the wave-overhangs fork. To help reproduce the issue fast, please paste the **two wave-overhang debug header lines** from the G-code output. They contain the full build + per-region settings.
+
+        To find them: open your sliced `.gcode` in a text editor, search for `WAVE_OVERHANG_BUILD` and `WAVE_OVERHANG_CONFIG` near the top.
+
+  - type: input
+    id: wave_version
+    attributes:
+      label: Wave-Overhangs version
+      description: From the About dialog (`Help` → `About OrcaSlicer-WaveOverhangs`).
+      placeholder: "e.g. v0.1.0-alpha.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os_type
+    attributes:
+      label: Operating System
+      options:
+        - Linux
+        - macOS
+        - Windows
+    validations:
+      required: true
+
+  - type: textarea
+    id: wave_overhang_build
+    attributes:
+      label: WAVE_OVERHANG_BUILD header line
+      description: Paste the full `; WAVE_OVERHANG_BUILD ...` line from your G-code.
+      render: text
+      placeholder: "; WAVE_OVERHANG_BUILD filament_type=PLA layer_height=0.200 ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: wave_overhang_config
+    attributes:
+      label: WAVE_OVERHANG_CONFIG header line(s)
+      description: Paste the `; WAVE_OVERHANG_CONFIG ...` line(s). If multiple print regions, include all of them.
+      render: text
+      placeholder: "; WAVE_OVERHANG_CONFIG region=0 algo=andersons outer_perim=1 ..."
+    validations:
+      required: true
+
+  - type: input
+    id: printer
+    attributes:
+      label: Printer
+      description: Printer brand + model (e.g. Bambu A1 mini, Ender 3 V3 SE, Prusa MK4, Voron 2.4).
+    validations:
+      required: true
+
+  - type: input
+    id: nozzle_material
+    attributes:
+      label: Nozzle + material
+      placeholder: "e.g. 0.4 mm brass nozzle, Bambu PLA Basic"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What went wrong
+      description: What did you see, and what did you expect? Include photos if possible (drag them into the text area).
+    validations:
+      required: true
+
+  - type: textarea
+    id: model
+    attributes:
+      label: Model / G-code snippet
+      description: If possible, attach the STL/3MF and/or the relevant part of the G-code (wave overhang region). Small attachments help a lot.
+    validations:
+      required: false
+
+  - type: checkboxes
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and didn't find a duplicate.
+          required: true
+        - label: I ran with the current release (not a dev build from source) OR I mentioned the commit SHA above.
+          required: false
