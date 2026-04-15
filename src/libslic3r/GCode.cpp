@@ -2527,11 +2527,14 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
                 file.write_format(
                     "; WAVE_OVERHANG_BUILD"
+                    " printer=\"%s\" printer_variant=\"%s\""
                     " filament_type=%s"
                     " layer_height=%.3f initial_layer_height=%.3f"
                     " nozzle_diameter=%.2f"
                     " nozzle_temp=%d nozzle_temp_initial=%d"
                     " filament_flow_ratio=%.3f\n",
+                    pc.printer_model.value.c_str(),
+                    pc.printer_variant.value.c_str(),
                     first_or_empty_s(pc.filament_type.values),
                     oc.layer_height.value,
                     pc.initial_layer_print_height.value,

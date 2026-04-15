@@ -353,7 +353,8 @@ When `wave_overhang_debug_gcode = true` (the default), four kinds of comments ap
 **Build context** (once, before any region banners):
 
 ```
-; WAVE_OVERHANG_BUILD filament_type=<PLA|PETG|...>
+; WAVE_OVERHANG_BUILD printer="<model>" printer_variant="<nozzle/variant>"
+  filament_type=<PLA|PETG|...>
   layer_height=<mm> initial_layer_height=<mm>
   nozzle_diameter=<mm>
   nozzle_temp=<C> nozzle_temp_initial=<C>

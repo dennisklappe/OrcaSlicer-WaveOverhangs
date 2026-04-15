@@ -49,22 +49,6 @@ body:
     validations:
       required: true
 
-  - type: input
-    id: printer
-    attributes:
-      label: Printer
-      description: Printer brand + model (e.g. Bambu A1 mini, Ender 3 V3 SE, Prusa MK4, Voron 2.4).
-    validations:
-      required: true
-
-  - type: input
-    id: nozzle_material
-    attributes:
-      label: Nozzle + material
-      placeholder: "e.g. 0.4 mm brass nozzle, Bambu PLA Basic"
-    validations:
-      required: true
-
   - type: textarea
     id: what_happened
     attributes:
