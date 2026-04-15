@@ -18,9 +18,8 @@ This document describes every config option added by the wave-overhangs fork of 
    - [Floor layers](#floor-layers)
    - [Support integration](#support-integration)
    - [Debug](#debug)
-5. [Preset bundles](#preset-bundles)
-6. [Known limitations](#known-limitations)
-7. [G-code markers](#g-code-markers)
+5. [Known limitations](#known-limitations)
+6. [G-code markers](#g-code-markers)
 
 ---
 
@@ -34,16 +33,15 @@ Wave overhangs let you print steep cantilevered overhangs without supports. Inst
 2. Go to **Print Settings → Wave overhangs**.
 3. Toggle **Use wave overhangs (Experimental)** on.
 4. Pick an algorithm (Andersons or Kaiser).
-5. Optionally pick a preset (Balanced is a good starting point — named presets auto-fill every underlying tunable).
-6. Slice. Wave extrusions will appear in the G-code preview wherever overhangs are detected.
+5. Slice. Wave extrusions will appear in the G-code preview wherever overhangs are detected.
 
-Simple mode only shows the 3 top-level controls (master toggle + algorithm + preset). Switch the top-right mode selector to **Advanced** to see individual tunables. Editing any tunable automatically snaps the preset dropdown to "Custom" so you don't silently override a preset.
+Simple mode only shows the 2 top-level controls (master toggle + algorithm). Switch the top-right mode selector to **Advanced** to see individual tunables.
 
 ---
 
 ## Tier 1 — Simple mode
 
-Three controls, always visible.
+Two controls, always visible.
 
 ### `wave_overhangs`
 
@@ -62,13 +60,7 @@ Which generator produces the wave pattern.
 | **Andersons (wavefront)** | Expands a wavefront outward from the supported edge in fixed-distance steps; each new ring anchors to the previous one. | Most geometries. Robust default, handles complex overhang shapes, good surface quality. |
 | **Kaiser LaSO (lateral offset)** | Detects a seed curve at the root of the overhang and emits progressively offset rings laterally from it. | Long, fairly straight overhang ridges where you want a very regular, directional pattern. |
 
-### `wave_overhang_preset`
-
-Preset bundle that fills every underlying tunable in one shot.
-
-- **Type:** enum — `custom` | `balanced` | `aesthetic` | `structural` | `fast` · **Default:** `custom`
-
-See [Preset bundles](#preset-bundles) below for the exact values each preset applies.
+> **No presets yet.** The tunable space is large and the "right" bundles depend on printer, material, and geometry. Rather than ship opinionated defaults now, we want community test prints to surface what actually works — expect presets to return once there's real data.
 
 ---
 
@@ -137,10 +129,37 @@ Center-to-center distance between adjacent wave extrusions.
 
 #### `wave_overhang_line_width`
 
-Extrusion width for wave lines.
+Extrusion width for wave lines — used for path geometry and preview only (the actual extrusion volume is set by `wave_overhang_cross_section_area`).
 
 - **Type:** float (mm) · **Default:** `0.4` · **Min:** `0.1`
 - **Tuning:** typically match or slightly undercut the nozzle diameter. Narrower lines (0.35–0.38) cool faster and hold shape better on unsupported tips; wider lines are stronger but sag more.
+
+#### `wave_overhang_cross_section_area`
+
+Target cross-section area (mm²) of each extruded wave line. Unlike normal perimeters, wave-overhang lines hang in air — they are NOT squished between the nozzle and a layer below, so the usual `width × layer_height` formula does not apply. We override Orca's flow math on wave-tagged paths to extrude exactly this area per millimetre of travel.
+
+- **Type:** float (mm²) · **Default:** `0.15` · **Range:** `0 – 1.0`
+- **Set to `0`** to disable this override and fall back to Orca's native flow calculation (width × layer-height), matching normal perimeters.
+- **Why 0.15:** Andersons' reference value for a **0.4 mm nozzle** in free air — roughly a round bead, not a squished rectangle. A `w × h` equivalent for 0.4 × 0.2 squished extrusion would be only ~0.09 mm² — using that on cantilevers produces starved, broken lines.
+
+**Nozzle-size warning:** the default `0.15` is calibrated for a **0.4 mm nozzle**. This value does **not** auto-scale with your nozzle/line-width setting. If you run a different nozzle you must adjust manually — a rough theoretical rule is nozzle-area × 1.2 (accounting for slight oval shape):
+
+| Nozzle diameter | Theoretical starting value |
+|---|---|
+| 0.2 mm | ~0.04 mm² |
+| 0.4 mm | `0.15` (default) |
+| 0.6 mm | ~0.34 mm² |
+| 0.8 mm | ~0.60 mm² |
+
+> **Note:** only 0.4 mm has been print-tested so far. The other values above are theoretical starting points — please report back if you test them.
+
+If you're unsure or just want Orca's normal flow behavior, set this to `0` — wave lines will then be extruded with the same flow math as any other perimeter.
+
+> **Design feedback wanted.** I'm debating whether this should stay as an absolute mm² value (as now) or become a **flow percentage** (multiplier of Orca's default `w × h` flow) — the latter would auto-scale with nozzle/line-width but lose the direct tie to Andersons' paper. If you have a preference, please open an issue or leave a comment so it can be changed before presets are locked in.
+
+**Tuning after picking a starting value:**
+- Lower by 10–20% if you see blobbing on unsupported tips or over-extrusion.
+- Raise by 10–20% if wave lines look thin, broken, or starved.
 
 #### `wave_overhang_spacing_mode`
 
@@ -307,37 +326,6 @@ Emit `;WAVE_OVERHANG_START` / `;WAVE_OVERHANG_END` comments around wave extrusio
 
 ---
 
-## Preset bundles
-
-Selecting a named preset in `wave_overhang_preset` rewrites every key below. Values are read from `Tab::on_value_change` in the current source.
-
-| Key | Balanced | Aesthetic | Structural | Fast |
-|---|---|---|---|---|
-| `wave_overhang_outer_perimeters` | 1 | 2 | 2 | 1 |
-| `wave_overhang_line_spacing` (mm) | 0.35 | 0.28 | 0.30 | 0.45 |
-| `wave_overhang_line_width` (mm) | 0.40 | 0.38 | 0.42 | 0.45 |
-| `wave_overhang_print_speed` (mm/s) | 2.0 | 1.5 | 2.0 | 4.0 |
-| `wave_overhang_travel_speed` (mm/s) | 40 | 30 | 40 | 60 |
-| `wave_overhang_fan_speed` (%) | 100 | 100 | 100 | 100 |
-| `wave_overhang_laso_overlap` | 0.15 | 0.25 | 0.25 | 0.10 |
-| `wave_overhang_floor_layers` | 2 | 2 | 3 | 1 |
-| `wave_overhang_wavefront_advance` (mm) | 0.7 | 0.5 | 0.8 | 1.0 |
-| `wave_overhang_discretization` (mm) | 0.35 | 0.25 | 0.35 | 0.5 |
-| `wave_overhang_andersons_max_iterations` | 0 | 0 | 0 | 100 |
-| `wave_overhang_min_new_area` (mm²) | 0.01 | 0.005 | 0.01 | 0.1 |
-| `wave_overhang_arc_resolution` | 24 | 48 | 24 | 12 |
-
-**Notes on what each preset aims for:**
-
-- **Balanced** — sensible middle-ground. Use this first.
-- **Aesthetic** — slow print, tight spacing, high arc resolution (48). Prioritizes surface finish.
-- **Structural** — wider lines, more outer perimeters, thicker floor. Prioritizes mechanical strength.
-- **Fast** — wider spacing, higher speeds, aggressive termination (min_new_area 0.1, capped at 100 iterations). Prioritizes print time.
-
-**Custom** leaves every parameter untouched. Editing any of the keys above while a named preset is active automatically snaps the dropdown back to Custom.
-
----
-
 ## Known limitations
 
 All user-facing options are now plumbed end-to-end. The table below notes mode exposure and any gotchas.
@@ -365,7 +353,7 @@ When `wave_overhang_debug_gcode = true` (the default), three kinds of comments a
 **Region banner** (once per wave region, before any extrusion):
 
 ```
-; WAVE_OVERHANG_CONFIG region=<N> algo=<andersons|kaiser> preset=<name> outer_perim=<int> spacing=<mm> width=<mm> speed=<mm/s> travel=<mm/s> fan=<%> floor_layers=<int> min_angle=<deg> min_length=<mm> anchor_bite=<mm> anchor_passes=<int> laso_overlap=<frac> kaiser_max_rings=<int> direction_bias=<deg>
+; WAVE_OVERHANG_CONFIG region=<N> algo=<andersons|kaiser> outer_perim=<int> spacing=<mm> width=<mm> speed=<mm/s> travel=<mm/s> fan=<%> floor_layers=<int> min_angle=<deg> min_length=<mm> anchor_bite=<mm> anchor_passes=<int> laso_overlap=<frac> kaiser_max_rings=<int> direction_bias=<deg>
 ```
 
 **Extrusion block markers** (wrap every wave extrusion):
