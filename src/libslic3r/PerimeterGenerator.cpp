@@ -1162,8 +1162,22 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
                                            this->overhang_flow, this->m_scaled_resolution)
             : generate_extra_perimeters_over_overhangs(infill_area, this->lower_slices_polygons(),
                                                         this->config->wall_loops, this->overhang_flow,
-                                                        this->m_scaled_resolution, *this->object_config,
-                                                        *this->print_config);
+                                                        this->m_scaled_resolution, *this->object_config, *this->print_config);
+
+        if (use_wave_overhangs) {
+            // Wave-overhang lines are cantilevered into air, not squished against a
+            // layer below. A = line_width × layer_height does not apply — the user
+            // specifies the physical cross-section area directly (Andersons uses
+            // ~0.15 mm²). Override whatever Orca's flow math computed upstream.
+            // A value of 0 disables the override and keeps Orca's default flow.
+            const double cross_section_area = this->config->wave_overhang_cross_section_area.value;
+            if (cross_section_area > 0.0) {
+                for (ExtrusionPaths &region : extra_perimeters)
+                    for (ExtrusionPath &path : region)
+                        if (path.wave_overhang)
+                            path.mm3_per_mm = cross_section_area;
+            }
+        }
         if (!extra_perimeters.empty()) {
             ExtrusionEntityCollection *this_islands_perimeters = static_cast<ExtrusionEntityCollection *>(this->loops->entities.back());
             ExtrusionEntityCollection  new_perimeters{};

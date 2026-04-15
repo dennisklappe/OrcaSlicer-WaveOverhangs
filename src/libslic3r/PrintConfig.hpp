@@ -73,15 +73,6 @@ enum WaveOverhangAlgorithm {
     woaKaiser
 };
 
-// Orca: named preset bundle for wave-overhang parameters.
-enum WaveOverhangPreset {
-    woptCustom,
-    woptBalanced,
-    woptAesthetic,
-    woptStructural,
-    woptFast
-};
-
 // Orca: wave-overhang ring spacing mode.
 enum WaveOverhangSpacingMode {
     wosmUniform,
@@ -557,7 +548,6 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerWallType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangAlgorithm)
-CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangPreset)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangSpacingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangSeamMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangPattern)
@@ -1161,13 +1151,13 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<WaveOverhangPattern>, wave_overhang_pattern))
     ((ConfigOptionFloat,                wave_overhang_line_spacing))
     ((ConfigOptionFloat,                wave_overhang_line_width))
+    ((ConfigOptionFloat,                wave_overhang_cross_section_area))
     ((ConfigOptionFloat,                wave_overhang_print_speed))
     ((ConfigOptionFloat,                wave_overhang_travel_speed))
     ((ConfigOptionInt,                  wave_overhang_fan_speed))
     ((ConfigOptionInt,                       wave_overhang_floor_layers))
     ((ConfigOptionEnum<WaveOverhangAlgorithm>, wave_overhang_algorithm))
     ((ConfigOptionFloat,                     wave_overhang_laso_overlap))
-    ((ConfigOptionEnum<WaveOverhangPreset>,  wave_overhang_preset))
     ((ConfigOptionFloat,                     wave_overhang_min_angle))
     ((ConfigOptionFloat,                     wave_overhang_anchor_bite))
     ((ConfigOptionEnum<WaveOverhangSpacingMode>, wave_overhang_spacing_mode))

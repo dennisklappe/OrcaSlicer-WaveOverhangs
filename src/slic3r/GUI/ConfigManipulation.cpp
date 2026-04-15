@@ -967,7 +967,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("enable_wrapping_detection", DevPrinterConfigUtil::support_wrapping_detection(printer_type));
 
     // Orca: wave-overhangs conditional visibility.
-    // - Master toggle off → hide every wave_overhang_* tunable (only master + preset stay).
+    // - Master toggle off → hide every wave_overhang_* tunable (only master stays).
     // - Andersons selected → hide Kaiser-only tunables.
     // - Kaiser selected    → hide Andersons-only tunables.
     const bool wo_enabled = config->opt_bool("wave_overhangs");
@@ -977,10 +977,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     for (const std::string &k : {
         std::string("wave_overhang_algorithm"),
-        std::string("wave_overhang_preset"),
         std::string("wave_overhang_outer_perimeters"),
         std::string("wave_overhang_line_spacing"),
         std::string("wave_overhang_line_width"),
+        std::string("wave_overhang_cross_section_area"),
         std::string("wave_overhang_print_speed"),
         std::string("wave_overhang_travel_speed"),
         std::string("wave_overhang_fan_speed"),

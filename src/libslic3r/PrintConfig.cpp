@@ -176,16 +176,6 @@ static t_config_enum_values s_keys_map_WaveOverhangAlgorithm {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangAlgorithm)
 
-// Orca: wave-overhang preset (named preset bundles)
-static t_config_enum_values s_keys_map_WaveOverhangPreset {
-    { "custom",     woptCustom },
-    { "balanced",   woptBalanced },
-    { "aesthetic",  woptAesthetic },
-    { "structural", woptStructural },
-    { "fast",       woptFast }
-};
-CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangPreset)
-
 // Orca: wave-overhang ring spacing mode
 static t_config_enum_values s_keys_map_WaveOverhangSpacingMode {
     { "uniform",     wosmUniform },
@@ -4684,6 +4674,22 @@ void PrintConfigDef::init_fff_params()
     def->min = 0.1;
     def->set_default_value(new ConfigOptionFloat(0.4));
 
+    def = this->add("wave_overhang_cross_section_area", coFloat);
+    def->label = L("Wave overhang cross-section area");
+    def->category = L("Strength");
+    def->tooltip = L("Target cross-section area of each extruded wave line (mm²). Unlike normal "
+                     "perimeters, wave-overhang lines hang in air — they are NOT squished "
+                     "between the nozzle and a layer below, so the usual width × layer-height "
+                     "formula does not apply. Andersons' reference implementation uses ~0.15 mm². "
+                     "Lower if you see blobbing on unsupported tips; raise if lines look starved.\n\n"
+                     "Set to 0 to disable this override and use Orca's default flow calculation "
+                     "(width × layer-height), matching normal perimeters.");
+    def->sidetext = L("mm²");
+    def->mode = comAdvanced;
+    def->min = 0.0;
+    def->max = 1.0;
+    def->set_default_value(new ConfigOptionFloat(0.15));
+
     def = this->add("wave_overhang_print_speed", coFloat);
     def->label = L("Wave overhang print speed");
     def->category = L("Speed");
@@ -4748,25 +4754,6 @@ void PrintConfigDef::init_fff_params()
     def->min = 0.0;
     def->max = 0.9;
     def->set_default_value(new ConfigOptionFloat(0.15));
-
-    def = this->add("wave_overhang_preset", coEnum);
-    def->label = L("Wave overhang preset");
-    def->category = L("Strength");
-    def->tooltip = L("Preset bundle of wave-overhang parameters. Pick a named preset to auto-fill "
-                     "all underlying wave_overhang_* settings, or 'Custom' to keep your manual values.");
-    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangPreset>::get_enum_values();
-    def->enum_values.push_back("custom");
-    def->enum_values.push_back("balanced");
-    def->enum_values.push_back("aesthetic");
-    def->enum_values.push_back("structural");
-    def->enum_values.push_back("fast");
-    def->enum_labels.push_back(L("Custom (manual settings)"));
-    def->enum_labels.push_back(L("Balanced"));
-    def->enum_labels.push_back(L("Aesthetic (slower, prettier)"));
-    def->enum_labels.push_back(L("Structural (stronger)"));
-    def->enum_labels.push_back(L("Fast (speed priority)"));
-    def->mode = comSimple;
-    def->set_default_value(new ConfigOptionEnum<WaveOverhangPreset>(woptCustom));
 
     def = this->add("wave_overhang_min_angle", coFloat);
     def->label = L("Wave overhang min angle");

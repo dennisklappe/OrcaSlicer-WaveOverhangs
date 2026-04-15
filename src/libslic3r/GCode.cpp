@@ -2512,16 +2512,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 const PrintRegionConfig &rc = region->config();
                 if (!rc.wave_overhangs.value || !rc.wave_overhang_debug_gcode.value) { ++region_idx; continue; }
                 const char *algo = (rc.wave_overhang_algorithm.value == woaKaiser) ? "kaiser" : "andersons";
-                const char *preset = "custom";
-                switch (rc.wave_overhang_preset.value) {
-                    case woptBalanced:   preset = "balanced";   break;
-                    case woptAesthetic:  preset = "aesthetic";  break;
-                    case woptStructural: preset = "structural"; break;
-                    case woptFast:       preset = "fast";       break;
-                    default:             preset = "custom";     break;
-                }
-                file.write_format("; WAVE_OVERHANG_CONFIG region=%zu algo=%s preset=%s outer_perim=%d spacing=%.3f width=%.3f speed=%.1f travel=%.1f fan=%d floor_layers=%d min_angle=%.1f min_length=%.2f anchor_bite=%.2f anchor_passes=%d laso_overlap=%.2f kaiser_max_rings=%d direction_bias=%.1f\n",
-                    region_idx, algo, preset,
+                file.write_format("; WAVE_OVERHANG_CONFIG region=%zu algo=%s outer_perim=%d spacing=%.3f width=%.3f speed=%.1f travel=%.1f fan=%d floor_layers=%d min_angle=%.1f min_length=%.2f anchor_bite=%.2f anchor_passes=%d laso_overlap=%.2f kaiser_max_rings=%d direction_bias=%.1f\n",
+                    region_idx, algo,
                     rc.wave_overhang_outer_perimeters.value,
                     rc.wave_overhang_line_spacing.value,
                     rc.wave_overhang_line_width.value,
