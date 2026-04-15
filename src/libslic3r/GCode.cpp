@@ -2525,6 +2525,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 auto first_or_zero_i = [](const std::vector<int>    &v) -> int    { return v.empty() ? 0   : v[0]; };
                 auto first_or_empty_s = [](const std::vector<std::string> &v) -> const char* { return v.empty() ? "" : v[0].c_str(); };
 
+                // printer_variant lives in the dynamic config (not typed on PrintConfig)
+                const ConfigOption *variant_opt = pc.option("printer_variant");
+                const std::string   printer_variant = variant_opt ? variant_opt->serialize() : std::string();
+
                 file.write_format(
                     "; WAVE_OVERHANG_BUILD"
                     " printer=\"%s\" printer_variant=\"%s\""
@@ -2534,7 +2538,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                     " nozzle_temp=%d nozzle_temp_initial=%d"
                     " filament_flow_ratio=%.3f\n",
                     pc.printer_model.value.c_str(),
-                    pc.printer_variant.value.c_str(),
+                    printer_variant.c_str(),
                     first_or_empty_s(pc.filament_type.values),
                     oc.layer_height.value,
                     pc.initial_layer_print_height.value,
