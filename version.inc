@@ -8,6 +8,9 @@ if(NOT DEFINED BBL_INTERNAL_TESTING)
 set(BBL_INTERNAL_TESTING "0")
 endif()
 set(SoftFever_VERSION "2.4.0-dev")
+# Wave-overhangs fork version — bumped per git tag at release time
+# (patched by .github/workflows/release.yml). Keep as "dev" on main branch.
+set(WAVE_OVERHANGS_VERSION "dev")
 string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)"
        SoftFever_VERSION_MATCH ${SoftFever_VERSION})
 set(ORCA_VERSION_MAJOR ${CMAKE_MATCH_1})
