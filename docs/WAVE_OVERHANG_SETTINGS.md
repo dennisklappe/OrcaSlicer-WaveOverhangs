@@ -348,13 +348,36 @@ Kaiser's original post-processor places discrete pin-support nubs under overhang
 
 ## G-code markers
 
-When `wave_overhang_debug_gcode = true` (the default), three kinds of comments appear in the output. They are pure comments — no motion, no effect on the print — but they're invaluable for verifying that waves were emitted and for post-processing tools that want to recognize wave regions.
+When `wave_overhang_debug_gcode = true` (the default), four kinds of comments appear in the output. They are pure comments — no motion, no effect on the print — but they're invaluable for verifying that waves were emitted and for bug reports (the full wave setup can be reconstructed from the header alone).
+
+**Build context** (once, before any region banners):
+
+```
+; WAVE_OVERHANG_BUILD filament_type=<PLA|PETG|...>
+  layer_height=<mm> initial_layer_height=<mm>
+  nozzle_diameter=<mm>
+  nozzle_temp=<C> nozzle_temp_initial=<C>
+  filament_flow_ratio=<ratio>
+```
+
+(Emitted as a single line — split here for readability.)
 
 **Region banner** (once per wave region, before any extrusion):
 
 ```
-; WAVE_OVERHANG_CONFIG region=<N> algo=<andersons|kaiser> outer_perim=<int> spacing=<mm> width=<mm> speed=<mm/s> travel=<mm/s> fan=<%> floor_layers=<int> min_angle=<deg> min_length=<mm> anchor_bite=<mm> anchor_passes=<int> laso_overlap=<frac> kaiser_max_rings=<int> direction_bias=<deg>
+; WAVE_OVERHANG_CONFIG region=<N> algo=<andersons|kaiser> outer_perim=<int>
+  spacing=<mm> width=<mm> cross_section_area=<mm²> speed=<mm/s> travel=<mm/s> fan=<%>
+  floor_layers=<int> min_angle=<deg> min_length=<mm>
+  anchor_bite=<mm> anchor_passes=<int> direction_bias=<deg>
+  laso_overlap=<frac> kaiser_max_rings=<int>
+  pattern=<smart|monotonic|zigzag> spacing_mode=<uniform|progressive> seam_mode=<alternating|aligned|random>
+  perimeter_overlap=<mm> narrow_split_threshold=<mult>
+  wavefront_advance=<mm> discretization=<mm>
+  andersons_max_iter=<int> min_new_area=<mm²> arc_resolution=<int>
+  support_remainder=<0|1>
 ```
+
+(Emitted as a single line in the G-code; split across lines here only for readability.)
 
 **Extrusion block markers** (wrap every wave extrusion):
 

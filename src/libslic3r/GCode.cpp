@@ -2507,28 +2507,97 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // enabled AND debug-gcode is on, dump the active settings so post-
         // processing / tuning reports can verify exactly what ran.
         {
-            size_t region_idx = 0;
+            // Determine if any region uses wave overhangs with debug enabled.
+            bool any_wave_debug = false;
             for (const PrintRegion *region : print.m_print_regions) {
                 const PrintRegionConfig &rc = region->config();
-                if (!rc.wave_overhangs.value || !rc.wave_overhang_debug_gcode.value) { ++region_idx; continue; }
-                const char *algo = (rc.wave_overhang_algorithm.value == woaKaiser) ? "kaiser" : "andersons";
-                file.write_format("; WAVE_OVERHANG_CONFIG region=%zu algo=%s outer_perim=%d spacing=%.3f width=%.3f speed=%.1f travel=%.1f fan=%d floor_layers=%d min_angle=%.1f min_length=%.2f anchor_bite=%.2f anchor_passes=%d laso_overlap=%.2f kaiser_max_rings=%d direction_bias=%.1f\n",
-                    region_idx, algo,
-                    rc.wave_overhang_outer_perimeters.value,
-                    rc.wave_overhang_line_spacing.value,
-                    rc.wave_overhang_line_width.value,
-                    rc.wave_overhang_print_speed.value,
-                    rc.wave_overhang_travel_speed.value,
-                    rc.wave_overhang_fan_speed.value,
-                    rc.wave_overhang_floor_layers.value,
-                    rc.wave_overhang_min_angle.value,
-                    rc.wave_overhang_min_length.value,
-                    rc.wave_overhang_anchor_bite.value,
-                    rc.wave_overhang_anchor_passes.value,
-                    rc.wave_overhang_laso_overlap.value,
-                    rc.wave_overhang_kaiser_max_rings.value,
-                    rc.wave_overhang_direction_bias.value);
-                ++region_idx;
+                if (rc.wave_overhangs.value && rc.wave_overhang_debug_gcode.value) {
+                    any_wave_debug = true;
+                    break;
+                }
+            }
+            if (any_wave_debug) {
+                // Global build context first — useful for bug reports so the full
+                // print setup can be reconstructed from just the G-code header.
+                const PrintObjectConfig &oc = print.default_object_config();
+                const PrintConfig       &pc = print.config();
+                auto first_or_zero_d = [](const std::vector<double> &v) -> double { return v.empty() ? 0.0 : v[0]; };
+                auto first_or_zero_i = [](const std::vector<int>    &v) -> int    { return v.empty() ? 0   : v[0]; };
+                auto first_or_empty_s = [](const std::vector<std::string> &v) -> const char* { return v.empty() ? "" : v[0].c_str(); };
+
+                file.write_format(
+                    "; WAVE_OVERHANG_BUILD"
+                    " filament_type=%s"
+                    " layer_height=%.3f initial_layer_height=%.3f"
+                    " nozzle_diameter=%.2f"
+                    " nozzle_temp=%d nozzle_temp_initial=%d"
+                    " filament_flow_ratio=%.3f\n",
+                    first_or_empty_s(pc.filament_type.values),
+                    oc.layer_height.value,
+                    pc.initial_layer_print_height.value,
+                    first_or_zero_d(pc.nozzle_diameter.values),
+                    first_or_zero_i(pc.nozzle_temperature.values),
+                    first_or_zero_i(pc.nozzle_temperature_initial_layer.values),
+                    first_or_zero_d(pc.filament_flow_ratio.values));
+
+                size_t region_idx = 0;
+                for (const PrintRegion *region : print.m_print_regions) {
+                    const PrintRegionConfig &rc = region->config();
+                    if (!rc.wave_overhangs.value || !rc.wave_overhang_debug_gcode.value) { ++region_idx; continue; }
+                    const char *algo = (rc.wave_overhang_algorithm.value == woaKaiser) ? "kaiser" : "andersons";
+                    const char *spacing_mode = (rc.wave_overhang_spacing_mode.value == wosmProgressive) ? "progressive" : "uniform";
+                    const char *seam_mode;
+                    switch (rc.wave_overhang_seam_mode.value) {
+                        case woseAligned:     seam_mode = "aligned";     break;
+                        case woseRandom:      seam_mode = "random";      break;
+                        case woseAlternating:
+                        default:              seam_mode = "alternating"; break;
+                    }
+                    const char *pattern;
+                    switch (rc.wave_overhang_pattern.value) {
+                        case WaveOverhangPattern::Monotonic: pattern = "monotonic"; break;
+                        case WaveOverhangPattern::ZigZag:    pattern = "zigzag";    break;
+                        case WaveOverhangPattern::Smart:
+                        default:                             pattern = "smart";     break;
+                    }
+                    file.write_format(
+                        "; WAVE_OVERHANG_CONFIG region=%zu algo=%s outer_perim=%d"
+                        " spacing=%.3f width=%.3f cross_section_area=%.3f speed=%.1f travel=%.1f fan=%d"
+                        " floor_layers=%d min_angle=%.1f min_length=%.2f"
+                        " anchor_bite=%.2f anchor_passes=%d direction_bias=%.1f"
+                        " laso_overlap=%.2f kaiser_max_rings=%d"
+                        " pattern=%s spacing_mode=%s seam_mode=%s"
+                        " perimeter_overlap=%.2f narrow_split_threshold=%.2f"
+                        " wavefront_advance=%.3f discretization=%.3f"
+                        " andersons_max_iter=%d min_new_area=%.4f arc_resolution=%d"
+                        " support_remainder=%d\n",
+                        region_idx, algo,
+                        rc.wave_overhang_outer_perimeters.value,
+                        rc.wave_overhang_line_spacing.value,
+                        rc.wave_overhang_line_width.value,
+                        rc.wave_overhang_cross_section_area.value,
+                        rc.wave_overhang_print_speed.value,
+                        rc.wave_overhang_travel_speed.value,
+                        rc.wave_overhang_fan_speed.value,
+                        rc.wave_overhang_floor_layers.value,
+                        rc.wave_overhang_min_angle.value,
+                        rc.wave_overhang_min_length.value,
+                        rc.wave_overhang_anchor_bite.value,
+                        rc.wave_overhang_anchor_passes.value,
+                        rc.wave_overhang_direction_bias.value,
+                        rc.wave_overhang_laso_overlap.value,
+                        rc.wave_overhang_kaiser_max_rings.value,
+                        pattern, spacing_mode, seam_mode,
+                        rc.wave_overhang_perimeter_overlap.value,
+                        rc.wave_overhang_narrow_split_threshold.value,
+                        rc.wave_overhang_wavefront_advance.value,
+                        rc.wave_overhang_discretization.value,
+                        rc.wave_overhang_andersons_max_iterations.value,
+                        rc.wave_overhang_min_new_area.value,
+                        rc.wave_overhang_arc_resolution.value,
+                        rc.support_remaining_areas_after_wave_overhangs.value ? 1 : 0);
+                    ++region_idx;
+                }
             }
         }
         if (is_bbl_printers)
