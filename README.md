@@ -22,6 +22,12 @@ Fork of OrcaSlicer with wave‑pattern overhang printing, two pluggable algorith
 
 ---
 
+## What are wave overhangs?
+
+Wave overhangs is a slicing strategy that lets you print 90‑degree overhangs without support material. Toolpaths are generated recursively based on wave‑propagation theory — each new ring anchors to the previous one, and the pattern keeps propagating outward until it fills the available space, diffracting around corners and even around holes.
+
+This fork ports the technique into OrcaSlicer and exposes two pluggable generators plus a large tunable parameter space, so people can experiment and find what works for their printer and material.
+
 ![Standard vs arc vs wave overhangs](docs/images/fig_2_compare_standard_arc_and_wave_overhangs.png)
 
 > Comparison of standard, arc‑overhang, and wave‑overhang toolpaths. Image from Janis A. Andersons' wave‑overhang research (see [Credits](#credits--research-references)).
