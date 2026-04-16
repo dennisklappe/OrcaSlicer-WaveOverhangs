@@ -66,7 +66,7 @@ Prebuilt binaries for tagged releases on the **[Releases page](https://github.co
 
 For the full reference of every config option with tuning hints, see **[docs/WAVE_OVERHANG_SETTINGS.md](docs/WAVE_OVERHANG_SETTINGS.md)**.
 
-> **Presets are intentionally not shipped yet.** The tunable space is large and we want community test prints to surface what actually works before baking in named bundles. Open an issue with your good-result settings and we'll fold them in.
+> **Presets are intentionally not shipped yet.** The tunable space is large and we want community test prints to surface what actually works before baking in named bundles. Please leave your results at **[waveoverhangs.com/upload](https://waveoverhangs.com/upload)** so the dataset can grow.
 
 ---
 
