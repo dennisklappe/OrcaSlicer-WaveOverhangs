@@ -22,6 +22,12 @@ Fork of OrcaSlicer with wave‑pattern overhang printing, two pluggable algorith
 
 ---
 
+![Standard vs arc vs wave overhangs](docs/images/fig_2_compare_standard_arc_and_wave_overhangs.png)
+
+> Comparison of standard, arc‑overhang, and wave‑overhang toolpaths. Image from Janis A. Andersons' wave‑overhang research (see [Credits](#credits--research-references)).
+
+---
+
 ## Main features
 
 - **Two wave‑overhang algorithms** with an in‑GUI dropdown
@@ -93,6 +99,7 @@ make -j$(nproc)
 
 - **Experimental.** The tunable space is large (30+ knobs across two algorithms) and most parameter combinations have not been print‑tested yet. Expect rough edges — please share what works and what doesn't.
 - **PLA recommended.** Wave overhangs need each ring to cool and become rigid before the next pass anchors to it. PLA with max part‑cooling works well; PETG / ABS / PC are likely to fail (PETG cools too slowly and delaminates under heavy fan).
+- **Warping on larger spans.** Laterally supported overhangs are prone to warping driven by thermal gradients, reheating of earlier layers, and nozzle pressure. Smaller overhangs print cleanly; larger spans may still need traditional supports. See **[docs/LIMITATIONS.md](docs/LIMITATIONS.md)** for the mechanisms and mitigations.
 - **Kaiser pin supports are not ported.** Kaiser's original places discrete pin‑support nubs under overhangs. Not planned — the goal here is fully support‑free overhangs. Use `support_remaining_areas_after_wave_overhangs` + Orca's normal supports if wave can't cover everything.
 - **Not yet real‑print tested on Windows/macOS** — CI produces builds for all platforms but testing has focused on Linux so far.
 
