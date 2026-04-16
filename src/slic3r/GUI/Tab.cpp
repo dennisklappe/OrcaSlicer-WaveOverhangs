@@ -2407,6 +2407,7 @@ void TabPrint::build()
     page = add_options_page(L("Wave overhangs"), "custom-gcode_quality");
         optgroup = page->new_optgroup(L("General"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhangs");
+        optgroup->append_single_option_line("wave_overhangs_instead_of_bridges");
         optgroup->append_single_option_line("wave_overhang_algorithm");
         optgroup->append_single_option_line("wave_overhang_min_angle");
         optgroup->append_single_option_line("wave_overhang_min_length");

@@ -976,6 +976,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     const bool is_kaiser   = wo_algo == woaKaiser;
 
     for (const std::string &k : {
+        std::string("wave_overhangs_instead_of_bridges"),
         std::string("wave_overhang_algorithm"),
         std::string("wave_overhang_outer_perimeters"),
         std::string("wave_overhang_line_spacing"),

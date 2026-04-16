@@ -42,7 +42,8 @@ GenerateResult AndersonsGenerator::generate(const ExPolygons   &overhang_area,
         params.discretization,
         params.andersons_max_iterations,
         params.min_new_area,
-        params.arc_resolution);
+        params.arc_resolution,
+        params.use_instead_of_bridges);
 
     GenerateResult r;
     r.paths    = std::move(paths);

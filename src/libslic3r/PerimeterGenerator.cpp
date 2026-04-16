@@ -1125,6 +1125,7 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     params.andersons_max_iterations  = region_config.wave_overhang_andersons_max_iterations.value;
     params.min_new_area             = region_config.wave_overhang_min_new_area.value;
     params.arc_resolution           = region_config.wave_overhang_arc_resolution.value;
+    params.use_instead_of_bridges   = region_config.wave_overhangs_instead_of_bridges.value;
 
     // wave_overhang_min_angle is intentionally NOT enforced here. The incoming
     // overhang region has already been classified as erOverhangPerimeter upstream

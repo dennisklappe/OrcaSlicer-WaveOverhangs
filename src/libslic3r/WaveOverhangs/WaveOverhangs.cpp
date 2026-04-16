@@ -19,9 +19,11 @@
 
 #include "Algorithm/RegionExpansion.hpp"
 #include "BoundingBox.hpp"
+#include "BridgeDetector.hpp"
 #include "ClipperUtils.hpp"
 #include "ExtrusionEntity.hpp"
 #include "ExPolygon.hpp"
+#include "Geometry/ConvexHull.hpp"
 #include "Line.hpp"
 #include "Polyline.hpp"
 #include "libslic3r.h"
@@ -302,6 +304,37 @@ Polylines generate_wave_overhang_seeds(const ExPolygon &boundary, const Polygons
         seeds = intersection_pl(to_polylines(boundary), offset(anchoring, float(seed_expansion), jtRound, 0.));
 
     return seeds;
+}
+
+// When false (default), simple bridge-friendly spans are left alone so the
+// slicer's normal bridge pipeline handles them. When true, every detected
+// overhang gets wave treatment regardless of bridgeability.
+static bool should_generate_waves_for_region(const Polygons &overhang_to_cover,
+                                             const ExPolygon &overhang_region,
+                                             const Polygons &real_overhang,
+                                             const Polygons &anchors,
+                                             const Polygons &inset_anchors,
+                                             const Flow     &overhang_flow,
+                                             bool            use_instead_of_bridges)
+{
+    if (real_overhang.empty())
+        return false;
+
+    if (use_instead_of_bridges)
+        return true;
+
+    if (! overhang_region.holes.empty())
+        return true;
+
+    const Polygons anchoring = intersection(expand(overhang_to_cover, 1.1 * overhang_flow.scaled_spacing(), jtRound, 0.), inset_anchors);
+    const Polygon  anchoring_convex_hull = Geometry::convex_hull(anchoring);
+    const double   unbridgeable_area = area(diff(real_overhang, Polygons{ anchoring_convex_hull }));
+    const double   unsupported_dist = std::get<1>(detect_bridging_direction(real_overhang, anchors));
+
+    // Prefer the slicer's regular bridge handling when a viable bridge
+    // direction exists and the span is mostly convex/covered by anchors.
+    return unbridgeable_area >= 0.2 * area(real_overhang) ||
+           unsupported_dist >= total_length(real_overhang) * 0.2;
 }
 
 void tag_wave_overhang_paths(std::vector<ExtrusionPaths> &wave_paths)
@@ -604,7 +637,8 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     double          discretization,
     int             andersons_max_iterations,
     double          min_new_area_mm2,
-    int             arc_resolution)
+    int             arc_resolution,
+    bool            use_instead_of_bridges)
 {
     const coord_t base_spacing       = overhang_flow.scaled_spacing();
     const Flow    wave_flow          = wave_line_width > 0. ? overhang_flow.with_width(float(wave_line_width)) : overhang_flow;
@@ -658,6 +692,8 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
             expand(overhang_to_cover, perimeter_overlap, jtRound, 0.);
         Polygons real_overhang     = intersection(wave_cover_area, overhangs);
         if (real_overhang.empty())
+            wave_cover_area.clear();
+        else if (! should_generate_waves_for_region(wave_cover_area, overhang, real_overhang, anchors, inset_anchors, overhang_flow, use_instead_of_bridges))
             wave_cover_area.clear();
 
         ExtrusionPaths &overhang_region = wave_paths.emplace_back();

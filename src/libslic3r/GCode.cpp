@@ -2577,7 +2577,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         " perimeter_overlap=%.2f narrow_split_threshold=%.2f"
                         " wavefront_advance=%.3f discretization=%.3f"
                         " andersons_max_iter=%d min_new_area=%.4f arc_resolution=%d"
-                        " support_remainder=%d\n",
+                        " support_remainder=%d instead_of_bridges=%d\n",
                         region_idx, algo,
                         rc.wave_overhang_outer_perimeters.value,
                         rc.wave_overhang_line_spacing.value,
@@ -2602,7 +2602,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         rc.wave_overhang_andersons_max_iterations.value,
                         rc.wave_overhang_min_new_area.value,
                         rc.wave_overhang_arc_resolution.value,
-                        rc.support_remaining_areas_after_wave_overhangs.value ? 1 : 0);
+                        rc.support_remaining_areas_after_wave_overhangs.value ? 1 : 0,
+                        rc.wave_overhangs_instead_of_bridges.value ? 1 : 0);
                     ++region_idx;
                 }
             }

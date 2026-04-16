@@ -47,6 +47,7 @@ struct CommonParams {
     int         andersons_max_iterations = 0;    // 0 = unlimited; cap on wavefronts per region.
     double      min_new_area           = 0.01;  // mm^2; early-termination threshold on new-area growth.
     int         arc_resolution         = 24;    // segments per full circle for arc approximation.
+    bool        use_instead_of_bridges = false; // when true, wave over flat bridgeable spans too.
 };
 
 struct GenerateResult {

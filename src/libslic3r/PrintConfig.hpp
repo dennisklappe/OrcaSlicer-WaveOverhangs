@@ -1145,6 +1145,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool, detect_overhang_wall))
     // Wave Overhangs — Janis A. Andersons' algorithm, ported from stmcculloch/PrusaSlicer-WaveOverhangs
     ((ConfigOptionBool,                 wave_overhangs))
+    ((ConfigOptionBool,                 wave_overhangs_instead_of_bridges))
     ((ConfigOptionInt,                  wave_overhang_outer_perimeters))
     ((ConfigOptionFloat,                wave_overhang_perimeter_overlap))
     ((ConfigOptionFloat,                wave_overhang_narrow_split_threshold))

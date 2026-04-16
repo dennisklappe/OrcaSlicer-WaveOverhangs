@@ -38,7 +38,8 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     double          discretization            = 0.35,
     int             andersons_max_iterations   = 0,
     double          min_new_area_mm2          = 0.01,
-    int             arc_resolution            = 24);
+    int             arc_resolution            = 24,
+    bool            use_instead_of_bridges    = false);
 
 } // namespace Slic3r::WaveOverhangs
 
