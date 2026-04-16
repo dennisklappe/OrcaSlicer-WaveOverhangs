@@ -8,7 +8,7 @@ Most of the diagrams below come from the reference implementation and research b
 
 ## Warping
 
-Warping is not a single failure mode with a single fix. Better cooling helps in some cases but doesn't solve the whole problem. Some experiments even suggest the opposite — *reducing* cooling to let the overhang sag slightly and compensate upward curl. The takeaway: it's a coupled thermal, mechanical, and process-control problem, not a pure fan-tuning issue.
+Warping is not a single failure mode with a single fix. Better cooling helps in some cases but doesn't solve the whole problem. Some experiments even suggest the opposite: *reducing* cooling to let the overhang sag slightly and compensate upward curl. The takeaway: it's a coupled thermal, mechanical, and process-control problem, not a pure fan-tuning issue.
 
 <p>
   <img src="images/test_3_warping.png" alt="Large overhang example showing warping" width="49%" />
@@ -25,7 +25,7 @@ When different parts of a feature cool at different rates they want to contract 
 
 ![Thermal contraction from later layers](images/theory_thermal_gradient.png) [^1]
 
-Single-layer overhangs aren't immune either — the first overhanging layer can develop a temperature gradient when cooling is applied mostly from above (top of the strand cools faster than the bottom).
+Single-layer overhangs aren't immune either. The first overhanging layer can develop a temperature gradient when cooling is applied mostly from above (top of the strand cools faster than the bottom).
 
 ![Top-down cooling creates a vertical temperature gradient](images/theory_top_bottom_cooling.png) [^1]
 
@@ -35,7 +35,7 @@ One way to isolate this: cool the unsupported layer more evenly from both sides.
 
 ### Shape memory polymer effects
 
-Deposited plastic can lock polymer chains into a stretched or non-equilibrium state. When a later layer reheats the earlier one, those chains can become mobile and contract — producing additional deformation that's hard to predict from geometry or cooling alone.
+Deposited plastic can lock polymer chains into a stretched or non-equilibrium state. When a later layer reheats the earlier one, those chains can become mobile and contract, producing additional deformation that's hard to predict from geometry or cooling alone.
 
 ![Shape memory effect hypothesis](images/theory_shape_memory.png) [^1]
 
@@ -47,7 +47,7 @@ On large single-layer spans, the pressure of the extruding filament and the nozz
 
 ## Span matters
 
-These warping mechanisms overlap, and severity is strongly span-dependent — smaller unsupported regions can print cleanly while larger ones curl aggressively.
+These warping mechanisms overlap, and severity is strongly span-dependent. Smaller unsupported regions can print cleanly while larger ones curl aggressively.
 
 <p>
   <img src="images/test_1.png" alt="Smaller overhang example with clean surface" width="49%" />
