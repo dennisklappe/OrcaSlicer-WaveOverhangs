@@ -2525,29 +2525,52 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 auto first_or_zero_i = [](const std::vector<int>    &v) -> int    { return v.empty() ? 0   : v[0]; };
                 auto first_or_empty_s = [](const std::vector<std::string> &v) -> const char* { return v.empty() ? "" : v[0].c_str(); };
 
-                // printer_variant lives in the dynamic config (not typed on PrintConfig)
-                const ConfigOption *variant_opt = pc.option("printer_variant");
-                const std::string   printer_variant = variant_opt ? variant_opt->serialize() : std::string();
+                // Several useful fields live in the dynamic config (not typed on PrintConfig).
+                auto opt_string = [&pc](const std::string &key) -> std::string {
+                    const ConfigOption *o = pc.option(key);
+                    return o ? o->serialize() : std::string();
+                };
+                const std::string printer_variant    = opt_string("printer_variant");
+                const std::string print_settings_id  = opt_string("print_settings_id");
+                const std::string printer_settings_id = opt_string("printer_settings_id");
+                const std::string filament_settings_id = opt_string("filament_settings_id");
 
                 file.write_format(
                     "; WAVE_OVERHANG_BUILD"
                     " wave_overhangs_version=%s orca_base=%s"
                     " printer=\"%s\" printer_variant=\"%s\""
+                    " printer_profile=\"%s\" print_profile=\"%s\" filament_profile=\"%s\""
                     " filament_type=%s"
                     " layer_height=%.3f initial_layer_height=%.3f"
                     " nozzle_diameter=%.2f"
                     " nozzle_temp=%d nozzle_temp_initial=%d"
-                    " filament_flow_ratio=%.3f\n",
+                    " bed_temp=%d bed_temp_initial=%d"
+                    " filament_flow_ratio=%.3f"
+                    " support_enabled=%d support_type=\"%s\""
+                    "\n",
                     WAVE_OVERHANGS_VERSION, SoftFever_VERSION,
                     pc.printer_model.value.c_str(),
                     printer_variant.c_str(),
+                    printer_settings_id.c_str(), print_settings_id.c_str(), filament_settings_id.c_str(),
                     first_or_empty_s(pc.filament_type.values),
                     oc.layer_height.value,
                     pc.initial_layer_print_height.value,
                     first_or_zero_d(pc.nozzle_diameter.values),
                     first_or_zero_i(pc.nozzle_temperature.values),
                     first_or_zero_i(pc.nozzle_temperature_initial_layer.values),
-                    first_or_zero_d(pc.filament_flow_ratio.values));
+                    [&]() -> int {
+                        const ConfigOption *o = pc.option("bed_temperature");
+                        if (auto *ints = dynamic_cast<const ConfigOptionInts*>(o)) return ints->values.empty() ? 0 : ints->values[0];
+                        return 0;
+                    }(),
+                    [&]() -> int {
+                        const ConfigOption *o = pc.option("bed_temperature_initial_layer");
+                        if (auto *ints = dynamic_cast<const ConfigOptionInts*>(o)) return ints->values.empty() ? 0 : ints->values[0];
+                        return 0;
+                    }(),
+                    first_or_zero_d(pc.filament_flow_ratio.values),
+                    oc.enable_support.value ? 1 : 0,
+                    opt_string("support_type").c_str());
 
                 size_t region_idx = 0;
                 for (const PrintRegion *region : print.m_print_regions) {
@@ -2579,7 +2602,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         " perimeter_overlap=%.2f narrow_split_threshold=%.2f"
                         " wavefront_advance=%.3f discretization=%.3f"
                         " andersons_max_iter=%d min_new_area=%.4f arc_resolution=%d"
-                        " min_wave_time=%.2f min_layer_time=%.2f"
+                        " nozzle_temp_override=%d min_wave_time=%.2f min_layer_time=%.2f"
+                        " wall_loops=%d top_shell_layers=%d bottom_shell_layers=%d"
+                        " infill_density=%.0f infill_pattern=%s"
                         " support_remainder=%d instead_of_bridges=%d\n",
                         region_idx, algo,
                         rc.wave_overhang_outer_perimeters.value,
@@ -2605,8 +2630,19 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         rc.wave_overhang_andersons_max_iterations.value,
                         rc.wave_overhang_min_new_area.value,
                         rc.wave_overhang_arc_resolution.value,
+                        rc.wave_overhang_nozzle_temp.value,
                         rc.wave_overhang_min_wave_time.value,
                         rc.wave_overhang_min_layer_time.value,
+                        rc.wall_loops.value,
+                        rc.top_shell_layers.value,
+                        rc.bottom_shell_layers.value,
+                        rc.sparse_infill_density.value,
+                        [&]() -> const char* {
+                            const ConfigOption *o = rc.option("sparse_infill_pattern");
+                            static thread_local std::string s;
+                            s = o ? o->serialize() : std::string("unknown");
+                            return s.c_str();
+                        }(),
                         rc.support_remaining_areas_after_wave_overhangs.value ? 1 : 0,
                         rc.wave_overhangs_instead_of_bridges.value ? 1 : 0);
                     ++region_idx;
@@ -6317,6 +6353,21 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         gcode += buf;
     }
 
+    // Orca: wave-overhang nozzle temperature override. M104 (no wait) at region start,
+    // restored at region end. The first wave line prints at mixed temperature; by the
+    // time the region finishes the hotend is settled.
+    const int wave_nozzle_temp = m_config.wave_overhang_nozzle_temp.value;
+    const bool wave_temp_active = path.wave_overhang && wave_nozzle_temp > 0;
+    int restore_nozzle_temp = 0;
+    if (wave_temp_active) {
+        const ConfigOption *o = m_config.option("nozzle_temperature");
+        if (auto *ints = dynamic_cast<const ConfigOptionInts*>(o))
+            restore_nozzle_temp = ints->values.empty() ? 0 : ints->values[0];
+        char buf[64];
+        snprintf(buf, sizeof(buf), "M104 S%d ; wave-overhang temp override\n", wave_nozzle_temp);
+        gcode += buf;
+    }
+
     if (is_bridge(path.role()))
         description += " (bridge)";
 
@@ -7149,6 +7200,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     // Orca: wave-overhang — close fan-override scope and clear state flag.
     if (wave_fan_active)
         gcode += ";_WAVE_OVERHANG_FAN_END\n";
+    if (wave_temp_active && restore_nozzle_temp > 0) {
+        char buf[64];
+        snprintf(buf, sizeof(buf), "M104 S%d ; wave-overhang temp restore\n", restore_nozzle_temp);
+        gcode += buf;
+    }
     if (path.wave_overhang)
         m_inside_wave_overhang = false;
 

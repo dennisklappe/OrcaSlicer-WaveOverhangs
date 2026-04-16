@@ -1157,6 +1157,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                wave_overhang_travel_speed))
     ((ConfigOptionInt,                  wave_overhang_fan_speed))
     ((ConfigOptionInt,                       wave_overhang_floor_layers))
+    ((ConfigOptionInt,                       wave_overhang_nozzle_temp))
     ((ConfigOptionFloat,                     wave_overhang_min_wave_time))
     ((ConfigOptionFloat,                     wave_overhang_min_layer_time))
     ((ConfigOptionEnum<WaveOverhangAlgorithm>, wave_overhang_algorithm))

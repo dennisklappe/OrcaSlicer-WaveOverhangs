@@ -2445,6 +2445,7 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Cooling"), L"param_cooling");
         optgroup->append_single_option_line("wave_overhang_fan_speed");
+        optgroup->append_single_option_line("wave_overhang_nozzle_temp");
         optgroup->append_single_option_line("wave_overhang_min_wave_time");
         optgroup->append_single_option_line("wave_overhang_min_layer_time");
 

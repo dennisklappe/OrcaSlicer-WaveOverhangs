@@ -4730,6 +4730,20 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->set_default_value(new ConfigOptionInt(100));
 
+    def = this->add("wave_overhang_nozzle_temp", coInt);
+    def->label = L("Wave overhang nozzle temperature");
+    def->category = L("Cooling");
+    def->tooltip = L("If non-zero, override the hotend temperature specifically for wave-overhang "
+                     "extrusions. An M104 is emitted at the start of each wave region and restored "
+                     "to the filament default at the end. Useful to experiment with cooler extrusion "
+                     "on the unsupported tracks (less sagging, better cooling). Set to 0 to keep the "
+                     "filament default.");
+    def->sidetext = L("°C");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 350;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("wave_overhang_min_wave_time", coFloat);
     def->label = L("Wave overhang min wave time");
     def->category = L("Cooling");
