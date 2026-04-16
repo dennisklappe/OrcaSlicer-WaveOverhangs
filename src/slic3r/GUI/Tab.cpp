@@ -2445,6 +2445,8 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Cooling"), L"param_cooling");
         optgroup->append_single_option_line("wave_overhang_fan_speed");
+        optgroup->append_single_option_line("wave_overhang_min_wave_time");
+        optgroup->append_single_option_line("wave_overhang_min_layer_time");
 
         optgroup = page->new_optgroup(L("Floor layers"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_floor_layers");

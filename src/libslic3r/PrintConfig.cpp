@@ -4730,6 +4730,33 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->set_default_value(new ConfigOptionInt(100));
 
+    def = this->add("wave_overhang_min_wave_time", coFloat);
+    def->label = L("Wave overhang min wave time");
+    def->category = L("Cooling");
+    def->tooltip = L("Minimum time in seconds each wave region must take. If a wave region's "
+                     "extrusion would finish faster than this, a G4 dwell pads the difference "
+                     "before the next region — gives each ring time to solidify. Set to 0 to "
+                     "disable.");
+    def->sidetext = L("s");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 60;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("wave_overhang_min_layer_time", coFloat);
+    def->label = L("Wave overhang min layer time");
+    def->category = L("Cooling");
+    def->tooltip = L("Minimum time in seconds the wave layer must take (from first wave "
+                     "extrusion to layer end). If the layer would finish faster than this, a "
+                     "G4 dwell pads the difference before the next layer starts — gives the "
+                     "wave bed time to solidify before solid infill lands on top. Targets "
+                     "warping. Set to 0 to disable.");
+    def->sidetext = L("s");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 300;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
     def = this->add("wave_overhang_floor_layers", coInt);
     def->label = L("Wave overhang floor layers");
     def->category = L("Strength");

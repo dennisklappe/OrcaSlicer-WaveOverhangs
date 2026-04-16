@@ -2531,12 +2531,14 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
                 file.write_format(
                     "; WAVE_OVERHANG_BUILD"
+                    " wave_overhangs_version=%s orca_base=%s"
                     " printer=\"%s\" printer_variant=\"%s\""
                     " filament_type=%s"
                     " layer_height=%.3f initial_layer_height=%.3f"
                     " nozzle_diameter=%.2f"
                     " nozzle_temp=%d nozzle_temp_initial=%d"
                     " filament_flow_ratio=%.3f\n",
+                    WAVE_OVERHANGS_VERSION, SoftFever_VERSION,
                     pc.printer_model.value.c_str(),
                     printer_variant.c_str(),
                     first_or_empty_s(pc.filament_type.values),
@@ -2577,6 +2579,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         " perimeter_overlap=%.2f narrow_split_threshold=%.2f"
                         " wavefront_advance=%.3f discretization=%.3f"
                         " andersons_max_iter=%d min_new_area=%.4f arc_resolution=%d"
+                        " min_wave_time=%.2f min_layer_time=%.2f"
                         " support_remainder=%d instead_of_bridges=%d\n",
                         region_idx, algo,
                         rc.wave_overhang_outer_perimeters.value,
@@ -2602,6 +2605,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         rc.wave_overhang_andersons_max_iterations.value,
                         rc.wave_overhang_min_new_area.value,
                         rc.wave_overhang_arc_resolution.value,
+                        rc.wave_overhang_min_wave_time.value,
+                        rc.wave_overhang_min_layer_time.value,
                         rc.support_remaining_areas_after_wave_overhangs.value ? 1 : 0,
                         rc.wave_overhangs_instead_of_bridges.value ? 1 : 0);
                     ++region_idx;
@@ -5503,7 +5508,24 @@ LayerResult GCode::process_layer(
         gcode += insert_timelapse_gcode();
     }
 
-    result.gcode = std::move(gcode);
+    // Orca: min-layer-time dwell for wave-overhang layers. If any wave paths
+    // were emitted on this layer and the accumulated wave-extrusion time is
+    // below the threshold, pad with G4 so the wave bed has time to solidify
+    // before the next layer lands on it.
+    if (m_wave_layer_accumulated_time > 0.) {
+        const double min_layer_time = m_config.wave_overhang_min_layer_time.value;
+        if (min_layer_time > 0. && m_wave_layer_accumulated_time < min_layer_time) {
+            const double dwell_ms = (min_layer_time - m_wave_layer_accumulated_time) * 1000.;
+            char buf[96];
+            snprintf(buf, sizeof(buf), "G4 P%d ; wave-overhang min_layer_time dwell\n", int(dwell_ms + 0.5));
+            result.gcode = std::move(gcode) + buf;
+        } else {
+            result.gcode = std::move(gcode);
+        }
+        m_wave_layer_accumulated_time = 0.;
+    } else {
+        result.gcode = std::move(gcode);
+    }
     result.cooling_buffer_flush = object_layer || raft_layer || last_layer;
     return result;
 }
@@ -7132,6 +7154,24 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
     if (emit_wave_overhang_markers)
         gcode += "; WAVE_OVERHANG_END\n";
+
+    // Orca: min-wave-time dwell. Pad this wave region to at least
+    // wave_overhang_min_wave_time seconds by inserting G4 after the extrusion.
+    // Also accumulate to the layer total for min-layer-time handling.
+    if (path.wave_overhang) {
+        const double wave_speed = std::max(0.01, m_config.wave_overhang_print_speed.value);
+        const double path_length_mm = unscale<double>(path.length());
+        const double region_time_s  = path_length_mm / wave_speed;
+        m_wave_layer_accumulated_time += region_time_s;
+
+        const double min_wave_time = m_config.wave_overhang_min_wave_time.value;
+        if (min_wave_time > 0. && region_time_s < min_wave_time) {
+            const double dwell_ms = (min_wave_time - region_time_s) * 1000.;
+            char buf[64];
+            snprintf(buf, sizeof(buf), "G4 P%d ; wave-overhang min_wave_time dwell\n", int(dwell_ms + 0.5));
+            gcode += buf;
+        }
+    }
 
     return gcode;
 }

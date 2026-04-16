@@ -896,6 +896,7 @@ static std::vector<std::string> s_Preset_print_options {
     "support_remaining_areas_after_wave_overhangs",
     "wave_overhang_line_spacing", "wave_overhang_line_width", "wave_overhang_cross_section_area",
     "wave_overhang_print_speed", "wave_overhang_travel_speed", "wave_overhang_fan_speed",
+    "wave_overhang_min_wave_time", "wave_overhang_min_layer_time",
     "wave_overhang_floor_layers",
     "wave_overhang_algorithm", "wave_overhang_laso_overlap",
     "wave_overhang_min_angle", "wave_overhang_anchor_bite",
