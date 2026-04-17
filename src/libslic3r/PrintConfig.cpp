@@ -4688,16 +4688,18 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Wave overhang flow ratio");
     def->category = L("Strength");
     def->tooltip = L("Multiplier on the base extrusion flow for wave-overhang lines. "
-                     "Base cross-section is wave line width × layer height. "
-                     "1.0 keeps the default flow; raise above 1.0 to compensate for sag on unsupported tips, "
-                     "lower it if wave lines blob together.\n\n"
+                     "Wave lines hang in air instead of being squished against a layer below, so they need "
+                     "extra plastic to stay continuous — the default 2.0 matches Andersons' reference value "
+                     "for a 0.4 mm nozzle (~0.15 mm² cross-section), translated into a geometry-independent ratio.\n\n"
+                     "Raise further if wave lines look thin or broken; lower toward 1.0 if they blob together. "
+                     "1.0 reverts to Orca's base flow (width × layer height), which typically under-extrudes cantilevered lines.\n\n"
                      "Using a ratio (instead of an absolute cross-section area) keeps tuning portable across layer heights: "
                      "the same ratio transfers cleanly from a 0.2 mm to a 0.3 mm layer without re-calibration.");
     def->sidetext = L("x");
     def->mode = comAdvanced;
     def->min = 0.1;
     def->max = 3.0;
-    def->set_default_value(new ConfigOptionFloat(1.0));
+    def->set_default_value(new ConfigOptionFloat(2.0));
 
     def = this->add("wave_overhang_print_speed", coFloat);
     def->label = L("Wave overhang print speed");

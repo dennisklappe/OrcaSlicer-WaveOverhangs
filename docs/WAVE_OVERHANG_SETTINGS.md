@@ -138,16 +138,17 @@ Extrusion width for wave lines. Base extrusion volume is `width × layer_height`
 
 Multiplier applied to the base extrusion flow for wave-overhang lines. Base cross-section is `wave line width × layer height`; the final per-mm volume is `base × flow_ratio`.
 
-- **Type:** float (multiplier) · **Default:** `1.0` · **Range:** `0.1 – 3.0`
-- **Why a ratio (not an absolute mm²):** keeps tuning portable across layer heights. A ratio of `1.25` that works at 0.2 mm layer still makes sense at 0.3 mm layer — the effective cross-section scales with the geometry, instead of silently under-extruding when you change layer height.
-- **`1.0`** uses Orca's default flow calculation (width × layer-height), matching normal perimeters.
-- **Above 1.0** compensates for sag / bead rounding on unsupported tips (wave lines aren't squished against a layer below, so they benefit from a little extra plastic).
-- **Below 1.0** reduces flow if lines blob together or over-extrude on cantilevered tips.
+- **Type:** float (multiplier) · **Default:** `2.0` · **Range:** `0.1 – 3.0`
+- **Why 2.0:** Wave-overhang lines hang in air, not squished against a layer below, so the `width × layer-height` shape does not apply. Empirically they need roughly 2× the base flow to stay continuous — this matches Andersons' reference value of `~0.15 mm²` for a 0.4 mm nozzle.
+- **Why a ratio (not an absolute mm²):** keeps tuning portable across layer heights. A ratio of `2.0` tuned at 0.2 mm layer still makes sense at 0.3 mm layer — the effective cross-section scales with the geometry, instead of silently under-extruding when you change layer height.
+- **`1.0`** reverts to Orca's base flow (width × layer-height). This typically under-extrudes wave lines because they aren't actually squished.
+- **Above 2.0** if wave lines still look thin / starved on cantilevered tips.
+- **Below 2.0** if wave lines blob or merge.
 
 **Tuning guide:**
-- Start at `1.0` and print.
-- If wave lines look thin / starved / broken: raise to `1.1 – 1.3`.
-- If wave lines blob or merge: lower to `0.8 – 0.95`.
+- Start at `2.0` and print.
+- If wave lines look thin / starved / broken: raise to `2.2 – 2.5`.
+- If wave lines blob or merge: lower to `1.7 – 1.9`.
 
 #### `wave_overhang_spacing_mode`
 
