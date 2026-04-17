@@ -39,7 +39,7 @@ struct CommonParams {
     double      direction_bias_deg     = 0.0;   // Kaiser only: rotate seed polylines by this many degrees.
     // Alpha.6 tunables (Andersons only).
     double      perimeter_overlap      = 0.1;   // mm; extend wave propagation toward perimeters.
-    double      narrow_split_threshold = 2.0;   // x spacing; split wave region on narrow necks.
+    double      minimum_wave_width     = 0.7;   // mm; split wave region when a neck is narrower than this.
     WaveOverhangPattern pattern        = WaveOverhangPattern::Smart;
     // Andersons' PropagationParams mirror (Andersons only).
     double      wavefront_advance      = 0.7;   // mm; distance per wavefront iteration (Andersons wavelength).

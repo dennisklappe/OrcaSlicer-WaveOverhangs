@@ -113,11 +113,11 @@ Extends the wave propagation boundary outward toward kept perimeter lines so the
 - **Type:** float (mm) · **Default:** `0.1` · **Range:** `0 – unbounded`
 - **Tuning:** raise toward `0.2–0.3` if you see a visible gap between the last wave ring and the outer perimeter. Too high can cause wave lines to print *into* the perimeter.
 
-#### `wave_overhang_narrow_split_threshold`
+#### `wave_overhang_minimum_width`
 
-If a neck in the wave region is narrower than `threshold × line_spacing`, insert a thin split there before propagation (Andersons-only — the narrow-region handling from upstream alpha.6).
+If a neck in the wave region is narrower than this width, insert a thin split there before propagation so fragile wave branches do not form (Andersons-only — the narrow-region handling from upstream alpha.6, switched to an absolute width in upstream master).
 
-- **Type:** float (multiplier of line spacing) · **Default:** `2.0` · **Range:** `0 – unbounded`
+- **Type:** float (mm) · **Default:** `0.7` · **Range:** `0 – unbounded`
 - **Tuning:** raise to split more aggressively if wave rings skip over thin necks between lobes. Lower to `0` to disable splitting.
 
 #### `wave_overhang_line_spacing`
@@ -372,7 +372,7 @@ When `wave_overhang_debug_gcode = true` (the default), four kinds of comments ap
   anchor_bite=<mm> anchor_passes=<int> direction_bias=<deg>
   laso_overlap=<frac> kaiser_max_rings=<int>
   pattern=<smart|monotonic|zigzag> spacing_mode=<uniform|progressive> seam_mode=<alternating|aligned|random>
-  perimeter_overlap=<mm> narrow_split_threshold=<mult>
+  perimeter_overlap=<mm> minimum_wave_width=<mm>
   wavefront_advance=<mm> discretization=<mm>
   andersons_max_iter=<int> min_new_area=<mm²> arc_resolution=<int>
   support_remainder=<0|1>

@@ -1148,7 +1148,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                 wave_overhangs_instead_of_bridges))
     ((ConfigOptionInt,                  wave_overhang_outer_perimeters))
     ((ConfigOptionFloat,                wave_overhang_perimeter_overlap))
-    ((ConfigOptionFloat,                wave_overhang_narrow_split_threshold))
+    ((ConfigOptionFloat,                wave_overhang_minimum_width))
     ((ConfigOptionEnum<WaveOverhangPattern>, wave_overhang_pattern))
     ((ConfigOptionFloat,                wave_overhang_line_spacing))
     ((ConfigOptionFloat,                wave_overhang_line_width))

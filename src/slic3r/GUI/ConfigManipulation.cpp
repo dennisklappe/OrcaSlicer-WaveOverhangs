@@ -1003,7 +1003,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     for (const std::string &k : {
         std::string("wave_overhang_pattern"),
         std::string("wave_overhang_perimeter_overlap"),
-        std::string("wave_overhang_narrow_split_threshold"),
+        std::string("wave_overhang_minimum_width"),
         std::string("wave_overhang_wavefront_advance"),
         std::string("wave_overhang_discretization"),
         std::string("wave_overhang_andersons_max_iterations"),

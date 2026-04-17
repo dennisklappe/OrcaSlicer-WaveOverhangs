@@ -4622,7 +4622,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("wave_overhang_outer_perimeters", coInt);
-    def->label = L("Outer perimeters during wave overhangs");
+    def->label = L("Wave overhang perimeters");
     def->category = L("Strength");
     def->tooltip = L("Number of additional concentric outer-shell perimeters printed inside the "
                      "overhang region before the wave fill. 1 is usually enough.");
@@ -4640,15 +4640,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.1));
 
-    def = this->add("wave_overhang_narrow_split_threshold", coFloat);
-    def->label = L("Wave overhang narrow split threshold");
+    def = this->add("wave_overhang_minimum_width", coFloat);
+    def->label = L("Minimum wave width");
     def->category = L("Strength");
-    def->tooltip = L("Andersons algorithm only. If a narrow neck in the wave region is smaller than this multiplier times the wave line spacing, a thin split is inserted there before propagation. "
+    def->tooltip = L("Andersons algorithm only. If a narrow neck in the wave region is smaller than this width, a thin split is inserted there before propagation so fragile wave branches do not form. "
                      "Larger values split more aggressively.");
-    def->sidetext = L("x spacing");
+    def->sidetext = L("mm");
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(2.0));
+    def->set_default_value(new ConfigOptionFloat(0.7));
 
     def = this->add("wave_overhang_pattern", coEnum);
     def->label = L("Wave overhang pattern");

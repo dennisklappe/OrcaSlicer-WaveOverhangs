@@ -1117,7 +1117,7 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     params.direction_bias_deg = region_config.wave_overhang_direction_bias.value;
     // stmcculloch alpha.6 additions:
     params.perimeter_overlap      = region_config.wave_overhang_perimeter_overlap.value;
-    params.narrow_split_threshold = region_config.wave_overhang_narrow_split_threshold.value;
+    params.minimum_wave_width = region_config.wave_overhang_minimum_width.value;
     params.pattern                = region_config.wave_overhang_pattern.value;
     // Andersons' PropagationParams mirror (see Wave overhangs.py :: PropagationParams @ line 46).
     params.wavefront_advance        = region_config.wave_overhang_wavefront_advance.value;

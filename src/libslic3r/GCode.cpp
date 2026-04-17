@@ -2599,7 +2599,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         " anchor_bite=%.2f anchor_passes=%d direction_bias=%.1f"
                         " laso_overlap=%.2f kaiser_max_rings=%d"
                         " pattern=%s spacing_mode=%s seam_mode=%s"
-                        " perimeter_overlap=%.2f narrow_split_threshold=%.2f"
+                        " perimeter_overlap=%.2f minimum_wave_width=%.2f"
                         " wavefront_advance=%.3f discretization=%.3f"
                         " andersons_max_iter=%d min_new_area=%.4f arc_resolution=%d"
                         " nozzle_temp_override=%d min_wave_time=%.2f min_layer_time=%.2f"
@@ -2624,7 +2624,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         rc.wave_overhang_kaiser_max_rings.value,
                         pattern, spacing_mode, seam_mode,
                         rc.wave_overhang_perimeter_overlap.value,
-                        rc.wave_overhang_narrow_split_threshold.value,
+                        rc.wave_overhang_minimum_width.value,
                         rc.wave_overhang_wavefront_advance.value,
                         rc.wave_overhang_discretization.value,
                         rc.wave_overhang_andersons_max_iterations.value,

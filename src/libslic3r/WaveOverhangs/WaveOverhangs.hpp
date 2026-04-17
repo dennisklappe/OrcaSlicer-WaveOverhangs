@@ -27,7 +27,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     int             perimeter_count,
     int             additional_shell_count,
     double          wave_perimeter_overlap,
-    double          wave_narrow_split_threshold,
+    double          minimum_wave_width,
     WaveOverhangPattern wave_pattern,
     double          wave_line_spacing,
     double          wave_line_width,

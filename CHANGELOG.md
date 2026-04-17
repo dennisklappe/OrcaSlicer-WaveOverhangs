@@ -49,7 +49,7 @@ Shared tunables:
 Andersons-only:
 - `wave_overhang_pattern` (enum: smart / zigzag / monotonic)
 - `wave_overhang_perimeter_overlap` (float)
-- `wave_overhang_narrow_split_threshold` (float)
+- `wave_overhang_minimum_width` (float mm)
 - `wave_overhang_wavefront_advance` (float mm)
 - `wave_overhang_discretization` (float mm)
 - `wave_overhang_andersons_max_iterations` (int)
