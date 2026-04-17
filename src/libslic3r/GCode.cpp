@@ -2517,66 +2517,15 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 }
             }
             if (any_wave_debug) {
-                // Global build context first — useful for bug reports so the full
-                // print setup can be reconstructed from just the G-code header.
-                const PrintObjectConfig &oc = print.default_object_config();
-                const PrintConfig       &pc = print.config();
-                auto first_or_zero_d = [](const std::vector<double> &v) -> double { return v.empty() ? 0.0 : v[0]; };
-                auto first_or_zero_i = [](const std::vector<int>    &v) -> int    { return v.empty() ? 0   : v[0]; };
-                auto first_or_empty_s = [](const std::vector<std::string> &v) -> const char* { return v.empty() ? "" : v[0].c_str(); };
-
-                // Several useful fields live in the dynamic config (not typed on PrintConfig).
-                auto opt_string = [&pc](const std::string &key) -> std::string {
-                    const ConfigOption *o = pc.option(key);
-                    return o ? o->serialize() : std::string();
-                };
-                const std::string printer_variant    = opt_string("printer_variant");
-                const std::string print_settings_id  = opt_string("print_settings_id");
-                const std::string printer_settings_id = opt_string("printer_settings_id");
-                const std::string filament_settings_id = opt_string("filament_settings_id");
-
+                // The BUILD line only carries what Orca's own trailing `; key = value`
+                // config block doesn't already expose: our fork version, and the Orca
+                // base version we were cut from. Printer, filament, layer height,
+                // nozzle/bed temps, flow ratio and support flags are all emitted by
+                // Orca below; the website parser's config-block fallback reads them
+                // from there so duplicating here just made the header noisy.
                 file.write_format(
-                    "; WAVE_OVERHANG_BUILD"
-                    " wave_overhangs_version=%s orca_base=%s"
-                    " printer=\"%s\" printer_variant=\"%s\""
-                    " printer_profile=\"%s\" print_profile=\"%s\" filament_profile=\"%s\""
-                    " filament_type=%s"
-                    " layer_height=%.3f initial_layer_height=%.3f"
-                    " nozzle_diameter=%.2f"
-                    " nozzle_temp=%d nozzle_temp_initial=%d"
-                    " bed_temp=%d bed_temp_initial=%d"
-                    " filament_flow_ratio=%.3f"
-                    " support_enabled=%d support_type=\"%s\""
-                    "\n",
-                    WAVE_OVERHANGS_VERSION, SoftFever_VERSION,
-                    pc.printer_model.value.c_str(),
-                    printer_variant.c_str(),
-                    printer_settings_id.c_str(), print_settings_id.c_str(), filament_settings_id.c_str(),
-                    first_or_empty_s(pc.filament_type.values),
-                    oc.layer_height.value,
-                    pc.initial_layer_print_height.value,
-                    first_or_zero_d(pc.nozzle_diameter.values),
-                    first_or_zero_i(pc.nozzle_temperature.values),
-                    first_or_zero_i(pc.nozzle_temperature_initial_layer.values),
-                    // Bed temp lives on per-bed-type keys (hot_plate_temp, textured_plate_temp, ...).
-                    // Resolve via the configured curr_bed_type to pull the user's actual value.
-                    [&]() -> int {
-                        const std::string key = get_bed_temp_key(pc.curr_bed_type.value);
-                        if (key.empty()) return 0;
-                        const ConfigOption *o = pc.option(key);
-                        if (auto *ints = dynamic_cast<const ConfigOptionInts*>(o)) return ints->values.empty() ? 0 : ints->values[0];
-                        return 0;
-                    }(),
-                    [&]() -> int {
-                        const std::string key = get_bed_temp_1st_layer_key(pc.curr_bed_type.value);
-                        if (key.empty()) return 0;
-                        const ConfigOption *o = pc.option(key);
-                        if (auto *ints = dynamic_cast<const ConfigOptionInts*>(o)) return ints->values.empty() ? 0 : ints->values[0];
-                        return 0;
-                    }(),
-                    first_or_zero_d(pc.filament_flow_ratio.values),
-                    oc.enable_support.value ? 1 : 0,
-                    opt_string("support_type").c_str());
+                    "; WAVE_OVERHANG_BUILD wave_overhangs_version=%s orca_base=%s\n",
+                    WAVE_OVERHANGS_VERSION, SoftFever_VERSION);
 
                 size_t region_idx = 0;
                 for (const PrintRegion *region : print.m_print_regions) {
