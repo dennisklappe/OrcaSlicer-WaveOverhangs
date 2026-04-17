@@ -2137,6 +2137,27 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::top_contact_layers(
 #endif // SLIC3R_DEBUG
                 );
 
+                // Orca: if the user enabled "support only remaining areas after wave
+                // overhangs" on any region that uses wave overhangs, subtract the
+                // wave-covered footprint from detected overhangs here. Enforcers are
+                // handled separately later in detect_contacts() and therefore remain
+                // unaffected. Sharp-tail / first-layer logic already folded into
+                // overhangs_per_layers; subtracting covered regions is still safe
+                // since wave paths by construction only fill unsupported areas.
+                if (!overhangs_per_layers[layer_id].empty() && !layer.wave_overhang_covered_polygons.empty()) {
+                    bool wave_support_gate = false;
+                    for (size_t ri = 0; ri < object.num_printing_regions(); ++ri) {
+                        const PrintRegionConfig &rc = object.printing_region(ri).config();
+                        if (rc.wave_overhangs.value && rc.support_remaining_areas_after_wave_overhangs.value) {
+                            wave_support_gate = true;
+                            break;
+                        }
+                    }
+                    if (wave_support_gate) {
+                        overhangs_per_layers[layer_id] = diff_ex(overhangs_per_layers[layer_id], layer.wave_overhang_covered_polygons);
+                    }
+                }
+
                 if (object.print()->canceled())
                     break;
             }

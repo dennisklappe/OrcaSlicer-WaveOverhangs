@@ -585,6 +585,14 @@ private:
     Point                               m_last_pos;
     bool                                m_last_pos_defined;
 
+    // Orca: wave-overhang — true while _extrude() is processing a wave-overhang path.
+    // Used by travel_to() so the *leading* travel to a wave-overhang path uses the
+    // wave-overhang travel speed override (the flag is set before that travel emits).
+    bool                                m_inside_wave_overhang = false;
+    // Orca: accumulated wave-extrusion time on the current layer (seconds).
+    // Used by wave_overhang_min_layer_time; reset at each layer change.
+    double                              m_wave_layer_accumulated_time = 0.;
+
     std::unique_ptr<CoolingBuffer>      m_cooling_buffer;
     std::unique_ptr<SpiralVase>         m_spiral_vase;
 

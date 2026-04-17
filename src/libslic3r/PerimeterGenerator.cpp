@@ -9,6 +9,9 @@
 #include "ShortestPath.hpp"
 #include "VariableWidth.hpp"
 #include "Arachne/WallToolPaths.hpp"
+#include "WaveOverhangs/WaveOverhangs.hpp"
+#include "WaveOverhangs/AndersonsGenerator.hpp"
+#include "WaveOverhangs/KaiserGenerator.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "ExPolygonCollection.hpp"
 #include "Geometry.hpp"
@@ -1075,15 +1078,106 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
     return {extra_perims, diff(inset_overhang_area, inset_overhang_area_left_unfilled)};
 }
 
+// Thin wrapper around WaveOverhangs::generate(). Matches the signature/return of
+// generate_extra_perimeters_over_overhangs() so the call site can swap between them based on
+// the wave_overhangs flag. The underlying WaveOverhangs::generate() already tags the returned
+// ExtrusionPaths with `wave_overhang = true`, so we just forward the result here.
+static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_paths(
+    ExPolygons               infill_area,
+    const Polygons          &lower_slices_polygons,
+    int                      perimeter_count,
+    const PrintRegionConfig &region_config,
+    const Flow              &overhang_flow,
+    double                   scaled_resolution)
+{
+    const int desired_wave_perimeters = std::min(region_config.wave_overhang_outer_perimeters.value,
+                                                 perimeter_count);
+    const int additional_shell_count  = std::max(0, desired_wave_perimeters - perimeter_count);
+
+    WaveOverhangs::CommonParams params;
+    params.perimeter_count        = perimeter_count;
+    params.additional_shell_count = additional_shell_count;
+    params.line_spacing           = region_config.wave_overhang_line_spacing.value;
+    params.line_width             = region_config.wave_overhang_line_width.value;
+    params.overhang_flow          = overhang_flow;
+    params.scaled_resolution      = scaled_resolution;
+    params.anchor_bite            = region_config.wave_overhang_anchor_bite.value;
+    params.spacing_mode           = (region_config.wave_overhang_spacing_mode == wosmProgressive)
+                                        ? WaveOverhangs::SpacingMode::Progressive
+                                        : WaveOverhangs::SpacingMode::Uniform;
+    switch (region_config.wave_overhang_seam_mode.value) {
+    case woseAligned: params.seam_mode = WaveOverhangs::SeamMode::Aligned; break;
+    case woseRandom:  params.seam_mode = WaveOverhangs::SeamMode::Random;  break;
+    case woseAlternating:
+    default:          params.seam_mode = WaveOverhangs::SeamMode::Alternating; break;
+    }
+    params.min_length_mm    = region_config.wave_overhang_min_length.value;
+    params.kaiser_max_rings = region_config.wave_overhang_kaiser_max_rings.value;
+    params.anchor_passes      = region_config.wave_overhang_anchor_passes.value;
+    params.direction_bias_deg = region_config.wave_overhang_direction_bias.value;
+    // stmcculloch alpha.6 additions:
+    params.perimeter_overlap      = region_config.wave_overhang_perimeter_overlap.value;
+    params.minimum_wave_width = region_config.wave_overhang_minimum_width.value;
+    params.pattern                = region_config.wave_overhang_pattern.value;
+    // Andersons' PropagationParams mirror (see Wave overhangs.py :: PropagationParams @ line 46).
+    params.wavefront_advance        = region_config.wave_overhang_wavefront_advance.value;
+    params.discretization           = region_config.wave_overhang_discretization.value;
+    params.andersons_max_iterations  = region_config.wave_overhang_andersons_max_iterations.value;
+    params.min_new_area             = region_config.wave_overhang_min_new_area.value;
+    params.arc_resolution           = region_config.wave_overhang_arc_resolution.value;
+    params.use_instead_of_bridges   = region_config.wave_overhangs_instead_of_bridges.value;
+
+    // wave_overhang_min_angle is intentionally NOT enforced here. The incoming
+    // overhang region has already been classified as erOverhangPerimeter upstream
+    // by Orca's detect_overhang_wall + overhang_reverse_threshold pipeline, which
+    // is the authoritative slope filter. Any local re-threshold we tried here
+    // (layer_height * tan(angle) envelope) was over-eager and rejected every
+    // legitimate overhang strip, because by construction the strip extends
+    // roughly one layer-height beyond the support. The config key is kept for
+    // profile compatibility and potential future use; see tooltip.
+    if (infill_area.empty())
+        return { {}, {} };
+
+    WaveOverhangs::GenerateResult res;
+    if (region_config.wave_overhang_algorithm == woaKaiser) {
+        WaveOverhangs::KaiserGenerator gen;
+        gen.overlap = region_config.wave_overhang_laso_overlap.value;
+        res = gen.generate(infill_area, lower_slices_polygons, params);
+    } else {
+        WaveOverhangs::AndersonsGenerator gen;
+        res = gen.generate(infill_area, lower_slices_polygons, params);
+    }
+    return { std::move(res.paths), std::move(res.residual) };
+}
+
 void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
 {
-    if (!m_spiral_vase && this->lower_slices != nullptr && this->config->detect_overhang_wall && this->config->extra_perimeters_on_overhangs &&
+    const bool use_wave_overhangs = this->config->wave_overhangs;
+    const bool gate_extra_perims  = this->config->extra_perimeters_on_overhangs || use_wave_overhangs;
+    if (!m_spiral_vase && this->lower_slices != nullptr && this->config->detect_overhang_wall && gate_extra_perims &&
         this->config->wall_loops > 0 && this->layer_id > this->object_config->raft_layers) {
         // Generate extra perimeters on overhang areas, and cut them to these parts only, to save print time and material
-        auto [extra_perimeters, filled_area] = generate_extra_perimeters_over_overhangs(infill_area, this->lower_slices_polygons(),
-                                                                                        this->config->wall_loops, this->overhang_flow,
-                                                                                        this->m_scaled_resolution, *this->object_config,
-                                                                                        *this->print_config);
+        auto [extra_perimeters, filled_area] = use_wave_overhangs
+            ? generate_wave_overhang_paths(infill_area, this->lower_slices_polygons(),
+                                           this->config->wall_loops, *this->config,
+                                           this->overhang_flow, this->m_scaled_resolution)
+            : generate_extra_perimeters_over_overhangs(infill_area, this->lower_slices_polygons(),
+                                                        this->config->wall_loops, this->overhang_flow,
+                                                        this->m_scaled_resolution, *this->object_config, *this->print_config);
+
+        if (use_wave_overhangs) {
+            // Wave-overhang lines are cantilevered into air, so the user often
+            // wants more (or less) plastic than Orca's base width × layer-height
+            // would give. Scale whatever flow Orca already computed by the ratio
+            // so the knob stays portable across layer heights and line widths.
+            const double flow_ratio = this->config->wave_overhang_flow_ratio.value;
+            if (flow_ratio > 0.0 && flow_ratio != 1.0) {
+                for (ExtrusionPaths &region : extra_perimeters)
+                    for (ExtrusionPath &path : region)
+                        if (path.wave_overhang)
+                            path.mm3_per_mm *= flow_ratio;
+            }
+        }
         if (!extra_perimeters.empty()) {
             ExtrusionEntityCollection *this_islands_perimeters = static_cast<ExtrusionEntityCollection *>(this->loops->entities.back());
             ExtrusionEntityCollection  new_perimeters{};
@@ -1099,6 +1193,29 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
             for (const auto &surface : orig_surfaces.surfaces) {
                 auto new_surfaces = diff_ex({surface.expolygon}, filled_area);
                 this->fill_surfaces->append(new_surfaces, surface);
+            }
+
+            // Orca: stash wave-overhang footprint for floor-layer surface promotion
+            // above. filled_area is the union of regions actually filled by the
+            // WaveOverhangs algorithm in this region; the consumer (PrintObject::
+            // detect_surfaces_type) only fires when wave_overhang_floor_layers > 0
+            // AND wave_overhangs is on, so it's safe to always stash here when we
+            // generated wave paths.
+            // Stash wave-overhang footprint whenever wave paths were generated,
+            // independent of wave_overhang_floor_layers. Consumer (apply_wave_
+            // overhang_floor_layer_authority) needs this to compute the shadow
+            // mask even at floor_layers=0 so it can SUPPRESS Orca's default
+            // bottom_shell_layers from auto-adding solid layers above the wave.
+            if (use_wave_overhangs) {
+                append(this->out_wave_overhang_floor_polygons, filled_area);
+            }
+
+            // Orca: stash wave-overhang coverage footprint unconditionally whenever
+            // wave paths were generated (independent of floor_layers). Consumer:
+            // support pipeline when support_remaining_areas_after_wave_overhangs is
+            // enabled. See Layer::wave_overhang_covered_polygons.
+            if (use_wave_overhangs) {
+                append(this->out_wave_overhang_covered_polygons, filled_area);
             }
         }
     }

@@ -74,7 +74,11 @@ public:
     // SoftFever NOTE: the returned speed is mm/minute
     double      get_current_speed() const { return m_current_speed;}
     std::string travel_to_xy(const Vec2d &point, const std::string &comment = std::string());
+    // Orca: wave-overhang — travel with an explicit speed override (mm/s). 0 = use config.
+    std::string travel_to_xy(const Vec2d &point, double speed_override, const std::string &comment = std::string());
     std::string travel_to_xyz(const Vec3d &point, const std::string &comment = std::string(), bool force_z = false);
+    // Orca: wave-overhang — travel with an explicit speed override (mm/s). 0 = use config.
+    std::string travel_to_xyz(const Vec3d &point, double speed_override, const std::string &comment = std::string(), bool force_z = false);
     std::string travel_to_z(double z, const std::string &comment = std::string(), bool force = false);
     bool        will_move_z(double z) const;
     std::string extrude_to_xy(const Vec2d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);

@@ -12,6 +12,7 @@
 #include "Plater.hpp"
 
 #include <wx/msgdlg.h>
+#include <algorithm>
 
 namespace Slic3r {
 namespace GUI {
@@ -535,11 +536,15 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         auto answer = dialog.ShowModal();
         if (answer == wxID_YES)
             new_conf.set_key_value("wall_generator", new ConfigOptionEnum<PerimeterGeneratorType>(PerimeterGeneratorType::Arachne));
-        else 
+        else
             new_conf.set_key_value("fuzzy_skin_mode", new ConfigOptionEnum<FuzzySkinMode>(FuzzySkinMode::Displacement));
         apply(config, &new_conf);
         is_msg_dlg_already_exist = false;
     }
+
+    // Wave-overhang preset expansion + snap-to-Custom are handled in
+    // Tab::on_value_change (direct widget edits reach it first, and apply()
+    // there populates m_applying_keys correctly for downstream updates).
 }
 
 void ConfigManipulation::apply_null_fff_config(DynamicPrintConfig *config, std::vector<std::string> const &keys, std::map<ObjectBase *, ModelConfig *> const &configs)
@@ -960,6 +965,59 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
     toggle_line("enable_wrapping_detection", DevPrinterConfigUtil::support_wrapping_detection(printer_type));
+
+    // Orca: wave-overhangs conditional visibility.
+    // - Master toggle off → hide every wave_overhang_* tunable (only master stays).
+    // - Andersons selected → hide Kaiser-only tunables.
+    // - Kaiser selected    → hide Andersons-only tunables.
+    const bool wo_enabled = config->opt_bool("wave_overhangs");
+    const auto wo_algo    = config->opt_enum<WaveOverhangAlgorithm>("wave_overhang_algorithm");
+    const bool is_andersons = wo_algo == woaAndersons;
+    const bool is_kaiser   = wo_algo == woaKaiser;
+
+    for (const std::string &k : {
+        std::string("wave_overhangs_instead_of_bridges"),
+        std::string("wave_overhang_algorithm"),
+        std::string("wave_overhang_outer_perimeters"),
+        std::string("wave_overhang_line_spacing"),
+        std::string("wave_overhang_line_width"),
+        std::string("wave_overhang_flow_ratio"),
+        std::string("wave_overhang_print_speed"),
+        std::string("wave_overhang_travel_speed"),
+        std::string("wave_overhang_fan_speed"),
+        std::string("wave_overhang_nozzle_temp"),
+        std::string("wave_overhang_min_wave_time"),
+        std::string("wave_overhang_min_layer_time"),
+        std::string("wave_overhang_floor_layers"),
+        std::string("wave_overhang_min_angle"),
+        std::string("wave_overhang_min_length"),
+        std::string("wave_overhang_anchor_bite"),
+        std::string("wave_overhang_anchor_passes"),
+        std::string("wave_overhang_spacing_mode"),
+        std::string("wave_overhang_seam_mode"),
+        std::string("wave_overhang_debug_gcode"),
+        std::string("support_remaining_areas_after_wave_overhangs"),
+    })
+        toggle_line(k, wo_enabled);
+
+    for (const std::string &k : {
+        std::string("wave_overhang_pattern"),
+        std::string("wave_overhang_perimeter_overlap"),
+        std::string("wave_overhang_minimum_width"),
+        std::string("wave_overhang_wavefront_advance"),
+        std::string("wave_overhang_discretization"),
+        std::string("wave_overhang_andersons_max_iterations"),
+        std::string("wave_overhang_min_new_area"),
+        std::string("wave_overhang_arc_resolution"),
+    })
+        toggle_line(k, wo_enabled && is_andersons);
+
+    for (const std::string &k : {
+        std::string("wave_overhang_laso_overlap"),
+        std::string("wave_overhang_kaiser_max_rings"),
+        std::string("wave_overhang_direction_bias"),
+    })
+        toggle_line(k, wo_enabled && is_kaiser);
 }
 
 void ConfigManipulation::update_print_sla_config(DynamicPrintConfig* config, const bool is_global_config/* = false*/)

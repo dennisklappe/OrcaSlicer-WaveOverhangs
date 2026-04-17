@@ -121,6 +121,17 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
         g.process_arachne();
     else
         g.process_classic();
+
+    // Orca: forward wave-overhang footprint to the layer so detect_surfaces_type()
+    // can later upgrade stInternal -> stBottomBridge on the configured number of
+    // floor layers above. Layer::make_perimeters() processes regions sequentially
+    // within a layer, so this append is safe under the parallel layer loop.
+    if (! g.out_wave_overhang_floor_polygons.empty())
+        append(this->layer()->wave_overhang_floor_polygons, std::move(g.out_wave_overhang_floor_polygons));
+    // Orca: forward wave-overhang coverage footprint (for support suppression)
+    // to the layer. Populated unconditionally when wave paths exist.
+    if (! g.out_wave_overhang_covered_polygons.empty())
+        append(this->layer()->wave_overhang_covered_polygons, std::move(g.out_wave_overhang_covered_polygons));
 }
 
 #if 1

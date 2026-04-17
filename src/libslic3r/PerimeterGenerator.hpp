@@ -93,6 +93,19 @@ public:
     bool                                            has_fuzzy_skin = false;
     bool                                            has_fuzzy_hole = false;
     std::unordered_map<FuzzySkinConfig, ExPolygons> regions_by_fuzzify;
+
+    // Orca: 2D footprint of wave-overhang extrusions emitted by this generator
+    // (union of the areas filled by the WaveOverhangs algorithm). Picked up by
+    // LayerRegion::make_perimeters and written to Layer::wave_overhang_floor_polygons
+    // so detect_surfaces_type() can promote stInternal -> stBottomBridge above.
+    Polygons                                        out_wave_overhang_floor_polygons;
+
+    // Orca: 2D footprint of wave-overhang extrusions (union of filled_area)
+    // written unconditionally whenever wave paths generated in this region.
+    // Picked up by LayerRegion::make_perimeters and stashed in
+    // Layer::wave_overhang_covered_polygons for the support pipeline to
+    // subtract when support_remaining_areas_after_wave_overhangs is on.
+    Polygons                                        out_wave_overhang_covered_polygons;
     
     PerimeterGenerator(
         // Input:

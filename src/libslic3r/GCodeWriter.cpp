@@ -553,6 +553,12 @@ std::string GCodeWriter::set_speed(double F, const std::string &comment, const s
 
 std::string GCodeWriter::travel_to_xy(const Vec2d &point, const std::string &comment)
 {
+    return this->travel_to_xy(point, 0.0, comment);
+}
+
+// Orca: wave-overhang — variant accepting an explicit speed override (mm/s). 0 = use config.
+std::string GCodeWriter::travel_to_xy(const Vec2d &point, double speed_override, const std::string &comment)
+{
     m_pos(0) = point(0);
     m_pos(1) = point(1);
 
@@ -564,6 +570,8 @@ std::string GCodeWriter::travel_to_xy(const Vec2d &point, const std::string &com
     w.emit_xy(point_on_plate);
     auto speed = m_is_first_layer
         ? this->config.get_abs_value("initial_layer_travel_speed") : this->config.travel_speed.value;
+    if (speed_override > 0.0)
+        speed = speed_override;
     w.emit_f(speed * 60.0);
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
@@ -637,6 +645,12 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
 
 std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &comment, bool force_z)
 {
+    return this->travel_to_xyz(point, 0.0, comment, force_z);
+}
+
+// Orca: wave-overhang — variant accepting an explicit speed override (mm/s). 0 = use config.
+std::string GCodeWriter::travel_to_xyz(const Vec3d &point, double speed_override, const std::string &comment, bool force_z)
+{
     // FIXME: This function was not being used when travel_speed_z was separated (bd6badf).
     // Calculation of feedrate was not updated accordingly. If you want to use
     // this function, fix it first.
@@ -650,6 +664,8 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     Vec3d dest_point = point;
     auto travel_speed =
         m_is_first_layer ? this->config.get_abs_value("initial_layer_travel_speed") : this->config.travel_speed.value;
+    if (speed_override > 0.0)
+        travel_speed = speed_override;
     //BBS: a z_hop need to be handle when travel
     if (std::abs(m_to_lift) > EPSILON) {
         assert(std::abs(m_lifted) < EPSILON);
@@ -730,7 +746,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
             m_lifted = 0.;
         //BBS
         this->set_current_position_clear(true);
-        return this->travel_to_xy(to_2d(point));
+        return this->travel_to_xy(to_2d(point), speed_override, comment);
     }
     else {
         /*  In all the other cases, we perform an actual XYZ move and cancel
@@ -740,19 +756,21 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
 
     //BBS: take plate offset into consider
     Vec3d point_on_plate = { dest_point(0) - m_x_offset, dest_point(1) - m_y_offset, dest_point(2) };
+    // Orca: wave-overhang — honor speed override (mm/s). 0 = use config.
+    const double xyz_speed = (speed_override > 0.0) ? speed_override : this->config.travel_speed.value;
     std::string out_string;
     GCodeG1Formatter w;
     if (!this->is_current_position_clear())
     {
         //force to move xy first then z after filament change
         w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
-        w.emit_f(this->config.travel_speed.value * 60.0);
+        w.emit_f(xyz_speed * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
         out_string = w.string() + _travel_to_z(point_on_plate.z(), comment);
     } else {
         GCodeG1Formatter w;
         w.emit_xyz(point_on_plate);
-        w.emit_f(this->config.travel_speed.value * 60.0);
+        w.emit_f(xyz_speed * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
         out_string = w.string();
     }

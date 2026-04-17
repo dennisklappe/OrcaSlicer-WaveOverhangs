@@ -2402,6 +2402,62 @@ void TabPrint::build()
         optgroup->append_single_option_line("overhang_reverse_internal_only", "quality_settings_overhangs#reverse-internal-only");
         optgroup->append_single_option_line("overhang_reverse_threshold", "quality_settings_overhangs#reverse-threshold");
 
+    // Dedicated Wave Overhangs page — all wave-overhang options grouped here
+    // (master toggle, algorithm, geometry, motion, cooling, top layers, debug).
+    page = add_options_page(L("Wave overhangs"), "custom-gcode_quality");
+        optgroup = page->new_optgroup(L("General"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhangs");
+        optgroup->append_single_option_line("wave_overhangs_instead_of_bridges");
+        optgroup->append_single_option_line("wave_overhang_algorithm");
+        optgroup->append_single_option_line("wave_overhang_min_angle");
+        optgroup->append_single_option_line("wave_overhang_min_length");
+
+        optgroup = page->new_optgroup(L("Geometry"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_outer_perimeters");
+        optgroup->append_single_option_line("wave_overhang_pattern");
+        optgroup->append_single_option_line("wave_overhang_perimeter_overlap");
+        optgroup->append_single_option_line("wave_overhang_minimum_width");
+        optgroup->append_single_option_line("wave_overhang_line_spacing");
+        optgroup->append_single_option_line("wave_overhang_line_width");
+        optgroup->append_single_option_line("wave_overhang_flow_ratio");
+        optgroup->append_single_option_line("wave_overhang_spacing_mode");
+        optgroup->append_single_option_line("wave_overhang_seam_mode");
+        optgroup->append_single_option_line("wave_overhang_direction_bias");
+
+        optgroup = page->new_optgroup(L("Anchoring"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_anchor_bite");
+        optgroup->append_single_option_line("wave_overhang_anchor_passes");
+
+        optgroup = page->new_optgroup(L("Andersons"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_wavefront_advance");
+        optgroup->append_single_option_line("wave_overhang_discretization");
+        optgroup->append_single_option_line("wave_overhang_andersons_max_iterations");
+        optgroup->append_single_option_line("wave_overhang_min_new_area");
+        optgroup->append_single_option_line("wave_overhang_arc_resolution");
+
+        optgroup = page->new_optgroup(L("Kaiser LaSO"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_laso_overlap");
+        optgroup->append_single_option_line("wave_overhang_kaiser_max_rings");
+
+        optgroup = page->new_optgroup(L("Speed"), L"param_speed");
+        optgroup->append_single_option_line("wave_overhang_print_speed");
+        optgroup->append_single_option_line("wave_overhang_travel_speed");
+
+        optgroup = page->new_optgroup(L("Cooling"), L"param_cooling");
+        optgroup->append_single_option_line("wave_overhang_fan_speed");
+        optgroup->append_single_option_line("wave_overhang_nozzle_temp");
+        optgroup->append_single_option_line("wave_overhang_min_wave_time");
+        optgroup->append_single_option_line("wave_overhang_min_layer_time");
+
+        optgroup = page->new_optgroup(L("Floor layers"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_floor_layers");
+
+        optgroup = page->new_optgroup(L("Support integration"), L"param_overhang");
+        optgroup->append_single_option_line("support_remaining_areas_after_wave_overhangs");
+
+        optgroup = page->new_optgroup(L("Debug"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_debug_gcode");
+
     page = add_options_page(L("Strength"), "custom-gcode_strength"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Walls"), L"param_wall");
         optgroup->append_single_option_line("wall_loops", "strength_settings_walls#wall-loops");
