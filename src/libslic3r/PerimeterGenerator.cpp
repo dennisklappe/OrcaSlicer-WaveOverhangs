@@ -1166,17 +1166,16 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
                                                         this->m_scaled_resolution, *this->object_config, *this->print_config);
 
         if (use_wave_overhangs) {
-            // Wave-overhang lines are cantilevered into air, not squished against a
-            // layer below. A = line_width × layer_height does not apply — the user
-            // specifies the physical cross-section area directly (Andersons uses
-            // ~0.15 mm²). Override whatever Orca's flow math computed upstream.
-            // A value of 0 disables the override and keeps Orca's default flow.
-            const double cross_section_area = this->config->wave_overhang_cross_section_area.value;
-            if (cross_section_area > 0.0) {
+            // Wave-overhang lines are cantilevered into air, so the user often
+            // wants more (or less) plastic than Orca's base width × layer-height
+            // would give. Scale whatever flow Orca already computed by the ratio
+            // so the knob stays portable across layer heights and line widths.
+            const double flow_ratio = this->config->wave_overhang_flow_ratio.value;
+            if (flow_ratio > 0.0 && flow_ratio != 1.0) {
                 for (ExtrusionPaths &region : extra_perimeters)
                     for (ExtrusionPath &path : region)
                         if (path.wave_overhang)
-                            path.mm3_per_mm = cross_section_area;
+                            path.mm3_per_mm *= flow_ratio;
             }
         }
         if (!extra_perimeters.empty()) {

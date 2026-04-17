@@ -4684,21 +4684,20 @@ void PrintConfigDef::init_fff_params()
     def->min = 0.1;
     def->set_default_value(new ConfigOptionFloat(0.4));
 
-    def = this->add("wave_overhang_cross_section_area", coFloat);
-    def->label = L("Wave overhang cross-section area");
+    def = this->add("wave_overhang_flow_ratio", coFloat);
+    def->label = L("Wave overhang flow ratio");
     def->category = L("Strength");
-    def->tooltip = L("Target cross-section area of each extruded wave line (mm²). Unlike normal "
-                     "perimeters, wave-overhang lines hang in air — they are NOT squished "
-                     "between the nozzle and a layer below, so the usual width × layer-height "
-                     "formula does not apply. Andersons' reference implementation uses ~0.15 mm². "
-                     "Lower if you see blobbing on unsupported tips; raise if lines look starved.\n\n"
-                     "Set to 0 to disable this override and use Orca's default flow calculation "
-                     "(width × layer-height), matching normal perimeters.");
-    def->sidetext = L("mm²");
+    def->tooltip = L("Multiplier on the base extrusion flow for wave-overhang lines. "
+                     "Base cross-section is wave line width × layer height. "
+                     "1.0 keeps the default flow; raise above 1.0 to compensate for sag on unsupported tips, "
+                     "lower it if wave lines blob together.\n\n"
+                     "Using a ratio (instead of an absolute cross-section area) keeps tuning portable across layer heights: "
+                     "the same ratio transfers cleanly from a 0.2 mm to a 0.3 mm layer without re-calibration.");
+    def->sidetext = L("x");
     def->mode = comAdvanced;
-    def->min = 0.0;
-    def->max = 1.0;
-    def->set_default_value(new ConfigOptionFloat(0.15));
+    def->min = 0.1;
+    def->max = 3.0;
+    def->set_default_value(new ConfigOptionFloat(1.0));
 
     def = this->add("wave_overhang_print_speed", coFloat);
     def->label = L("Wave overhang print speed");

@@ -2419,7 +2419,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("wave_overhang_minimum_width");
         optgroup->append_single_option_line("wave_overhang_line_spacing");
         optgroup->append_single_option_line("wave_overhang_line_width");
-        optgroup->append_single_option_line("wave_overhang_cross_section_area");
+        optgroup->append_single_option_line("wave_overhang_flow_ratio");
         optgroup->append_single_option_line("wave_overhang_spacing_mode");
         optgroup->append_single_option_line("wave_overhang_seam_mode");
         optgroup->append_single_option_line("wave_overhang_direction_bias");

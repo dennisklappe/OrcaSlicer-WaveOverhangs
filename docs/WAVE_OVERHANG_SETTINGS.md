@@ -129,37 +129,25 @@ Center-to-center distance between adjacent wave extrusions.
 
 #### `wave_overhang_line_width`
 
-Extrusion width for wave lines — used for path geometry and preview only (the actual extrusion volume is set by `wave_overhang_cross_section_area`).
+Extrusion width for wave lines. Base extrusion volume is `width × layer_height`; the per-mm volume can then be scaled by `wave_overhang_flow_ratio`.
 
 - **Type:** float (mm) · **Default:** `0.4` · **Min:** `0.1`
 - **Tuning:** typically match or slightly undercut the nozzle diameter. Narrower lines (0.35–0.38) cool faster and hold shape better on unsupported tips; wider lines are stronger but sag more.
 
-#### `wave_overhang_cross_section_area`
+#### `wave_overhang_flow_ratio`
 
-Target cross-section area (mm²) of each extruded wave line. Unlike normal perimeters, wave-overhang lines hang in air — they are NOT squished between the nozzle and a layer below, so the usual `width × layer_height` formula does not apply. We override Orca's flow math on wave-tagged paths to extrude exactly this area per millimetre of travel.
+Multiplier applied to the base extrusion flow for wave-overhang lines. Base cross-section is `wave line width × layer height`; the final per-mm volume is `base × flow_ratio`.
 
-- **Type:** float (mm²) · **Default:** `0.15` · **Range:** `0 – 1.0`
-- **Set to `0`** to disable this override and fall back to Orca's native flow calculation (width × layer-height), matching normal perimeters.
-- **Why 0.15:** Andersons' reference value for a **0.4 mm nozzle** in free air — roughly a round bead, not a squished rectangle. A `w × h` equivalent for 0.4 × 0.2 squished extrusion would be only ~0.09 mm² — using that on cantilevers produces starved, broken lines.
+- **Type:** float (multiplier) · **Default:** `1.0` · **Range:** `0.1 – 3.0`
+- **Why a ratio (not an absolute mm²):** keeps tuning portable across layer heights. A ratio of `1.25` that works at 0.2 mm layer still makes sense at 0.3 mm layer — the effective cross-section scales with the geometry, instead of silently under-extruding when you change layer height.
+- **`1.0`** uses Orca's default flow calculation (width × layer-height), matching normal perimeters.
+- **Above 1.0** compensates for sag / bead rounding on unsupported tips (wave lines aren't squished against a layer below, so they benefit from a little extra plastic).
+- **Below 1.0** reduces flow if lines blob together or over-extrude on cantilevered tips.
 
-**Nozzle-size warning:** the default `0.15` is calibrated for a **0.4 mm nozzle**. This value does **not** auto-scale with your nozzle/line-width setting. If you run a different nozzle you must adjust manually — a rough theoretical rule is nozzle-area × 1.2 (accounting for slight oval shape):
-
-| Nozzle diameter | Theoretical starting value |
-|---|---|
-| 0.2 mm | ~0.04 mm² |
-| 0.4 mm | `0.15` (default) |
-| 0.6 mm | ~0.34 mm² |
-| 0.8 mm | ~0.60 mm² |
-
-> **Note:** only 0.4 mm has been print-tested so far. The other values above are theoretical starting points — please report back if you test them.
-
-If you're unsure or just want Orca's normal flow behavior, set this to `0` — wave lines will then be extruded with the same flow math as any other perimeter.
-
-> **Design feedback wanted.** I'm debating whether this should stay as an absolute mm² value (as now) or become a **flow percentage** (multiplier of Orca's default `w × h` flow) — the latter would auto-scale with nozzle/line-width but lose the direct tie to Andersons' paper. If you have a preference, please open an issue or leave a comment so it can be changed before presets are locked in.
-
-**Tuning after picking a starting value:**
-- Lower by 10–20% if you see blobbing on unsupported tips or over-extrusion.
-- Raise by 10–20% if wave lines look thin, broken, or starved.
+**Tuning guide:**
+- Start at `1.0` and print.
+- If wave lines look thin / starved / broken: raise to `1.1 – 1.3`.
+- If wave lines blob or merge: lower to `0.8 – 0.95`.
 
 #### `wave_overhang_spacing_mode`
 
@@ -367,7 +355,7 @@ When `wave_overhang_debug_gcode = true` (the default), four kinds of comments ap
 
 ```
 ; WAVE_OVERHANG_CONFIG region=<N> algo=<andersons|kaiser> outer_perim=<int>
-  spacing=<mm> width=<mm> cross_section_area=<mm²> speed=<mm/s> travel=<mm/s> fan=<%>
+  spacing=<mm> width=<mm> flow_ratio=<x> speed=<mm/s> travel=<mm/s> fan=<%>
   floor_layers=<int> min_angle=<deg> min_length=<mm>
   anchor_bite=<mm> anchor_passes=<int> direction_bias=<deg>
   laso_overlap=<frac> kaiser_max_rings=<int>
