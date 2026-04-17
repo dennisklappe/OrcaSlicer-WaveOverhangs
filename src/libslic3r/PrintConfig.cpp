@@ -4689,8 +4689,10 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Multiplier on the base extrusion flow for wave-overhang lines. "
                      "Wave lines hang in air instead of being squished against a layer below, so they need "
-                     "extra plastic to stay continuous — the default 2.0 matches Andersons' reference value "
+                     "extra plastic to stay continuous. The default 2.0 matches Andersons' reference value "
                      "for a 0.4 mm nozzle (~0.15 mm² cross-section), translated into a geometry-independent ratio.\n\n"
+                     "Worked examples at 0.4 mm line width × 0.2 mm layer: 1.0x = 0.08 mm², 2.0x = 0.16 mm², 2.5x = 0.20 mm². "
+                     "Scale proportionally for other geometries.\n\n"
                      "Raise further if wave lines look thin or broken; lower toward 1.0 if they blob together. "
                      "1.0 reverts to Orca's base flow (width × layer height), which typically under-extrudes cantilevered lines.\n\n"
                      "Using a ratio (instead of an absolute cross-section area) keeps tuning portable across layer heights: "
@@ -4792,8 +4794,8 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<WaveOverhangAlgorithm>::get_enum_values();
     def->enum_values.push_back("andersons");
     def->enum_values.push_back("kaiser");
-    def->enum_labels.push_back(L("Andersons (wavefront)"));
-    def->enum_labels.push_back(L("Kaiser LaSO (lateral offset)"));
+    def->enum_labels.push_back(L("Andersons"));
+    def->enum_labels.push_back(L("Kaiser LaSO"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<WaveOverhangAlgorithm>(woaAndersons));
 
@@ -4841,8 +4843,8 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<WaveOverhangSpacingMode>::get_enum_values();
     def->enum_values.push_back("uniform");
     def->enum_values.push_back("progressive");
-    def->enum_labels.push_back(L("Uniform (constant step)"));
-    def->enum_labels.push_back(L("Progressive (tight at root, wide at tip)"));
+    def->enum_labels.push_back(L("Uniform"));
+    def->enum_labels.push_back(L("Progressive"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<WaveOverhangSpacingMode>(wosmUniform));
 
@@ -4856,9 +4858,9 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("alternating");
     def->enum_values.push_back("aligned");
     def->enum_values.push_back("random");
-    def->enum_labels.push_back(L("Alternating (boustrophedon)"));
-    def->enum_labels.push_back(L("Aligned (same direction)"));
-    def->enum_labels.push_back(L("Random (hide seam)"));
+    def->enum_labels.push_back(L("Alternating"));
+    def->enum_labels.push_back(L("Aligned"));
+    def->enum_labels.push_back(L("Random"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<WaveOverhangSeamMode>(woseAlternating));
 
