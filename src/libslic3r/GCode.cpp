@@ -2558,13 +2558,19 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                     first_or_zero_d(pc.nozzle_diameter.values),
                     first_or_zero_i(pc.nozzle_temperature.values),
                     first_or_zero_i(pc.nozzle_temperature_initial_layer.values),
+                    // Bed temp lives on per-bed-type keys (hot_plate_temp, textured_plate_temp, ...).
+                    // Resolve via the configured curr_bed_type to pull the user's actual value.
                     [&]() -> int {
-                        const ConfigOption *o = pc.option("bed_temperature");
+                        const std::string key = get_bed_temp_key(pc.curr_bed_type.value);
+                        if (key.empty()) return 0;
+                        const ConfigOption *o = pc.option(key);
                         if (auto *ints = dynamic_cast<const ConfigOptionInts*>(o)) return ints->values.empty() ? 0 : ints->values[0];
                         return 0;
                     }(),
                     [&]() -> int {
-                        const ConfigOption *o = pc.option("bed_temperature_initial_layer");
+                        const std::string key = get_bed_temp_1st_layer_key(pc.curr_bed_type.value);
+                        if (key.empty()) return 0;
+                        const ConfigOption *o = pc.option(key);
                         if (auto *ints = dynamic_cast<const ConfigOptionInts*>(o)) return ints->values.empty() ? 0 : ints->values[0];
                         return 0;
                     }(),
