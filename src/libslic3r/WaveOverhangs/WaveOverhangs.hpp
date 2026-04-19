@@ -36,7 +36,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     // Andersons' PropagationParams mirror — see IGenerator.hpp CommonParams.
     double          wavefront_advance         = 0.7,
     double          discretization            = 0.35,
-    int             andersons_max_iterations   = 0,
+    int             max_iterations            = 0,
     double          min_new_area_mm2          = 0.01,
     int             arc_resolution            = 24,
     bool            use_instead_of_bridges    = false);

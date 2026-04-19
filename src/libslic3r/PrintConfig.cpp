@@ -1668,7 +1668,7 @@ void PrintConfigDef::init_fff_params()
 
     //BBS.
     def        = this->add("upward_compatible_machine", coStrings);
-    def->label = L("upward compatible machine");
+    def->label = L("Upward compatible machine");
     def->mode  = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
     def->cli   = ConfigOptionDef::nocli;
@@ -3069,7 +3069,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(true));
     
     def = this->add("accel_to_decel_factor", coPercent);
-    def->label = L("accel_to_decel");
+    def->label = L("Accel_to_decel");
     def->category = L("Speed");
     def->tooltip = L("Klipper's max_accel_to_decel will be adjusted to this %% of acceleration.");
     def->sidetext = "%";
@@ -4622,7 +4622,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("wave_overhang_outer_perimeters", coInt);
-    def->label = L("Wave overhang perimeters");
+    def->label = L("Perimeters");
     def->category = L("Strength");
     def->tooltip = L("Number of additional concentric outer-shell perimeters printed inside the "
                      "overhang region before the wave fill. 1 is usually enough.");
@@ -4631,7 +4631,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(1));
 
     def = this->add("wave_overhang_perimeter_overlap", coFloat);
-    def->label = L("Wave overhang perimeter overlap");
+    def->label = L("Perimeter overlap");
     def->category = L("Strength");
     def->tooltip = L("Extends the wave propagation boundary toward nearby perimeter lines so the last wave sits closer to the kept perimeter. "
                      "This reduces the gap between wave lines and perimeter shells.");
@@ -4651,7 +4651,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.7));
 
     def = this->add("wave_overhang_pattern", coEnum);
-    def->label = L("Wave overhang pattern");
+    def->label = L("Pattern");
     def->category = L("Strength");
     def->tooltip = L("Controls whether wave-overhang tracks are printed one direction at a time (monotonic), "
                      "connected into a back-and-forth meander (zig-zag), or started from the better-supported end of each new wave line (smart).");
@@ -4666,7 +4666,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnum<WaveOverhangPattern>(WaveOverhangPattern::Smart));
 
     def = this->add("wave_overhang_line_spacing", coFloat);
-    def->label = L("Wave overhang line spacing");
+    def->label = L("Line spacing");
     def->category = L("Strength");
     def->tooltip = L("Center-to-center distance between adjacent wave-overhang extrusions.");
     def->sidetext = L("mm");
@@ -4675,7 +4675,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.35));
 
     def = this->add("wave_overhang_line_width", coFloat);
-    def->label = L("Wave overhang line width");
+    def->label = L("Line width");
     def->category = L("Strength");
     def->tooltip = L("Extrusion width used for wave-overhang lines. Typically a bit narrower "
                      "than the nozzle diameter.");
@@ -4685,7 +4685,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.4));
 
     def = this->add("wave_overhang_flow_ratio", coFloat);
-    def->label = L("Wave overhang flow ratio");
+    def->label = L("Flow ratio");
     def->category = L("Strength");
     def->tooltip = L("Multiplier on the base extrusion flow for wave-overhang lines. "
                      "Wave lines hang in air instead of being squished against a layer below, so they need "
@@ -4704,7 +4704,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(2.0));
 
     def = this->add("wave_overhang_print_speed", coFloat);
-    def->label = L("Wave overhang print speed");
+    def->label = L("Print speed");
     def->category = L("Speed");
     def->tooltip = L("Print speed for wave-overhang extrusions. Slow speeds give better cooling "
                      "and adhesion of the cantilevered tracks.");
@@ -4714,7 +4714,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(2.0));
 
     def = this->add("wave_overhang_travel_speed", coFloat);
-    def->label = L("Wave overhang travel speed");
+    def->label = L("Travel speed");
     def->category = L("Speed");
     def->tooltip = L("Travel speed within wave-overhang regions (between non-extruding hops).");
     def->sidetext = L("mm/s");
@@ -4723,7 +4723,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(40.0));
 
     def = this->add("wave_overhang_fan_speed", coInt);
-    def->label = L("Wave overhang fan speed");
+    def->label = L("Fan speed");
     def->category = L("Cooling");
     def->tooltip = L("Part-cooling fan percentage forced during wave-overhang extrusions. "
                      "Maximum cooling is usually best.");
@@ -4734,7 +4734,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(100));
 
     def = this->add("wave_overhang_nozzle_temp", coInt);
-    def->label = L("Wave overhang nozzle temperature");
+    def->label = L("Nozzle temperature");
     def->category = L("Cooling");
     def->tooltip = L("If non-zero, override the hotend temperature specifically for wave-overhang "
                      "extrusions. An M104 is emitted at the start of each wave region and restored "
@@ -4748,7 +4748,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("wave_overhang_min_wave_time", coFloat);
-    def->label = L("Wave overhang min wave time");
+    def->label = L("Min wave time");
     def->category = L("Cooling");
     def->tooltip = L("Minimum time in seconds each wave region must take. If a wave region's "
                      "extrusion would finish faster than this, a G4 dwell pads the difference "
@@ -4761,7 +4761,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.0));
 
     def = this->add("wave_overhang_min_layer_time", coFloat);
-    def->label = L("Wave overhang min layer time");
+    def->label = L("Min layer time");
     def->category = L("Cooling");
     def->tooltip = L("Minimum time in seconds the wave layer must take (from first wave "
                      "extrusion to layer end). If the layer would finish faster than this, a "
@@ -4775,7 +4775,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.0));
 
     def = this->add("wave_overhang_floor_layers", coInt);
-    def->label = L("Wave overhang floor layers");
+    def->label = L("Floor layers");
     def->category = L("Strength");
     def->tooltip = L("Number of solid floor layers placed directly above wave-overhang regions. "
                      "These layers bridge over the wave surface and give the cantilever mechanical backing. "
@@ -4786,7 +4786,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(2));
 
     def = this->add("wave_overhang_algorithm", coEnum);
-    def->label = L("Wave overhang algorithm");
+    def->label = L("Algorithm");
     def->category = L("Strength");
     def->tooltip = L("Algorithm used to generate wave-overhang extrusions. "
                      "Andersons: outward expanding wavefronts (default, robust). "
@@ -4799,18 +4799,18 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<WaveOverhangAlgorithm>(woaAndersons));
 
-    def = this->add("wave_overhang_laso_overlap", coFloat);
-    def->label = L("Kaiser LaSO overlap");
+    def = this->add("wave_overhang_ring_overlap", coFloat);
+    def->label = L("Ring overlap");
     def->category = L("Strength");
-    def->tooltip = L("Overlap fraction between successive Kaiser LaSO offset rings. "
-                     "Higher values produce denser, more solid wave fills.");
+    def->tooltip = L("Overlap fraction between successive wave rings. Higher values produce denser, "
+                     "more solid fills. Kaiser's reference uses 0.15.");
     def->mode = comAdvanced;
     def->min = 0.0;
     def->max = 0.9;
     def->set_default_value(new ConfigOptionFloat(0.15));
 
     def = this->add("wave_overhang_min_angle", coFloat);
-    def->label = L("Wave overhang min angle");
+    def->label = L("Min angle");
     def->category = L("Strength");
     def->tooltip = L("Soft limit only — currently NOT enforced. Orca's upstream overhang "
                      "detection (Strength → Detect overhang walls / Overhang reverse "
@@ -4823,19 +4823,8 @@ void PrintConfigDef::init_fff_params()
     def->max = 90;
     def->set_default_value(new ConfigOptionFloat(0));
 
-    def = this->add("wave_overhang_anchor_bite", coFloat);
-    def->label = L("Wave overhang anchor bite");
-    def->category = L("Strength");
-    def->tooltip = L("Distance the wave pattern extends into the supported region beyond the overhang's "
-                     "root edge. Improves adhesion of the first wave rings. 0 = no bite (seed stays exactly at root).");
-    def->sidetext = L("mm");
-    def->mode = comAdvanced;
-    def->min = 0;
-    def->max = 5.0;
-    def->set_default_value(new ConfigOptionFloat(1.0));
-
     def = this->add("wave_overhang_spacing_mode", coEnum);
-    def->label = L("Wave overhang spacing mode");
+    def->label = L("Spacing mode");
     def->category = L("Strength");
     def->tooltip = L("How ring-to-ring spacing varies across the wave. Uniform keeps constant step. "
                      "Progressive tightens near the supported edge and widens toward the cantilever tip "
@@ -4849,7 +4838,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnum<WaveOverhangSpacingMode>(wosmUniform));
 
     def = this->add("wave_overhang_seam_mode", coEnum);
-    def->label = L("Wave overhang seam mode");
+    def->label = L("Seam mode");
     def->category = L("Strength");
     def->tooltip = L("Direction pattern across successive wave rings. Alternating (boustrophedon) minimizes "
                      "travel. Aligned keeps all rings same-direction for consistent flow but adds travel jumps. "
@@ -4865,7 +4854,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnum<WaveOverhangSeamMode>(woseAlternating));
 
     def = this->add("wave_overhang_debug_gcode", coBool);
-    def->label = L("Wave overhang debug g-code");
+    def->label = L("Debug g-code");
     def->category = L("Strength");
     def->tooltip = L("Emit ';WAVE_OVERHANG_START'/';WAVE_OVERHANG_END' comments around wave-overhang "
                      "extrusions in the G-code. Useful for post-process inspection and debugging. "
@@ -4874,7 +4863,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("wave_overhang_min_length", coFloat);
-    def->label = L("Wave overhang min length");
+    def->label = L("Min length");
     def->category = L("Strength");
     def->tooltip = L("Minimum overhang perimeter length (in mm) below which wave-overhang generation "
                      "is skipped. Useful to avoid waving tiny overhangs where normal perimeters are fine.");
@@ -4884,42 +4873,8 @@ void PrintConfigDef::init_fff_params()
     def->max = 50;
     def->set_default_value(new ConfigOptionFloat(0.0));
 
-    def = this->add("wave_overhang_kaiser_max_rings", coInt);
-    def->label = L("Kaiser max rings");
-    def->category = L("Strength");
-    def->tooltip = L("Kaiser algorithm only: maximum number of wave rings generated per overhang "
-                     "region. 0 = unlimited. Useful as a safety cap on large overhangs to bound print time.");
-    def->mode = comAdvanced;
-    def->min = 0;
-    def->max = 500;
-    def->set_default_value(new ConfigOptionInt(0));
-
-    def = this->add("wave_overhang_anchor_passes", coInt);
-    def->label = L("Wave overhang anchor passes");
-    def->category = L("Strength");
-    def->tooltip = L("Number of additional rings emitted starting from the supported edge, before the "
-                     "main wave fan. More passes give stronger anchoring at the cost of extra "
-                     "plastic/time. 0 disables; 1 is default; 2-5 for extreme overhangs.");
-    def->mode = comAdvanced;
-    def->min = 0;
-    def->max = 5;
-    def->set_default_value(new ConfigOptionInt(1));
-
-    def = this->add("wave_overhang_direction_bias", coFloat);
-    def->label = L("Wave overhang direction bias (Experimental)");
-    def->category = L("Strength");
-    def->tooltip = L("Kaiser algorithm only: rotate the wave-direction seed by this many degrees. "
-                     "0 follows the natural overhang root edge. Positive/negative biases tilt the "
-                     "wave pattern for aesthetic tuning. Experimental — extreme angles may cause "
-                     "out-of-boundary rings; verify in G-code preview before printing.");
-    def->sidetext = L("°");
-    def->mode = comAdvanced;
-    def->min = -90.0;
-    def->max = 90.0;
-    def->set_default_value(new ConfigOptionFloat(0.0));
-
     def = this->add("wave_overhang_wavefront_advance", coFloat);
-    def->label = L("Andersons wavefront advance");
+    def->label = L("Wavefront advance");
     def->category = L("Strength");
     def->tooltip = L("Distance the Andersons wavefront advances per iteration. Smaller = more rings, "
                      "smoother surface, longer print. Larger = fewer rings, rougher but faster. "
@@ -4931,7 +4886,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.7));
 
     def = this->add("wave_overhang_discretization", coFloat);
-    def->label = L("Andersons discretization");
+    def->label = L("Discretization");
     def->category = L("Strength");
     def->tooltip = L("Spacing between sample points along each wavefront when emitting the next wave. "
                      "Smaller = smoother but slower, larger = faster but potentially polygonal-looking. "
@@ -4942,19 +4897,19 @@ void PrintConfigDef::init_fff_params()
     def->max = 2.0;
     def->set_default_value(new ConfigOptionFloat(0.35));
 
-    def = this->add("wave_overhang_andersons_max_iterations", coInt);
-    def->label = L("Andersons max iterations");
+    def = this->add("wave_overhang_max_iterations", coInt);
+    def->label = L("Max iterations");
     def->category = L("Strength");
-    def->tooltip = L("Safety cap on the number of wavefronts emitted per overhang region. "
-                     "0 = unlimited (stops naturally when no new area is gained). Mirrors the "
-                     "Kaiser max rings option for the Kaiser algorithm.");
+    def->tooltip = L("Safety cap on the algorithm's main loop: max wavefronts (Andersons) or max rings "
+                     "(Kaiser) per overhang region. 0 = unlimited (stops naturally when the algorithm can't "
+                     "grow further). Useful for bounding print time on very large overhangs.");
     def->mode = comAdvanced;
     def->min = 0;
     def->max = 500;
     def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("wave_overhang_min_new_area", coFloat);
-    def->label = L("Andersons min new area");
+    def->label = L("Min new area");
     def->category = L("Strength");
     def->tooltip = L("Termination threshold for Andersons propagation: when a new wavefront adds less "
                      "than this much new area over the previous wavefront, stop propagating. "
@@ -4968,7 +4923,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.01));
 
     def = this->add("wave_overhang_arc_resolution", coInt);
-    def->label = L("Andersons arc resolution");
+    def->label = L("Arc resolution");
     def->category = L("Strength");
     def->tooltip = L("Number of segments used to approximate circular arcs in Andersons wavefront "
                      "geometry. Higher = smoother arcs, larger G-code. Andersons' reference: 24.");
@@ -10366,14 +10321,14 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("mtcpp", coInt);
-    def->label = L("mtcpp");
+    def->label = L("Mtcpp");
     def->tooltip = L("max triangle count per plate for slicing.");
     def->cli = "mtcpp";
     def->cli_params = "count";
     def->set_default_value(new ConfigOptionInt(1000000));
 
     def = this->add("mstpp", coInt);
-    def->label = L("mstpp");
+    def->label = L("Mstpp");
     def->tooltip = L("max slicing time per plate in seconds.");
     def->cli = "mstpp";
     def->cli_params = "time";

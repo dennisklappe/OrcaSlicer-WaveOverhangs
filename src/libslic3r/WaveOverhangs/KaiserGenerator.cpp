@@ -131,7 +131,7 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
     const double boundary_touch_tol = std::max(double(SCALED_EPSILON) * 8, scale_(0.001));
 
     // Safety cap on rings; 0 in config means unlimited, we still cap defensively.
-    const int cap = std::max(0, params.kaiser_max_rings);
+    const int cap = std::max(0, params.max_iterations);
     const int hard_ring_cap = cap > 0 ? cap : 10000;
 
     Polygons covered_total;
@@ -178,10 +178,14 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
         // whole overhang layer's perimeters — no double print. We run
         // alongside Orca's normal perimeter generator, so any extrusion we
         // emit over supported material piles on top of a normal perimeter.
-        // Clip the extruded portion of each ring to the overhang region
-        // only; the rest stays as ring geometry (for continuity) but is
-        // skipped when emitting.
-        const Polygons overhang_only = to_polygons(overhang);
+        //
+        // `overhang_area` is the full infill region for the layer, which
+        // includes top surfaces that sit directly over the lower slice
+        // (fully supported). Compute the genuinely-overhanging part of this
+        // ExPolygon as (region − lower_slices); skip if empty, clip extrusion
+        // to it otherwise.
+        Polygons overhang_only = diff(to_polygons(overhang), lower_slices_polygons);
+        if (overhang_only.empty()) continue;
 
         // --- Initial offset: offsets(seed, r/2) ∩ boundary (Kaiser line 430).
         Polygons current_shape = offset(seed_polys, float(first_offset),

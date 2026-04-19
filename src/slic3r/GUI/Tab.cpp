@@ -2411,33 +2411,29 @@ void TabPrint::build()
         optgroup->append_single_option_line("wave_overhang_algorithm");
         optgroup->append_single_option_line("wave_overhang_min_angle");
         optgroup->append_single_option_line("wave_overhang_min_length");
+        optgroup->append_single_option_line("wave_overhang_max_iterations");
 
         optgroup = page->new_optgroup(L("Geometry"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_outer_perimeters");
+        optgroup->append_single_option_line("wave_overhang_line_width");
+        optgroup->append_single_option_line("wave_overhang_seam_mode");
+
+        // Algorithm tuning: rows here are filtered by the active algorithm
+        // (ConfigManipulation::toggle_line). Kaiser sees only ring_overlap;
+        // Andersons sees the wavefront-propagation knobs. Mixed in one section
+        // so empty-algorithm sections don't render as blank headers.
+        optgroup = page->new_optgroup(L("Algorithm tuning"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_ring_overlap");
         optgroup->append_single_option_line("wave_overhang_pattern");
         optgroup->append_single_option_line("wave_overhang_perimeter_overlap");
         optgroup->append_single_option_line("wave_overhang_minimum_width");
         optgroup->append_single_option_line("wave_overhang_line_spacing");
-        optgroup->append_single_option_line("wave_overhang_line_width");
         optgroup->append_single_option_line("wave_overhang_flow_ratio");
         optgroup->append_single_option_line("wave_overhang_spacing_mode");
-        optgroup->append_single_option_line("wave_overhang_seam_mode");
-        optgroup->append_single_option_line("wave_overhang_direction_bias");
-
-        optgroup = page->new_optgroup(L("Anchoring"), L"param_overhang");
-        optgroup->append_single_option_line("wave_overhang_anchor_bite");
-        optgroup->append_single_option_line("wave_overhang_anchor_passes");
-
-        optgroup = page->new_optgroup(L("Andersons"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_wavefront_advance");
         optgroup->append_single_option_line("wave_overhang_discretization");
-        optgroup->append_single_option_line("wave_overhang_andersons_max_iterations");
         optgroup->append_single_option_line("wave_overhang_min_new_area");
         optgroup->append_single_option_line("wave_overhang_arc_resolution");
-
-        optgroup = page->new_optgroup(L("Kaiser LaSO"), L"param_overhang");
-        optgroup->append_single_option_line("wave_overhang_laso_overlap");
-        optgroup->append_single_option_line("wave_overhang_kaiser_max_rings");
 
         optgroup = page->new_optgroup(L("Speed"), L"param_speed");
         optgroup->append_single_option_line("wave_overhang_print_speed");
