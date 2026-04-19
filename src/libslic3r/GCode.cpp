@@ -2551,11 +2551,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         "; WAVE_OVERHANG_CONFIG region=%zu algo=%s outer_perim=%d"
                         " spacing=%.3f width=%.3f flow_ratio=%.3f speed=%.1f travel=%.1f fan=%d"
                         " floor_layers=%d min_angle=%.1f min_length=%.2f max_iterations=%d"
-                        " laso_overlap=%.2f"
+                        " ring_overlap=%.2f"
                         " pattern=%s spacing_mode=%s seam_mode=%s"
                         " perimeter_overlap=%.2f minimum_wave_width=%.2f"
-                        " wavefront_advance=%.3f discretization=%.3f"
-                        " min_new_area=%.4f arc_resolution=%d"
+                        " min_new_area=%.4f"
                         " nozzle_temp_override=%d min_wave_time=%.2f min_layer_time=%.2f"
                         " wall_loops=%d top_shell_layers=%d bottom_shell_layers=%d"
                         " infill_density=%.0f infill_pattern=%s"
@@ -2576,10 +2575,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         pattern, spacing_mode, seam_mode,
                         rc.wave_overhang_perimeter_overlap.value,
                         rc.wave_overhang_minimum_width.value,
-                        rc.wave_overhang_wavefront_advance.value,
-                        rc.wave_overhang_discretization.value,
                         rc.wave_overhang_min_new_area.value,
-                        rc.wave_overhang_arc_resolution.value,
                         rc.wave_overhang_nozzle_temp.value,
                         rc.wave_overhang_min_wave_time.value,
                         rc.wave_overhang_min_layer_time.value,

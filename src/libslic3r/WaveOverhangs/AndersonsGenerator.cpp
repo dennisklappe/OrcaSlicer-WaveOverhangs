@@ -38,11 +38,8 @@ GenerateResult AndersonsGenerator::generate(const ExPolygons   &overhang_area,
         params.line_width,
         params.overhang_flow,
         params.scaled_resolution,
-        params.wavefront_advance,
-        params.discretization,
         params.max_iterations,
         params.min_new_area,
-        params.arc_resolution,
         params.use_instead_of_bridges);
 
     GenerateResult r;

@@ -173,22 +173,6 @@ Direction pattern across successive rings.
 
 These control the Andersons wavefront propagation. No effect when `wave_overhang_algorithm = kaiser`.
 
-#### `wave_overhang_wavefront_advance`
-
-Distance the wavefront advances per iteration.
-
-- **Type:** float (mm) · **Default:** `0.7` · **Range:** `0.1 – 5`
-- Andersons' reference value: 0.7 mm.
-- **Tuning:** smaller (0.4–0.5) = more rings, smoother surface, longer print. Larger (1.0+) = fewer rings, rougher, faster.
-
-#### `wave_overhang_discretization`
-
-Sample spacing along each wavefront when emitting the next ring.
-
-- **Type:** float (mm) · **Default:** `0.35` · **Range:** `0.05 – 2.0`
-- Andersons' reference: 0.35 mm.
-- **Tuning:** smaller = smoother arcs, heavier CPU. Larger = faster, can look polygonal.
-
 #### `wave_overhang_min_new_area`
 
 Terminate propagation when a new wavefront adds less than this much new area.
@@ -197,15 +181,6 @@ Terminate propagation when a new wavefront adds less than this much new area.
 - Mode: Develop (not in Advanced page by default — expose via Develop mode).
 - Andersons' reference: 1e-4 mm² (very small; our default is looser).
 - **Tuning:** lower to keep propagating deep into tight regions; raise to terminate early on diminishing returns.
-
-#### `wave_overhang_arc_resolution`
-
-Arc-approximation segment count in Andersons wavefront geometry.
-
-- **Type:** int · **Default:** `24` · **Range:** `4 – 128`
-- Mode: Develop.
-- Andersons' reference: 24.
-- **Tuning:** rarely needs touching. Raise for visibly faceted arcs at macro scale; lower to shrink G-code.
 
 ### Kaiser LaSO
 
@@ -299,9 +274,8 @@ All user-facing options are now plumbed end-to-end. The table below notes mode e
 | `wave_overhang_min_angle` | **Inert (save-only).** Kept on the profile but not enforced; Orca's upstream *Detect overhang walls* + *Overhang reverse threshold* (Strength tab) is the real slope filter. See key description above. |
 | `support_remaining_areas_after_wave_overhangs` | Fully plumbed — residual polygons (wave-uncovered area) are collected and passed into Orca's support generation as enforcer regions. |
 | `wave_overhang_min_new_area` | Andersons-only, Develop mode only. |
-| `wave_overhang_arc_resolution` | Andersons-only, Develop mode only. |
 
-Andersons-reference-parameter tunables (`wavefront_advance`, `discretization`, `anderson_max_iterations`, `min_new_area`, `arc_resolution`) only apply when the Andersons algorithm is selected. Kaiser-only tunables (`ring_overlap`, `kaiser_max_rings`, `direction_bias`) only apply when Kaiser is selected.
+Andersons-only tunables (`min_new_area`, plus wavefront-geometry knobs like `pattern`, `perimeter_overlap`, `minimum_width`, `line_spacing`, `spacing_mode`) only apply when the Andersons algorithm is selected. Kaiser-only tunables (`ring_overlap`) only apply when Kaiser is selected. The shared safety cap `max_iterations` applies to both.
 
 Kaiser's original post-processor places discrete pin-support nubs under overhangs. Those are **not** ported and not planned — use `support_remaining_areas_after_wave_overhangs` with Orca's normal supports instead.
 
@@ -329,13 +303,11 @@ When `wave_overhang_debug_gcode = true` (the default), four kinds of comments ap
 ```
 ; WAVE_OVERHANG_CONFIG region=<N> algo=<andersons|kaiser> outer_perim=<int>
   spacing=<mm> width=<mm> flow_ratio=<x> speed=<mm/s> travel=<mm/s> fan=<%>
-  floor_layers=<int> min_angle=<deg> min_length=<mm>
-  anchor_bite=<mm> anchor_passes=<int> direction_bias=<deg>
-  ring_overlap=<frac> kaiser_max_rings=<int>
+  floor_layers=<int> min_angle=<deg> min_length=<mm> max_iterations=<int>
+  ring_overlap=<frac>
   pattern=<smart|monotonic|zigzag> spacing_mode=<uniform|progressive> seam_mode=<alternating|aligned|random>
   perimeter_overlap=<mm> minimum_wave_width=<mm>
-  wavefront_advance=<mm> discretization=<mm>
-  andersons_max_iter=<int> min_new_area=<mm²> arc_resolution=<int>
+  min_new_area=<mm²>
   support_remainder=<0|1>
 ```
 
