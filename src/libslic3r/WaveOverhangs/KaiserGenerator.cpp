@@ -28,6 +28,38 @@
 namespace Slic3r::WaveOverhangs {
 namespace {
 
+// Port of Kaiser's densify_curve(seed, spacing=0.1): resample the polyline
+// so consecutive vertices are at most `spacing_scaled` apart. Needed before
+// offsetting because ClipperLib's buffer, like Shapely's, approximates the
+// round-cap arc by subdividing edges — too-long edges produce visibly faceted
+// loops instead of the smooth arcs Kaiser's reference emits.
+void densify_polyline(Polyline &pl, coord_t spacing_scaled)
+{
+    if (pl.points.size() < 2 || spacing_scaled <= 0)
+        return;
+    Points dense;
+    dense.reserve(pl.points.size() * 2);
+    dense.push_back(pl.points.front());
+    for (size_t i = 1; i < pl.points.size(); ++i) {
+        const Point &a = pl.points[i - 1];
+        const Point &b = pl.points[i];
+        const double dx = double(b.x()) - double(a.x());
+        const double dy = double(b.y()) - double(a.y());
+        const double len = std::hypot(dx, dy);
+        if (len > double(spacing_scaled)) {
+            const int n = int(std::floor(len / double(spacing_scaled)));
+            for (int k = 1; k <= n; ++k) {
+                const double t = double(k) / double(n + 1);
+                dense.emplace_back(
+                    coord_t(double(a.x()) + dx * t),
+                    coord_t(double(a.y()) + dy * t));
+            }
+        }
+        dense.push_back(b);
+    }
+    pl.points = std::move(dense);
+}
+
 // Build the seed curve(s) for a single overhang ExPolygon.
 //
 // The seed is the "root edge": the portion of the overhang's contour that
@@ -214,6 +246,15 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
         if (seeds.empty())
             continue; // No supported edge found; this is a floating island, skip.
 
+        // Kaiser's Python densifies each seed to 0.1 mm spacing before
+        // offsetting so the round caps produce smooth arcs. Our seeds come
+        // from clip operations and often have long straight segments — without
+        // densification they'd produce visibly faceted rings that don't match
+        // the reference.
+        const coord_t densify_spacing = scale_(0.1);
+        for (Polyline &pl : seeds)
+            densify_polyline(pl, densify_spacing);
+
         // Optional seed-direction bias: rotate each seed polyline around its centroid.
         if (std::abs(params.direction_bias_deg) > 1e-6) {
             const double ang = params.direction_bias_deg * M_PI / 180.0;
@@ -258,8 +299,12 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
         const int anchor_passes = std::max(0, params.anchor_passes);
         for (int i = 0; i < anchor_passes; ++i) {
             const coord_t anchor_r = coord_t(scale_(std::max(0.01, params.line_width * 0.5 * double(i + 1))));
+            // ClipperLib's arc_tolerance ≈ r × (1 − cos(π/(2·N))). Picking N=8
+            // (Shapely's default resolution) gives ~0.019 × r and matches the
+            // reference's round-cap fidelity.
+            const double anchor_arc_tol = std::max(1.0, double(anchor_r) * 0.019);
             Polygons anchor_buffer = offset(seeds, float(anchor_r),
-                                            ClipperLib::jtRound, 0.,
+                                            ClipperLib::jtRound, anchor_arc_tol,
                                             ClipperLib::etOpenRound);
             if (anchor_buffer.empty())
                 continue;
@@ -308,8 +353,9 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
             // Buffer the seed by r. EndType = OpenButt to keep the buffer
             // square at seed endpoints (avoids spurious round caps that could
             // poke beyond the overhang region).
+            const double arc_tol = std::max(1.0, double(r) * 0.019); // matches Shapely resolution=8
             Polygons offset_buffer = offset(seeds, float(r),
-                                            ClipperLib::jtRound, 0.,
+                                            ClipperLib::jtRound, arc_tol,
                                             ClipperLib::etOpenRound);
             if (offset_buffer.empty())
                 break;
