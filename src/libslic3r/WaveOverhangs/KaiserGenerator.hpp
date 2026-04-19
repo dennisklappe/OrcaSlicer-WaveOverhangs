@@ -1,15 +1,17 @@
-///|/ Kaiser LaSO wave-overhang generator.
+///|/ Kaiser LaSO wave-overhang generator — full port of Rieks Kaiser's reference.
 ///|/
-///|/ Original algorithm: Rieks Kaiser (riekskaiser) - https://github.com/riekskaiser/wave_LaSO.
-///|/ Original license: MIT. Reimplemented in C++ under AGPL-3.0 compatibility (re-implementation, not code derivation).
+///|/ Original algorithm: Rieks Kaiser (riekskaiser) — https://github.com/riekskaiser/wave_LaSO.
+///|/ Original license: MIT. Reimplemented in C++ under AGPL-3.0 compatibility
+///|/   (re-implementation, not code derivation).
 ///|/
 ///|/ OrcaSlicer port & modifications: Dennis Klappe (dennisklappe).
-///|/ Modifications from Kaiser's original:
-///|/   - Auto-detect seed curve from overhang-boundary intersection with lower-slice boundary
-///|/     (Kaiser's original required manual seed-curve input).
-///|/   - Multi-overhang handling per layer (Kaiser's original processed one region at a time).
-///|/   - Pipeline integration (Kaiser's original was a G-code post-processor).
-///|/   - Pin-support placement removed (out-of-scope for this phase).
+///|/ Differences from the Python reference (forced by in-slicer integration,
+///|/ none change the generation algorithm):
+///|/   - Seed and boundary polygons come from the slicer's layer geometry
+///|/     instead of being parsed from post-processed G-code.
+///|/   - Multi-region handling per layer (Kaiser's original processed one
+///|/     overhang at a time via user prompts).
+///|/   - No pin-support placement (out of scope for this phase).
 ///|/
 ///|/ Released under the terms of the AGPLv3 or higher.
 ///|/
@@ -22,7 +24,8 @@ namespace Slic3r::WaveOverhangs {
 
 class KaiserGenerator : public IGenerator {
 public:
-    // Lateral overlap fraction between successive offset rings (Kaiser default 0.15).
+    // Lateral overlap fraction between successive offset rings. Kaiser's
+    // reference uses 0.15 (line 612 of CustomSupportInjector.py).
     double overlap = 0.15;
 
     GenerateResult generate(const ExPolygons   &overhang_area,
