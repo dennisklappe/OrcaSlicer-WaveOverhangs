@@ -4873,30 +4873,6 @@ void PrintConfigDef::init_fff_params()
     def->max = 50;
     def->set_default_value(new ConfigOptionFloat(0.0));
 
-    def = this->add("wave_overhang_wavefront_advance", coFloat);
-    def->label = L("Wavefront advance");
-    def->category = L("Strength");
-    def->tooltip = L("Distance the Andersons wavefront advances per iteration. Smaller = more rings, "
-                     "smoother surface, longer print. Larger = fewer rings, rougher but faster. "
-                     "Andersons' reference value: 0.7mm.");
-    def->sidetext = L("mm");
-    def->mode = comAdvanced;
-    def->min = 0.1;
-    def->max = 5.0;
-    def->set_default_value(new ConfigOptionFloat(0.7));
-
-    def = this->add("wave_overhang_discretization", coFloat);
-    def->label = L("Discretization");
-    def->category = L("Strength");
-    def->tooltip = L("Spacing between sample points along each wavefront when emitting the next wave. "
-                     "Smaller = smoother but slower, larger = faster but potentially polygonal-looking. "
-                     "Andersons' reference: 0.35mm.");
-    def->sidetext = L("mm");
-    def->mode = comAdvanced;
-    def->min = 0.05;
-    def->max = 2.0;
-    def->set_default_value(new ConfigOptionFloat(0.35));
-
     def = this->add("wave_overhang_max_iterations", coInt);
     def->label = L("Max iterations");
     def->category = L("Strength");
@@ -4921,16 +4897,6 @@ void PrintConfigDef::init_fff_params()
     def->min = 0.0;
     def->max = 100.0;
     def->set_default_value(new ConfigOptionFloat(0.01));
-
-    def = this->add("wave_overhang_arc_resolution", coInt);
-    def->label = L("Arc resolution");
-    def->category = L("Strength");
-    def->tooltip = L("Number of segments used to approximate circular arcs in Andersons wavefront "
-                     "geometry. Higher = smoother arcs, larger G-code. Andersons' reference: 24.");
-    def->mode = comDevelop;
-    def->min = 4;
-    def->max = 128;
-    def->set_default_value(new ConfigOptionInt(24));
 
     def = this->add("support_remaining_areas_after_wave_overhangs", coBool);
     def->label = L("Support unfilled wave overhang areas");

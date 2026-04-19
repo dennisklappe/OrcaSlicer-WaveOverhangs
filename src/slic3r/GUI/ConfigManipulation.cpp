@@ -1003,10 +1003,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhang_line_spacing"),
         std::string("wave_overhang_flow_ratio"),
         std::string("wave_overhang_spacing_mode"),
-        std::string("wave_overhang_wavefront_advance"),
-        std::string("wave_overhang_discretization"),
         std::string("wave_overhang_min_new_area"),
-        std::string("wave_overhang_arc_resolution"),
     })
         toggle_line(k, wo_enabled && is_andersons);
 

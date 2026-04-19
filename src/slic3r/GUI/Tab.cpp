@@ -2430,10 +2430,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("wave_overhang_line_spacing");
         optgroup->append_single_option_line("wave_overhang_flow_ratio");
         optgroup->append_single_option_line("wave_overhang_spacing_mode");
-        optgroup->append_single_option_line("wave_overhang_wavefront_advance");
-        optgroup->append_single_option_line("wave_overhang_discretization");
         optgroup->append_single_option_line("wave_overhang_min_new_area");
-        optgroup->append_single_option_line("wave_overhang_arc_resolution");
 
         optgroup = page->new_optgroup(L("Speed"), L"param_speed");
         optgroup->append_single_option_line("wave_overhang_print_speed");
