@@ -6,6 +6,25 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning fol
 
 ## [Unreleased]
 
+### Added
+- **First-launch config import** from OrcaSlicer, Bambu Studio and (detection-only for now) PrusaSlicer. New fork installs offer to copy existing printer / filament / process profiles so users migrating from stock Orca or Bambu don't have to reconfigure. Reachable any time from **File → Import → Import from other slicer**.
+  - Source dirs probed per OS: `OrcaSlicer`, `BambuStudio`, `PrusaSlicer` under `$XDG_CONFIG_HOME` / `~/.config` (Linux), `~/Library/Application Support` (macOS), `%APPDATA%` (Windows).
+  - OrcaSlicer + Bambu use the same JSON schema — copy is direct, never overwrites existing files, skips logs/caches/tmp.
+  - PrusaSlicer is detected and surfaced in the dialog but flagged *"not yet supported"* until a follow-up PR lands the `.ini → .json` translator.
+
+### Fixed — wave generation
+- **Kaiser LaSO: rings now anchor to the supported edge instead of floating in air** (PR #6). Previously every ring was clipped to overhang-interior-only, stripping the root-anchor half of the loop and leaving tracks unsupported — exactly the "prints in air and fails" failure users reported. Rings can now extend into a thin anchor band of the supported lower slice (`max(2·line_width, anchor_bite)` wide), matching Kaiser's Python reference behaviour.
+- **Kaiser LaSO: ring start-point follows last tool position** (PR #7). Ports Kaiser's `closest_point(xlast, ylast, points)` heuristic: each ring rotates (if closed) or flips (if open) so its start vertex is nearest to where the previous ring ended. Minimises travel moves and matches the reference's print order.
+- **Kaiser LaSO: Shapely-compatible buffer + 0.1 mm seed densify** (PR #8). Seeds are resampled to 0.1 mm spacing before offsetting so round caps produce smooth arcs instead of faceted rings. Clipper's `arc_tolerance` set to `r × 0.019` to match Shapely's `resolution=8` quadrant segments at every ring radius.
+- **`wave_overhang_outer_perimeters` tweaks actually take effect** (PR #5). The previous formula `additional_shell_count = max(0, desired - perimeter_count)` was always 0 because `desired` was capped at `perimeter_count` one line above — the config value was read but silently discarded. Corrected to `desired - 1` so extra shells beyond the innermost ring really do get emitted.
+
+### Fixed — g-code / headers
+- **Debug header bed temperature is now correct** (PR #2). OrcaSlicer stores bed temperature on per-bed-type keys (`hot_plate_temp`, `textured_plate_temp`, ...) rather than a single `bed_temperature` option. The emitter was reading the non-existent key and getting 0 for every upload. Resolves via `get_bed_temp_key(curr_bed_type)` / `get_bed_temp_1st_layer_key(curr_bed_type)`.
+- **`WAVE_OVERHANG_BUILD` header slimmed** (PR #3). Orca already emits every print/printer/filament setting as `; key = value` at the tail of the g-code, so duplicating them in our custom header was noise. Trimmed to just `wave_overhangs_version` and `orca_base` — everything else (printer, filament, layer height, nozzle/bed temps, flow ratio, support flags) comes from Orca's own config block. The website parser's `parseSlicerConfigBlock` fallback reads those fields directly, so galleries keep working.
+
+### Fixed — build / CI
+- **Linux AppImage actually ships in releases** (PR #4). The build job renamed its output to `OrcaSlicerWaveOverhangs_Linux_AppImage…` but the `upload-artifact` step was still looking for the pre-rename `OrcaSlicer_Linux_AppImage…` path, so nothing got attached to the v0.1.0 or v0.1.1 releases. Fixed on future tags — v0.1.2 onwards will have Linux AppImages.
+
 ### Fixed
 - **`wave_overhang_floor_layers = 0` truly produces zero solid layers above the wave.** Previous fix lived inside `detect_surfaces_type`, which runs before `process_external_surfaces`, `discover_vertical_shells`, and `discover_horizontal_shells` — those passes later re-introduced `stInternalSolid` / `stBottom` surfaces above the wave shadow, so users saw 2 "Internal solid infill" layers in the preview even with N=0. The authoritative promotion has been moved to a new `apply_wave_overhang_floor_layer_authority()` pass that runs AFTER every surface-classification pass, so its result cannot be overwritten.
 - **No more `stBottomBridge` above wave strips.** The first layer above a wave was previously classified as `stBottomBridge` and rendered as "Internal bridge" in the preview. That's semantically wrong — the layer sits on top of the wave extrusions (solid material), not air. All N layers in the `wave_overhang_floor_layers` window are now uniformly `stInternalSolid` (regular solid infill).

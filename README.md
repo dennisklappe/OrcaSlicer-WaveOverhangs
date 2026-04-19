@@ -51,6 +51,8 @@ This fork ports the technique into OrcaSlicer and exposes two pluggable generato
 
 Prebuilt binaries for tagged releases on the **[Releases page](https://github.com/dennisklappe/OrcaSlicer-WaveOverhangs/releases)**. Linux AppImage, Windows portable zip + installer, macOS universal DMG.
 
+Already have OrcaSlicer or Bambu Studio installed? The fork will detect your config dir on first launch and offer to copy your printers, filaments and process profiles across — no need to rebuild them by hand. PrusaSlicer detection is in place; the `.ini → .json` translator is coming in a follow-up release. See **[docs/MIGRATING.md](docs/MIGRATING.md)**.
+
 ---
 
 ## Using wave overhangs
