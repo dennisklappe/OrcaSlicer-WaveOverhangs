@@ -1,5 +1,6 @@
 #include "libslic3r/Technologies.hpp"
 #include "GUI_App.hpp"
+#include "ConfigImport.hpp"
 #include "GUI_Init.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_Factories.hpp"
@@ -2415,8 +2416,22 @@ void GUI_App::init_app_config()
                 migrate_flatpak_legacy_datadir(data_dir_path);
                 set_data_dir(data_dir_path.string());
             #endif
-            if (!boost::filesystem::exists(data_dir_path)){
+            bool first_launch = !boost::filesystem::exists(data_dir_path);
+            if (first_launch){
                 boost::filesystem::create_directory(data_dir_path);
+            }
+            // First-launch import: if our data dir didn't exist yet, probe for
+            // other slicers' configs (stock OrcaSlicer, Bambu, Prusa) and offer
+            // to copy them in. Users already on Orca don't have to re-create
+            // their printer profiles in our fork. Silently skipped if nothing
+            // is found or the user declines. See ConfigImport.{hpp,cpp}.
+            if (first_launch) {
+                try {
+                    auto candidates = detect_import_candidates();
+                    if (!candidates.empty()) run_import_dialog(candidates);
+                } catch (const std::exception &e) {
+                    BOOST_LOG_TRIVIAL(warning) << "config-import: " << e.what();
+                }
             }
         }
 

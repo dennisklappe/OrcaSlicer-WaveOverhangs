@@ -51,6 +51,7 @@
 #include <string_view>
 
 #include "GUI_App.hpp"
+#include "ConfigImport.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Notebook.hpp"
@@ -2699,6 +2700,13 @@ void MainFrame::init_menubar_as_editor()
         append_menu_item(import_menu, wxID_ANY, _L("Import Configs") + dots /*+ "\t" + ctrl + "I"*/, _L("Load configs"),
             [this](wxCommandEvent&) { load_config_file(); }, "menu_import", nullptr,
             [this](){return true; }, this);
+        // Config-import wizard: detects stock OrcaSlicer / Bambu / PrusaSlicer
+        // config dirs and copies them into our data dir so users don't have to
+        // rebuild printer/filament/process profiles from scratch.
+        append_menu_item(import_menu, wxID_ANY, _L("Import from other slicer") + dots,
+            _L("Copy profiles from OrcaSlicer, Bambu Studio or PrusaSlicer"),
+            [](wxCommandEvent&) { Slic3r::GUI::run_import_from_menu(); }, "menu_import", nullptr,
+            [](){ return true; }, this);
 
         append_submenu(fileMenu, import_menu, wxID_ANY, _L("Import"), "");
 
