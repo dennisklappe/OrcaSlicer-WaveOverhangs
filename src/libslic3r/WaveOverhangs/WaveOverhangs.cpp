@@ -635,7 +635,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     double          scaled_resolution,
     double          wavefront_advance,
     double          discretization,
-    int             andersons_max_iterations,
+    int             max_iterations,
     double          min_new_area_mm2,
     int             arc_resolution,
     bool            use_instead_of_bridges)
@@ -731,7 +731,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
                 double accumulated_area = area(accumulated_region);
                 int    iteration        = 0;
                 for (;;) {
-                    if (andersons_max_iterations > 0 && iteration >= andersons_max_iterations)
+                    if (max_iterations > 0 && iteration >= max_iterations)
                         break;
                     ++iteration;
 

@@ -169,29 +169,6 @@ Direction pattern across successive rings.
 | `aligned` | Every ring same direction — more consistent flow, extra travel jumps between rings. |
 | `random` | Scatters seam start points to hide the visible seam on show faces. |
 
-#### `wave_overhang_direction_bias`
-
-**Kaiser-only.** Rotates the wave-direction seed by this many degrees.
-
-- **Type:** float (°) · **Default:** `0.0` · **Range:** `-90 – 90`
-- `0` follows the natural root edge. Non-zero tilts the ring pattern — experimental, may push rings outside the overhang region.
-
-### Anchoring
-
-#### `wave_overhang_anchor_bite`
-
-Distance the wave extends *into the supported region* past the overhang root.
-
-- **Type:** float (mm) · **Default:** `1.0` · **Range:** `0 – 5`
-- **Tuning:** raise (1.5–2.5) for tough filaments or cold beds where the first few rings are peeling. Lower (0.5) to minimize visible bite marks on the supported face.
-
-#### `wave_overhang_anchor_passes`
-
-Extra rings emitted starting from the supported edge before the main wave fan.
-
-- **Type:** int · **Default:** `1` · **Range:** `0 – 5`
-- **Tuning:** `0` disables. `1` default. `2–5` for extreme >70° overhangs where the foot needs reinforcement. Each pass adds plastic and time.
-
 ### Andersons-specific
 
 These control the Andersons wavefront propagation. No effect when `wave_overhang_algorithm = kaiser`.
@@ -211,13 +188,6 @@ Sample spacing along each wavefront when emitting the next ring.
 - **Type:** float (mm) · **Default:** `0.35` · **Range:** `0.05 – 2.0`
 - Andersons' reference: 0.35 mm.
 - **Tuning:** smaller = smoother arcs, heavier CPU. Larger = faster, can look polygonal.
-
-#### `wave_overhang_andersons_max_iterations`
-
-Safety cap on the number of wavefronts per overhang region.
-
-- **Type:** int · **Default:** `0` (= unlimited) · **Range:** `0 – 500`
-- Propagation stops naturally when no new area is being gained; this is a hard cap for pathological cases.
 
 #### `wave_overhang_min_new_area`
 
@@ -241,19 +211,21 @@ Arc-approximation segment count in Andersons wavefront geometry.
 
 Only apply when `wave_overhang_algorithm = kaiser`.
 
-#### `wave_overhang_laso_overlap`
+#### `wave_overhang_ring_overlap`
 
 Overlap fraction between successive Kaiser offset rings.
 
 - **Type:** float · **Default:** `0.15` · **Range:** `0 – 0.9`
 - **Tuning:** raise (0.25–0.35) for denser, more solid coverage. Lower (0.05–0.10) for faster, more open pattern with visible gaps.
 
-#### `wave_overhang_kaiser_max_rings`
+### Max iterations (shared safety cap)
 
-Safety cap on ring count per region.
+#### `wave_overhang_max_iterations`
+
+Safety cap on the algorithm's main loop — max wavefronts for Andersons, max rings for Kaiser.
 
 - **Type:** int · **Default:** `0` (= unlimited) · **Range:** `0 – 500`
-- Mirrors `wave_overhang_andersons_max_iterations` for the Kaiser side.
+- Both algorithms stop naturally when they can't grow further; this is a hard cap for pathological cases or to bound print time on very large overhangs.
 
 ### Speed
 
@@ -329,7 +301,7 @@ All user-facing options are now plumbed end-to-end. The table below notes mode e
 | `wave_overhang_min_new_area` | Andersons-only, Develop mode only. |
 | `wave_overhang_arc_resolution` | Andersons-only, Develop mode only. |
 
-Andersons-reference-parameter tunables (`wavefront_advance`, `discretization`, `anderson_max_iterations`, `min_new_area`, `arc_resolution`) only apply when the Andersons algorithm is selected. Kaiser-only tunables (`laso_overlap`, `kaiser_max_rings`, `direction_bias`) only apply when Kaiser is selected.
+Andersons-reference-parameter tunables (`wavefront_advance`, `discretization`, `anderson_max_iterations`, `min_new_area`, `arc_resolution`) only apply when the Andersons algorithm is selected. Kaiser-only tunables (`ring_overlap`, `kaiser_max_rings`, `direction_bias`) only apply when Kaiser is selected.
 
 Kaiser's original post-processor places discrete pin-support nubs under overhangs. Those are **not** ported and not planned — use `support_remaining_areas_after_wave_overhangs` with Orca's normal supports instead.
 
@@ -359,7 +331,7 @@ When `wave_overhang_debug_gcode = true` (the default), four kinds of comments ap
   spacing=<mm> width=<mm> flow_ratio=<x> speed=<mm/s> travel=<mm/s> fan=<%>
   floor_layers=<int> min_angle=<deg> min_length=<mm>
   anchor_bite=<mm> anchor_passes=<int> direction_bias=<deg>
-  laso_overlap=<frac> kaiser_max_rings=<int>
+  ring_overlap=<frac> kaiser_max_rings=<int>
   pattern=<smart|monotonic|zigzag> spacing_mode=<uniform|progressive> seam_mode=<alternating|aligned|random>
   perimeter_overlap=<mm> minimum_wave_width=<mm>
   wavefront_advance=<mm> discretization=<mm>

@@ -1106,7 +1106,6 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     params.line_width             = region_config.wave_overhang_line_width.value;
     params.overhang_flow          = overhang_flow;
     params.scaled_resolution      = scaled_resolution;
-    params.anchor_bite            = region_config.wave_overhang_anchor_bite.value;
     params.spacing_mode           = (region_config.wave_overhang_spacing_mode == wosmProgressive)
                                         ? WaveOverhangs::SpacingMode::Progressive
                                         : WaveOverhangs::SpacingMode::Uniform;
@@ -1116,21 +1115,18 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     case woseAlternating:
     default:          params.seam_mode = WaveOverhangs::SeamMode::Alternating; break;
     }
-    params.min_length_mm    = region_config.wave_overhang_min_length.value;
-    params.kaiser_max_rings = region_config.wave_overhang_kaiser_max_rings.value;
-    params.anchor_passes      = region_config.wave_overhang_anchor_passes.value;
-    params.direction_bias_deg = region_config.wave_overhang_direction_bias.value;
+    params.min_length_mm        = region_config.wave_overhang_min_length.value;
+    params.max_iterations       = region_config.wave_overhang_max_iterations.value;
     // stmcculloch alpha.6 additions:
-    params.perimeter_overlap      = region_config.wave_overhang_perimeter_overlap.value;
-    params.minimum_wave_width = region_config.wave_overhang_minimum_width.value;
-    params.pattern                = region_config.wave_overhang_pattern.value;
+    params.perimeter_overlap    = region_config.wave_overhang_perimeter_overlap.value;
+    params.minimum_wave_width   = region_config.wave_overhang_minimum_width.value;
+    params.pattern              = region_config.wave_overhang_pattern.value;
     // Andersons' PropagationParams mirror (see Wave overhangs.py :: PropagationParams @ line 46).
-    params.wavefront_advance        = region_config.wave_overhang_wavefront_advance.value;
-    params.discretization           = region_config.wave_overhang_discretization.value;
-    params.andersons_max_iterations  = region_config.wave_overhang_andersons_max_iterations.value;
-    params.min_new_area             = region_config.wave_overhang_min_new_area.value;
-    params.arc_resolution           = region_config.wave_overhang_arc_resolution.value;
-    params.use_instead_of_bridges   = region_config.wave_overhangs_instead_of_bridges.value;
+    params.wavefront_advance    = region_config.wave_overhang_wavefront_advance.value;
+    params.discretization       = region_config.wave_overhang_discretization.value;
+    params.min_new_area         = region_config.wave_overhang_min_new_area.value;
+    params.arc_resolution       = region_config.wave_overhang_arc_resolution.value;
+    params.use_instead_of_bridges = region_config.wave_overhangs_instead_of_bridges.value;
 
     // wave_overhang_min_angle is intentionally NOT enforced here. The incoming
     // overhang region has already been classified as erOverhangPerimeter upstream
@@ -1146,7 +1142,7 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     WaveOverhangs::GenerateResult res;
     if (region_config.wave_overhang_algorithm == woaKaiser) {
         WaveOverhangs::KaiserGenerator gen;
-        gen.overlap = region_config.wave_overhang_laso_overlap.value;
+        gen.overlap = region_config.wave_overhang_ring_overlap.value;
         res = gen.generate(infill_area, lower_slices_polygons, params);
     } else {
         WaveOverhangs::AndersonsGenerator gen;
@@ -1170,11 +1166,17 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
                                                         this->config->wall_loops, this->overhang_flow,
                                                         this->m_scaled_resolution, *this->object_config, *this->print_config);
 
-        if (use_wave_overhangs) {
-            // Wave-overhang lines are cantilevered into air, so the user often
-            // wants more (or less) plastic than Orca's base width × layer-height
-            // would give. Scale whatever flow Orca already computed by the ratio
-            // so the knob stays portable across layer heights and line widths.
+        if (use_wave_overhangs && this->config->wave_overhang_algorithm != woaKaiser) {
+            // Andersons only: wave-overhang lines are cantilevered into air, so
+            // the user often wants more (or less) plastic than Orca's base
+            // width × layer-height would give. Scale whatever flow Orca already
+            // computed by the ratio so the knob stays portable across layer
+            // heights and line widths.
+            //
+            // Kaiser deliberately opts out: its generator emits an absolute
+            // nozzle² mm³/mm directly (see KaiserGenerator.cpp), matching the
+            // Python reference. Applying flow_ratio on top would double-count
+            // the over-extrusion and cause layer shifts from nozzle drag.
             const double flow_ratio = this->config->wave_overhang_flow_ratio.value;
             if (flow_ratio > 0.0 && flow_ratio != 1.0) {
                 for (ExtrusionPaths &region : extra_perimeters)

@@ -979,9 +979,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhangs_instead_of_bridges"),
         std::string("wave_overhang_algorithm"),
         std::string("wave_overhang_outer_perimeters"),
-        std::string("wave_overhang_line_spacing"),
         std::string("wave_overhang_line_width"),
-        std::string("wave_overhang_flow_ratio"),
         std::string("wave_overhang_print_speed"),
         std::string("wave_overhang_travel_speed"),
         std::string("wave_overhang_fan_speed"),
@@ -991,9 +989,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhang_floor_layers"),
         std::string("wave_overhang_min_angle"),
         std::string("wave_overhang_min_length"),
-        std::string("wave_overhang_anchor_bite"),
-        std::string("wave_overhang_anchor_passes"),
-        std::string("wave_overhang_spacing_mode"),
+        std::string("wave_overhang_max_iterations"),
         std::string("wave_overhang_seam_mode"),
         std::string("wave_overhang_debug_gcode"),
         std::string("support_remaining_areas_after_wave_overhangs"),
@@ -1004,18 +1000,18 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhang_pattern"),
         std::string("wave_overhang_perimeter_overlap"),
         std::string("wave_overhang_minimum_width"),
+        std::string("wave_overhang_line_spacing"),
+        std::string("wave_overhang_flow_ratio"),
+        std::string("wave_overhang_spacing_mode"),
         std::string("wave_overhang_wavefront_advance"),
         std::string("wave_overhang_discretization"),
-        std::string("wave_overhang_andersons_max_iterations"),
         std::string("wave_overhang_min_new_area"),
         std::string("wave_overhang_arc_resolution"),
     })
         toggle_line(k, wo_enabled && is_andersons);
 
     for (const std::string &k : {
-        std::string("wave_overhang_laso_overlap"),
-        std::string("wave_overhang_kaiser_max_rings"),
-        std::string("wave_overhang_direction_bias"),
+        std::string("wave_overhang_ring_overlap"),
     })
         toggle_line(k, wo_enabled && is_kaiser);
 }
