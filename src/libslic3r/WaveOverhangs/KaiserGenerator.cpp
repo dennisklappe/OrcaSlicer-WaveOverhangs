@@ -68,16 +68,20 @@ Polylines extract_seed_curves(const ExPolygon &overhang, const Polygons &lower_s
     return seeds;
 }
 
-// Convert offset-buffer Polygons to centerline Polylines by intersecting their
-// boundary with the overhang interior. The buffer of an open seed curve is a
-// "stadium"-shaped polygon whose exterior, when clipped to the overhang, gives
-// us a polyline running parallel to the seed.
-Polylines extract_offset_track(const Polygons &offset_polys, const ExPolygon &overhang)
+// Convert offset-buffer Polygons to closed track Polylines. Kaiser's Python
+// reference emits the FULL exterior of each offset shape, which straddles both
+// supported and overhang regions — the "return" half of the loop lands on the
+// supported edge and provides the anchor. Clipping to overhang-only (the old
+// behaviour) stripped the anchor and left every ring floating in air.
+//
+// We take the closed polygon exterior verbatim; containment against a slightly
+// expanded anchor mask is done by the caller so the ring's tails can reach
+// onto the supported region without running deep into already-perimetered area.
+Polylines extract_offset_track(const Polygons &offset_polys, const ExPolygon &overhang, const Polygons &anchor_mask)
 {
     if (offset_polys.empty())
         return {};
 
-    // The exterior of each offset polygon as a polyline.
     Polylines candidate;
     candidate.reserve(offset_polys.size());
     for (const Polygon &poly : offset_polys) {
@@ -85,12 +89,15 @@ Polylines extract_offset_track(const Polygons &offset_polys, const ExPolygon &ov
             continue;
         Polyline pl;
         pl.points = poly.points;
-        pl.points.push_back(poly.points.front()); // close
+        pl.points.push_back(poly.points.front()); // close the ring
         candidate.push_back(std::move(pl));
     }
 
-    // Clip to overhang: keep only the portions inside the overhang region.
-    Polylines clipped = intersection_pl(candidate, to_polygons(overhang));
+    // Allow the ring to live on the overhang OR within the anchor mask (a thin
+    // band into the supported region). This preserves the root-anchor half of
+    // the loop that Kaiser's post-processor relies on.
+    Polygons allowed = anchor_mask.empty() ? to_polygons(overhang) : union_(to_polygons(overhang), anchor_mask);
+    Polylines clipped = intersection_pl(candidate, allowed);
 
     clipped.erase(
         std::remove_if(clipped.begin(), clipped.end(), [](const Polyline &p) {
@@ -119,6 +126,14 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
     const coord_t seed_epsilon = std::max<coord_t>(SCALED_EPSILON * 4, scale_(0.02));
     // Anchor-bite: how far seed extraction pre-extends into the supported region.
     const coord_t anchor_bite  = std::max<coord_t>(0, coord_t(scale_(std::max(0.0, params.anchor_bite))));
+    // Anchor band: thin strip INSIDE the supported region where ring tails are
+    // allowed to land for anchoring. Kaiser's post-processor achieves the same
+    // effect by deleting original perimeters in the wave region; in our
+    // pipeline we instead mark the ring's union as covered so Orca skips its
+    // normal perimeters there (see `result.residual` below).
+    const coord_t anchor_strip_width = std::max<coord_t>(
+        coord_t(scale_(std::max(0.1, params.line_width * 2.0))),
+        anchor_bite);
 
     // Compute overhang-only region (overhang_area minus lower slices) - this
     // is the area we are actually allowed to deposit Kaiser tracks in.
@@ -145,6 +160,20 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
             double(region_bb.size().x()), double(region_bb.size().y())));
         if (max_extent <= 0)
             continue;
+
+        // Build the anchor mask for this region: intersection of the supported
+        // lower slice with the overhang's contour-adjacent band. Ring tails that
+        // reach into this strip survive the extract_offset_track clip, giving
+        // us the root-anchor behaviour from Kaiser's Python reference.
+        Polygons anchor_mask;
+        {
+            BoundingBox bbx = get_extents(overhang).inflated(anchor_strip_width * 2);
+            Polygons    lower_local = ClipperUtils::clip_clipper_polygons_with_subject_bbox(
+                                          lower_slices_polygons, bbx);
+            Polygons    overhang_neighbourhood = expand(to_polygons(overhang), float(anchor_strip_width),
+                                                        ClipperLib::jtRound, 0.);
+            anchor_mask = intersection(lower_local, overhang_neighbourhood);
+        }
 
         // Auto-detect seed curve(s): the contour edges adjacent to lower slices.
         Polylines seeds = extract_seed_curves(overhang, lower_slices_polygons, seed_epsilon, anchor_bite);
@@ -189,7 +218,7 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
                                             ClipperLib::etOpenRound);
             if (anchor_buffer.empty())
                 continue;
-            Polylines anchor_tracks = extract_offset_track(anchor_buffer, overhang);
+            Polylines anchor_tracks = extract_offset_track(anchor_buffer, overhang, anchor_mask);
             if (anchor_tracks.empty())
                 continue;
             for (Polyline &pl : anchor_tracks)
@@ -232,7 +261,7 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
             if (offset_buffer.empty())
                 break;
 
-            Polylines tracks = extract_offset_track(offset_buffer, overhang);
+            Polylines tracks = extract_offset_track(offset_buffer, overhang, anchor_mask);
             if (tracks.empty()) {
                 // No intersection with overhang at this offset distance; we've
                 // walked off the region. Stop.
