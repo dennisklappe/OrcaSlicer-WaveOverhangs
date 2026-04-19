@@ -4803,11 +4803,12 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Kaiser LaSO overlap");
     def->category = L("Strength");
     def->tooltip = L("Overlap fraction between successive Kaiser LaSO offset rings. "
-                     "Higher values produce denser, more solid wave fills.");
+                     "Higher values produce denser, more solid wave fills. "
+                     "Default 0.125 matches Kaiser's Python reference.");
     def->mode = comAdvanced;
     def->min = 0.0;
     def->max = 0.9;
-    def->set_default_value(new ConfigOptionFloat(0.15));
+    def->set_default_value(new ConfigOptionFloat(0.125));
 
     def = this->add("wave_overhang_min_angle", coFloat);
     def->label = L("Wave overhang min angle");
@@ -4899,11 +4900,12 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Number of additional rings emitted starting from the supported edge, before the "
                      "main wave fan. More passes give stronger anchoring at the cost of extra "
-                     "plastic/time. 0 disables; 1 is default; 2-5 for extreme overhangs.");
+                     "plastic/time. 0 is default (matches Kaiser's Python reference); 1-5 for extra "
+                     "anchoring on extreme overhangs.");
     def->mode = comAdvanced;
     def->min = 0;
     def->max = 5;
-    def->set_default_value(new ConfigOptionInt(1));
+    def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("wave_overhang_direction_bias", coFloat);
     def->label = L("Wave overhang direction bias (Experimental)");
