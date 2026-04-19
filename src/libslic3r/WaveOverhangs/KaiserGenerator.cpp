@@ -171,6 +171,18 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
 
         const Lines boundary_lines = to_lines(boundary_polys);
 
+        // Wave rings naturally grow through the supported region before
+        // reaching the overhang (Kaiser's algorithm is built that way: seed
+        // inside support, boundary at current-layer wall). Kaiser's Python
+        // gets away with it because it's a post-processor that REPLACES the
+        // whole overhang layer's perimeters — no double print. We run
+        // alongside Orca's normal perimeter generator, so any extrusion we
+        // emit over supported material piles on top of a normal perimeter.
+        // Clip the extruded portion of each ring to the overhang region
+        // only; the rest stays as ring geometry (for continuity) but is
+        // skipped when emitting.
+        const Polygons overhang_only = to_polygons(overhang);
+
         // --- Initial offset: offsets(seed, r/2) ∩ boundary (Kaiser line 430).
         Polygons current_shape = offset(seed_polys, float(first_offset),
                                         ClipperLib::jtRound, arc_tol(first_offset));
@@ -258,12 +270,14 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
                 Polyline extrude_run;
                 auto flush_run = [&]() {
                     if (extrude_run.points.size() >= 2) {
-                        Polyline to_emit = std::move(extrude_run);
-                        to_emit.simplify(std::min(0.05 * double(r_scaled), params.scaled_resolution));
-                        if (to_emit.points.size() >= 2) {
-                            extrusion_paths_append(region_paths, std::move(to_emit),
-                                                   erOverhangPerimeter, kaiser_mm3_per_mm,
-                                                   float(wave_flow.width()), float(wave_flow.height()));
+                        Polylines clipped = intersection_pl(Polylines{ std::move(extrude_run) }, overhang_only);
+                        for (Polyline &pl : clipped) {
+                            pl.simplify(std::min(0.05 * double(r_scaled), params.scaled_resolution));
+                            if (pl.points.size() >= 2) {
+                                extrusion_paths_append(region_paths, std::move(pl),
+                                                       erOverhangPerimeter, kaiser_mm3_per_mm,
+                                                       float(wave_flow.width()), float(wave_flow.height()));
+                            }
                         }
                     }
                     extrude_run.points.clear();
