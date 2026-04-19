@@ -1090,9 +1090,14 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     const Flow              &overhang_flow,
     double                   scaled_resolution)
 {
+    // wave_overhang_outer_perimeters = total perimeter passes to keep over the
+    // wave region, capped at the region's own perimeter count. The wave
+    // generator expects the *extra* shells beyond the innermost 1 via
+    // additional_shell_count, so subtract 1, not perimeter_count (the old
+    // formula always resolved to 0 and silently ignored the setting).
     const int desired_wave_perimeters = std::min(region_config.wave_overhang_outer_perimeters.value,
                                                  perimeter_count);
-    const int additional_shell_count  = std::max(0, desired_wave_perimeters - perimeter_count);
+    const int additional_shell_count  = std::max(0, desired_wave_perimeters - 1);
 
     WaveOverhangs::CommonParams params;
     params.perimeter_count        = perimeter_count;
