@@ -108,6 +108,40 @@ Polylines extract_offset_track(const Polygons &offset_polys, const ExPolygon &ov
     return clipped;
 }
 
+// Ports Kaiser's Python `closest_point(xlast, ylast, points)` — pick the
+// vertex of `pl` nearest to `from`, and (if the polyline is a closed ring)
+// rotate it so that vertex is the start. For an open polyline, return it
+// unchanged if its first endpoint is already the nearer end, otherwise
+// reverse. Matches Kaiser's travel-minimising ring-start behaviour.
+void orient_ring_toward(Polyline &pl, const Point &from)
+{
+    if (pl.points.size() < 2)
+        return;
+    const bool closed = pl.points.front() == pl.points.back();
+    if (closed) {
+        // Drop the duplicate last point while rotating, then restore it.
+        pl.points.pop_back();
+        size_t best_i = 0;
+        double best_d2 = std::numeric_limits<double>::infinity();
+        for (size_t i = 0; i < pl.points.size(); ++i) {
+            const double dx = double(pl.points[i].x()) - double(from.x());
+            const double dy = double(pl.points[i].y()) - double(from.y());
+            const double d2 = dx * dx + dy * dy;
+            if (d2 < best_d2) { best_d2 = d2; best_i = i; }
+        }
+        if (best_i != 0)
+            std::rotate(pl.points.begin(), pl.points.begin() + best_i, pl.points.end());
+        pl.points.push_back(pl.points.front()); // re-close
+    } else {
+        const double d2_front = std::pow(double(pl.points.front().x()) - double(from.x()), 2) +
+                                std::pow(double(pl.points.front().y()) - double(from.y()), 2);
+        const double d2_back  = std::pow(double(pl.points.back().x())  - double(from.x()), 2) +
+                                std::pow(double(pl.points.back().y())  - double(from.y()), 2);
+        if (d2_back < d2_front)
+            pl.reverse();
+    }
+}
+
 } // namespace
 
 GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
@@ -206,6 +240,17 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
         // Estimate max ring count for progressive-step normalization.
         const double max_rings_estimate = std::max(4.0, double(max_extent) / double(base_step));
         size_t       ring_index = 0;
+        // Tool position tracking. Kaiser's Python `closest_point(xlast, ylast, ...)`
+        // picks each ring's start vertex to minimise travel from the previous
+        // ring's end; we follow the same heuristic. Seed with the midpoint of
+        // the first seed polyline so ring 0 starts near the root edge.
+        Point last_tip{ 0, 0 };
+        bool  have_last_tip = false;
+        if (!seeds.empty() && seeds.front().points.size() >= 2) {
+            const size_t mid = seeds.front().points.size() / 2;
+            last_tip = seeds.front().points[mid];
+            have_last_tip = true;
+        }
 
         // Anchor passes: emit a few extra rings very close to the seed (root edge)
         // before the main wave fan. Each pass is offset by a fraction of line_width
@@ -229,8 +274,16 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
                 anchor_tracks.end());
             if (anchor_tracks.empty())
                 continue;
+            if (have_last_tip) {
+                for (Polyline &pl : anchor_tracks)
+                    orient_ring_toward(pl, last_tip);
+            }
             extrusion_paths_append(region_paths, anchor_tracks, erOverhangPerimeter,
                                    wave_flow.mm3_per_mm(), wave_flow.width(), wave_flow.height());
+            if (!anchor_tracks.empty() && anchor_tracks.back().points.size() >= 2) {
+                last_tip      = anchor_tracks.back().points.back();
+                have_last_tip = true;
+            }
         }
 
         // Kaiser safety cap on total rings (0 = unlimited).
@@ -289,6 +342,14 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
                     pl.reverse();
             }
 
+            // Kaiser-style seam picking: rotate each closed ring (or flip each
+            // open fragment) so it starts nearest to where the previous ring
+            // ended. Minimises travel and matches the reference's print order.
+            if (have_last_tip) {
+                for (Polyline &pl : tracks)
+                    orient_ring_toward(pl, last_tip);
+            }
+
             // Simplify slightly to keep segment count down.
             for (Polyline &pl : tracks)
                 pl.simplify(std::min(0.05 * double(step), params.scaled_resolution));
@@ -302,6 +363,12 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
 
             extrusion_paths_append(region_paths, tracks, erOverhangPerimeter,
                                    wave_flow.mm3_per_mm(), wave_flow.width(), wave_flow.height());
+
+            // Remember where this ring ended so the next one starts there.
+            if (!tracks.empty() && tracks.back().points.size() >= 2) {
+                last_tip     = tracks.back().points.back();
+                have_last_tip = true;
+            }
 
             ++ring_index;
         }
