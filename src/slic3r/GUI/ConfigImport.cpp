@@ -2,6 +2,7 @@
 ///|/ Released under the terms of the AGPLv3 or higher.
 ///|/
 #include "ConfigImport.hpp"
+#include "ConfigImportPrusa.hpp"
 
 #include "GUI_App.hpp"
 #include "I18N.hpp"
@@ -10,6 +11,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
+#include <sstream>
 #include <wx/checkbox.h>
 #include <wx/dialog.h>
 #include <wx/sizer.h>
@@ -91,9 +93,9 @@ std::vector<ImportCandidate> detect_import_candidates()
     const auto roots = config_root_candidates();
     struct Spec { ImportSource src; std::string dir_name; std::string label; bool supported; };
     const std::vector<Spec> specs = {
-        { ImportSource::OrcaSlicer,  "OrcaSlicer",   "OrcaSlicer",    true  },
-        { ImportSource::BambuStudio, "BambuStudio",  "Bambu Studio",  true  },
-        { ImportSource::PrusaSlicer, "PrusaSlicer",  "PrusaSlicer",   false },
+        { ImportSource::OrcaSlicer,  "OrcaSlicer",   "OrcaSlicer",                 true },
+        { ImportSource::BambuStudio, "BambuStudio",  "Bambu Studio",               true },
+        { ImportSource::PrusaSlicer, "PrusaSlicer",  "PrusaSlicer (partial)",      true },
     };
     std::vector<ImportCandidate> found;
     for (const auto &root : roots) {
@@ -240,18 +242,31 @@ private:
 
 // ---- Run ------------------------------------------------------------------
 
-static bool perform_imports(const std::vector<ImportCandidate> &picked)
+static bool perform_imports(const std::vector<ImportCandidate> &picked,
+                            std::string                        &summary_out)
 {
     const fs::path dst = fs::path(Slic3r::data_dir());
     int ok = 0;
+    std::ostringstream summary;
     for (const auto &c : picked) {
         if (!c.supported_now) continue;
         if (c.source == ImportSource::OrcaSlicer || c.source == ImportSource::BambuStudio) {
             std::string err;
-            if (copy_config_tree(c.path, dst, &err)) ++ok;
-            else BOOST_LOG_TRIVIAL(error) << "config-import " << c.label << ": " << err;
+            if (copy_config_tree(c.path, dst, &err)) {
+                ++ok;
+                summary << c.label << ": directory copied.\n";
+            } else {
+                BOOST_LOG_TRIVIAL(error) << "config-import " << c.label << ": " << err;
+            }
+        } else if (c.source == ImportSource::PrusaSlicer) {
+            PrusaImportStats s = import_prusa(c.path, dst);
+            if (s.files_written > 0) ++ok;
+            summary << c.label << ": wrote " << s.files_written
+                    << " profiles, translated " << s.keys_translated << " keys, "
+                    << s.keys_unmapped << " unmapped (see config-import-prusa.log).\n";
         }
     }
+    summary_out = summary.str();
     return ok > 0;
 }
 
@@ -263,10 +278,13 @@ bool run_import_dialog(const std::vector<ImportCandidate> &candidates)
     auto picked = dlg.selected();
     if (picked.empty()) return false;
 
-    bool ok = perform_imports(picked);
+    std::string summary;
+    bool ok = perform_imports(picked, summary);
     if (ok) {
-        wxMessageBox(_L("Import complete. Restart the slicer to see the imported profiles."),
-                     _L("Import"), wxOK | wxICON_INFORMATION);
+        wxString msg = _L("Import complete. Restart the slicer to see the imported profiles.");
+        if (!summary.empty())
+            msg += "\n\n" + wxString::FromUTF8(summary);
+        wxMessageBox(msg, _L("Import"), wxOK | wxICON_INFORMATION);
     } else {
         wxMessageBox(_L("Nothing was imported — see the log for details."),
                      _L("Import"), wxOK | wxICON_WARNING);
