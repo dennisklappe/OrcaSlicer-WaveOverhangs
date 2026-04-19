@@ -86,6 +86,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/CloneDialog.hpp
     GUI/ConfigImport.cpp
     GUI/ConfigImport.hpp
+    GUI/ConfigImportPrusa.cpp
+    GUI/ConfigImportPrusa.hpp
     GUI/ConfigManipulation.cpp
     GUI/ConfigManipulation.hpp
     GUI/ConfigWizard.cpp
