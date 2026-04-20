@@ -2549,7 +2549,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                     }
                     file.write_format(
                         "; WAVE_OVERHANG_CONFIG region=%zu algo=%s outer_perim=%d"
-                        " spacing=%.3f width=%.3f flow_ratio=%.3f speed=%.1f travel=%.1f fan=%d"
+                        " spacing=%.3f flow_ratio=%.3f speed=%.1f travel=%.1f fan=%d"
                         " floor_layers=%d min_angle=%.1f min_length=%.2f max_iterations=%d"
                         " ring_overlap=%.2f"
                         " pattern=%s spacing_mode=%s seam_mode=%s"
@@ -2562,7 +2562,6 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         region_idx, algo,
                         rc.wave_overhang_outer_perimeters.value,
                         rc.wave_overhang_line_spacing.value,
-                        rc.wave_overhang_line_width.value,
                         rc.wave_overhang_flow_ratio.value,
                         rc.wave_overhang_print_speed.value,
                         rc.wave_overhang_travel_speed.value,

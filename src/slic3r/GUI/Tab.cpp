@@ -2415,7 +2415,6 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Geometry"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_outer_perimeters");
-        optgroup->append_single_option_line("wave_overhang_line_width");
         optgroup->append_single_option_line("wave_overhang_seam_mode");
 
         // Algorithm tuning: rows here are filtered by the active algorithm
