@@ -74,55 +74,14 @@ For the full reference of every config option with tuning hints, see **[docs/WAV
 
 ## The algorithms
 
-Both algorithms achieve the same end result (a support‑free overhang built from ring‑by‑ring bonding) but take **opposite approaches**. The quick mental picture:
+Both algorithms compute a **seed** at or near the supported edge of the overhang, then propagate rings outward from it into the unsupported region until the rings can't grow further inside the current layer.
 
-- **Andersons** grows *inward*, starting from the already‑printed outer perimeter wall and eating toward the center of the overhang, each ring bonding to the ring just outside it.
-- **Kaiser LaSO** grows *outward*, starting from the layer directly below the overhang and creeping out into empty space, each ring bonding to the ring just inside it.
+- **Andersons** seeds from a narrow band along the support‑overhang boundary. Each iteration offsets the accumulated covered region outward and emits a polyline along the new front; a pattern mode (Smart / Monotonic / ZigZag) decides how the fronts connect.
+- **Kaiser LaSO** seeds from the whole lower‑slice polygon shrunk inward by 2 × nozzle. Each iteration offsets the *previous ring* outward by `r` and emits it as a closed loop.
 
-Direct contrast:
+![Andersons vs Kaiser propagation](docs/images/algorithms/propagation.svg)
 
-|  | Andersons | Kaiser LaSO |
-|---|---|---|
-| **Where the first ring sits** | Along the existing outer wall, one `wave_spacing` inward | Over the support, just beyond the edge, with a thin anchor strip reaching back onto supported material |
-| **Direction of growth** | Outer wall → center of overhang (inward) | Supported edge → cantilever tip (outward) |
-| **What each new ring bonds to** | The ring one step outward (already printed, closer to the wall) | The ring one step inward (already printed, closer to the support) |
-| **Loop termination** | When a new wavefront adds no new area (saturation) | When the outward offset can't grow further inside the current‑layer boundary |
-| **Research origin** | Wave‑overhang research by Janis A. Andersons (University of Twente). Arc‑overhang predecessor and PrusaSlicer port by Steven McCulloch | Rieks Kaiser's MSc thesis under Andersons' supervision, University of Twente |
-
-### How Andersons iterates
-
-```mermaid
-flowchart TD
-    A[Seed: dilated supported-edge boundary<br/>inside the overhang region]
-    B[Offset by wave_spacing]
-    C[Clip to current-layer boundary]
-    D[Emit as extrusion path<br/>pattern: Smart / Monotonic / ZigZag]
-    E{New area gained?}
-    F[Done]
-    A --> B --> C --> D --> E
-    E -- yes --> B
-    E -- no --> F
-```
-
-### How Kaiser LaSO iterates
-
-```mermaid
-flowchart TD
-    A[Seed: lower-slice outer wall<br/>shrunk 2 × nozzle inward]
-    B[Buffer seed by r/2<br/>first ring]
-    C[Clip ring to current-layer boundary]
-    D[Split ring at boundary vertices:<br/>extrude vs travel]
-    E[Clip extrude segments to<br/>overhang + anchor band]
-    F[Emit extrusion paths]
-    G[Offset previous ring by r]
-    H{Ring grew?}
-    I[Done]
-    A --> B --> C --> D --> E --> F --> G --> H
-    H -- yes --> C
-    H -- no --> I
-```
-
-Both have strengths and weaknesses depending on overhang geometry. Try both on your model and compare.
+For the full contrast table, iteration flowcharts, Python → C++ mapping, and source pointers, see **[docs/ALGORITHMS.md](docs/ALGORITHMS.md)**.
 
 ---
 

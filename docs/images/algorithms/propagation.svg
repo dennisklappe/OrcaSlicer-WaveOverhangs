@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 340" font-family="-apple-system, 'Segoe UI', sans-serif">
+  <style>
+    .panel-title { font-size: 18px; font-weight: 600; fill: #0a0a0a; }
+    .label       { font-size: 11px; fill: #6b6b66; }
+    .layer-edge  { fill: none; stroke: #0a0a0a; stroke-width: 1.5; }
+    .support     { fill: #ececea; }
+    .seed        { fill: #ff5e1a; fill-opacity: 0.35; stroke: #ff5e1a; stroke-width: 1.5; }
+    .ring        { fill: none; stroke: #2b3a5c; stroke-width: 1.75; }
+    .caption     { font-size: 12px; fill: #6b6b66; text-anchor: middle; }
+  </style>
+
+  <!-- Panel titles -->
+  <text class="panel-title" x="200" y="28" text-anchor="middle">Andersons</text>
+  <text class="panel-title" x="610" y="28" text-anchor="middle">Kaiser LaSO</text>
+
+  <!-- Shared caption -->
+  <text class="caption" x="410" y="325">Seed (orange) · Rings (blue) · 4-second loop</text>
+
+  <!-- ===== ANDERSONS PANEL ===== -->
+  <g transform="translate(50,50)">
+    <!-- Current layer outline -->
+    <rect class="layer-edge" x="0" y="0" width="320" height="200"/>
+    <!-- Supported region (lower layer extent) -->
+    <rect class="support" x="0" y="0" width="90" height="200"/>
+    <text class="label" x="45"  y="220" text-anchor="middle">support below</text>
+    <text class="label" x="205" y="220" text-anchor="middle">overhang (no support)</text>
+
+    <!-- Seed: narrow band straddling support-overhang boundary -->
+    <rect class="seed" x="80" y="30" width="20" height="140">
+      <animate attributeName="opacity" values="0;1;1;1;1;1" keyTimes="0;0.05;0.25;0.5;0.75;1" dur="4s" repeatCount="indefinite"/>
+    </rect>
+
+    <!-- Rings: vertical polylines advancing rightward -->
+    <line class="ring" x1="125" y1="35" x2="125" y2="165">
+      <animate attributeName="opacity" values="0;0;1;1;1;1" keyTimes="0;0.2;0.25;0.5;0.75;1" dur="4s" repeatCount="indefinite"/>
+    </line>
+    <line class="ring" x1="155" y1="35" x2="155" y2="165">
+      <animate attributeName="opacity" values="0;0;0;1;1;1" keyTimes="0;0.25;0.45;0.5;0.75;1" dur="4s" repeatCount="indefinite"/>
+    </line>
+    <line class="ring" x1="185" y1="35" x2="185" y2="165">
+      <animate attributeName="opacity" values="0;0;0;0;1;1" keyTimes="0;0.25;0.5;0.7;0.75;1" dur="4s" repeatCount="indefinite"/>
+    </line>
+    <line class="ring" x1="215" y1="40" x2="215" y2="160">
+      <animate attributeName="opacity" values="0;0;0;0;0;1" keyTimes="0;0.25;0.5;0.75;0.9;1" dur="4s" repeatCount="indefinite"/>
+    </line>
+    <line class="ring" x1="245" y1="45" x2="245" y2="155">
+      <animate attributeName="opacity" values="0;0;0;0;0;0;1" keyTimes="0;0.2;0.4;0.6;0.8;0.9;1" dur="4s" repeatCount="indefinite"/>
+    </line>
+  </g>
+
+  <!-- ===== KAISER PANEL ===== -->
+  <g transform="translate(460,50)">
+    <!-- Current layer outline -->
+    <rect class="layer-edge" x="0" y="0" width="320" height="200"/>
+    <!-- Supported region -->
+    <rect class="support" x="0" y="0" width="90" height="200"/>
+    <text class="label" x="45"  y="220" text-anchor="middle">support below</text>
+    <text class="label" x="205" y="220" text-anchor="middle">overhang (no support)</text>
+
+    <!-- Seed: lower-slice polygon shrunk inward (sits fully inside support) -->
+    <rect class="seed" x="15" y="30" width="60" height="140">
+      <animate attributeName="opacity" values="0;1;1;1;1;1" keyTimes="0;0.05;0.25;0.5;0.75;1" dur="4s" repeatCount="indefinite"/>
+    </rect>
+
+    <!-- Rings: concentric closed loops expanding outward from the seed -->
+    <rect class="ring" x="8"   y="22"  width="82"  height="156" rx="2">
+      <animate attributeName="opacity" values="0;0;1;1;1;1" keyTimes="0;0.2;0.25;0.5;0.75;1" dur="4s" repeatCount="indefinite"/>
+    </rect>
+    <rect class="ring" x="0"   y="14"  width="120" height="172" rx="3">
+      <animate attributeName="opacity" values="0;0;0;1;1;1" keyTimes="0;0.25;0.45;0.5;0.75;1" dur="4s" repeatCount="indefinite"/>
+    </rect>
+    <rect class="ring" x="-6"  y="8"   width="160" height="184" rx="4">
+      <animate attributeName="opacity" values="0;0;0;0;1;1" keyTimes="0;0.25;0.5;0.7;0.75;1" dur="4s" repeatCount="indefinite"/>
+    </rect>
+    <rect class="ring" x="-12" y="4"   width="205" height="192" rx="5">
+      <animate attributeName="opacity" values="0;0;0;0;0;1" keyTimes="0;0.25;0.5;0.75;0.9;1" dur="4s" repeatCount="indefinite"/>
+    </rect>
+    <rect class="ring" x="-18" y="0"   width="250" height="200" rx="6">
+      <animate attributeName="opacity" values="0;0;0;0;0;0;1" keyTimes="0;0.2;0.4;0.6;0.8;0.9;1" dur="4s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+</svg>
