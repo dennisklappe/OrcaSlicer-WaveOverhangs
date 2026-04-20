@@ -1103,7 +1103,7 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     params.perimeter_count        = perimeter_count;
     params.additional_shell_count = additional_shell_count;
     params.line_spacing           = region_config.wave_overhang_line_spacing.value;
-    params.line_width             = region_config.wave_overhang_line_width.value;
+    params.line_width             = overhang_flow.nozzle_diameter();  // Always match nozzle; line_width != nozzle has no sensible regime in air.
     params.overhang_flow          = overhang_flow;
     params.scaled_resolution      = scaled_resolution;
     params.spacing_mode           = (region_config.wave_overhang_spacing_mode == wosmProgressive)

@@ -127,16 +127,9 @@ Center-to-center distance between adjacent wave extrusions.
 - **Type:** float (mm) · **Default:** `0.35` · **Min:** `0.01`
 - **Tuning:** tighter (0.28–0.30) = denser fill, stronger, slower, risk of over-extrusion on cantilevers. Wider (0.40–0.50) = faster, visible gaps between rings, weaker.
 
-#### `wave_overhang_line_width`
-
-Extrusion width for wave lines. Base extrusion volume is `width × layer_height`; the per-mm volume can then be scaled by `wave_overhang_flow_ratio`.
-
-- **Type:** float (mm) · **Default:** `0.4` · **Min:** `0.1`
-- **Tuning:** typically match or slightly undercut the nozzle diameter. Narrower lines (0.35–0.38) cool faster and hold shape better on unsupported tips; wider lines are stronger but sag more.
-
 #### `wave_overhang_flow_ratio`
 
-Multiplier applied to the base extrusion flow for wave-overhang lines. Base cross-section is `wave line width × layer height`; the final per-mm volume is `base × flow_ratio`.
+Multiplier applied to the base extrusion flow for wave-overhang lines. Base cross-section is `nozzle_diameter × layer_height`; the final per-mm volume is `base × flow_ratio`.
 
 - **Type:** float (multiplier) · **Default:** `2.0` · **Range:** `0.1 – 3.0`
 - **Why 2.0:** Wave-overhang lines hang in air, not squished against a layer below, so the `width × layer-height` shape does not apply. Empirically they need roughly 2× the base flow to stay continuous — this matches Andersons' reference value of `~0.15 mm²` for a 0.4 mm nozzle.

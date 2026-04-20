@@ -4674,16 +4674,6 @@ void PrintConfigDef::init_fff_params()
     def->min = 0.01;
     def->set_default_value(new ConfigOptionFloat(0.35));
 
-    def = this->add("wave_overhang_line_width", coFloat);
-    def->label = L("Line width");
-    def->category = L("Strength");
-    def->tooltip = L("Extrusion width used for wave-overhang lines. Typically a bit narrower "
-                     "than the nozzle diameter.");
-    def->sidetext = L("mm");
-    def->mode = comAdvanced;
-    def->min = 0.1;
-    def->set_default_value(new ConfigOptionFloat(0.4));
-
     def = this->add("wave_overhang_flow_ratio", coFloat);
     def->label = L("Flow ratio");
     def->category = L("Strength");
