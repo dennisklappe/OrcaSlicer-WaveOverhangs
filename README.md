@@ -74,14 +74,14 @@ For the full reference of every config option with tuning hints, see **[docs/WAV
 
 ## The algorithms
 
-|  | Andersons (arc‑overhang derived) | Kaiser LaSO |
-|---|---|---|
-| **Geometric primitive** | Wavefront propagation outward from the supported edge, offset by `wave_spacing` each iteration, clipped to the overhang region | Lateral offsets of a root‑edge seed curve, stepped outward by `line_width × (1 − ring_overlap)` each ring |
-| **Seed** | Outer wall / supported‑edge boundary, dilated into the overhang region | Curve anchored to the supported edge (auto‑detected in our port as overhang‑boundary ∩ lower‑slice‑boundary) |
-| **Propagation** | Outward wavefronts clipped to current‑layer boundary, with Smart / Monotonic / ZigZag pattern selection for within‑ring traversal | Iterative concentric offsets from the seed, each ring clipped to the current‑layer boundary |
-| **Research origin** | Wave‑overhang research by Janis A. Andersons (University of Twente). Arc‑overhang predecessor and PrusaSlicer port by Steven McCulloch (see Credits) | Rieks Kaiser's MSc thesis under Andersons' supervision, University of Twente |
+Both algorithms compute a **seed** at or near the supported edge of the overhang, then propagate rings outward from it into the unsupported region until the rings can't grow further inside the current layer.
 
-Both algorithms have strengths and weaknesses depending on overhang geometry. Try both on your model and compare. Kaiser LaSO is still experimental in our port and not yet producing reliable prints; Andersons is the recommended default.
+- **Andersons** seeds from a narrow band along the support‑overhang boundary. Each iteration offsets the accumulated covered region outward and emits a polyline along the new front; a pattern mode (Smart / Monotonic / ZigZag) decides how the fronts connect.
+- **Kaiser LaSO** seeds from the whole lower‑slice polygon shrunk inward by 2 × nozzle. Each iteration offsets the *previous ring* outward by `r` and emits it as a closed loop.
+
+![Andersons vs Kaiser propagation](docs/images/algorithms/propagation.svg)
+
+For the full contrast table, iteration flowcharts, Python → C++ mapping, and source pointers, see **[docs/ALGORITHMS.md](docs/ALGORITHMS.md)**.
 
 ---
 
