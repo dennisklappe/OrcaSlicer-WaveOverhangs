@@ -179,12 +179,24 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
         // alongside Orca's normal perimeter generator, so any extrusion we
         // emit over supported material piles on top of a normal perimeter.
         //
-        // `overhang_area` is the full infill region for the layer, which
-        // includes top surfaces that sit directly over the lower slice
-        // (fully supported). Compute the genuinely-overhanging part of this
-        // ExPolygon as (region − lower_slices); skip if empty, clip extrusion
-        // to it otherwise.
-        Polygons overhang_only = diff(to_polygons(overhang), lower_slices_polygons);
+        // Pure overhang-only clipping fixed the top-surfaces bug but broke
+        // anchoring: the first overhang ring had no previous-ring material
+        // to bond to because the equivalent ring in the supported region
+        // was clipped out. We need a thin anchor strip — the band of
+        // supported material directly adjacent to the overhang edge — so
+        // the first overhang ring has something to land on. Far-away top
+        // surfaces (not adjacent to any overhang) stay excluded.
+        const Polygons overhang_polys = to_polygons(overhang);
+        const Polygons overhang_genuine = diff(overhang_polys, lower_slices_polygons);
+        if (overhang_genuine.empty()) continue;
+        // Anchor band: expand the overhang into the support by ~1 line width,
+        // then intersect with the support so we don't leak out of the layer.
+        const coord_t anchor_band_scaled = std::max<coord_t>(1, coord_t(scale_(line_width_mm * 1.5)));
+        const Polygons anchor_band = intersection(
+            expand(overhang_genuine, float(anchor_band_scaled), ClipperLib::jtRound),
+            lower_slices_polygons);
+        // Final extrusion clip: overhang + adjacent support strip.
+        const Polygons overhang_only = union_(overhang_polys, anchor_band);
         if (overhang_only.empty()) continue;
 
         // --- Initial offset: offsets(seed, r/2) ∩ boundary (Kaiser line 430).
