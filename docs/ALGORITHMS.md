@@ -26,7 +26,7 @@ The real differences between the two are **what the seed looks like** and **what
 | **What an iteration emits** | A polyline sampled along the new outline (a wavefront) | A closed ring around the previous ring |
 | **How rings connect** | Pattern mode: Smart / Monotonic / ZigZag | Strict lateral offset of the previous ring |
 | **Loop terminates when** | New area growth falls below a threshold (saturation) | The outward offset can't grow further inside the current-layer boundary |
-| **Flow model** | `flow_ratio × standard flow` (layer-height-dependent) | Fixed `nozzle²` mm³/mm (layer-height-independent) |
+| **Flow model** | Shared: `wave_overhang_flow_mm3_per_mm`, defaults to `nozzle²` (layer-height-independent) | Shared: `wave_overhang_flow_mm3_per_mm`, defaults to `nozzle²` (layer-height-independent) |
 
 ## Andersons
 
@@ -52,7 +52,7 @@ flowchart TD
     L[Push fragments into front_levels stack]
     M[current_shape = next_shape]
     N[Pattern mode:<br/>Smart / Monotonic / ZigZag<br/>decides inter-ring traversal]
-    O[Emit as ExtrusionPath with<br/>flow_ratio × standard_flow]
+    O[Emit as ExtrusionPath<br/>mm3/mm = wave_overhang_flow_mm3_per_mm<br/>defaults to nozzle²]
 
     A --> B --> C --> D --> E --> F --> G
     G -- yes --> H
@@ -65,11 +65,11 @@ flowchart TD
 ### Key parameters
 
 - `wave_overhang_line_spacing`: distance between successive wavefronts
-- `wave_overhang_flow_ratio`: multiplier on standard flow per wave extrusion (layer-height-dependent by nature)
 - `wave_overhang_pattern`: Smart / Monotonic / ZigZag, affects how rings are traversed after all are generated
 - `wave_overhang_perimeter_overlap`: how far waves extend toward the outer wall
 - `wave_overhang_minimum_width`: split waves at narrow necks narrower than this
 - `wave_overhang_min_new_area`: saturation threshold
+- `wave_overhang_flow_mm3_per_mm`: shared with Kaiser; see [shared flow setting](#shared-flow-setting)
 
 ### Source
 
@@ -136,7 +136,7 @@ Every step in the flowchart above maps to a specific line in Kaiser's [CustomSup
 | Direction flip on odd iterations | 440-448 | `if i%2==0: ... else: list(reversed(...))` |
 | Rotate ring start to closest boundary vertex to last_tip | 455-459 | `first_index = closest_point(xlast, ylast, points_filtered, isOnBoundary)` |
 | Extrude vs travel decision | 473-490 | `if (isOnBoundary_filtered[j-1] and isOnBoundary_filtered[j]): # G0 else: # G1` |
-| Flow per mm travel = nozzle² / (π/4 · 1.75²) | 56 | `Efactor = nozzlesize**2/(0.25*np.pi*1.75**2)` |
+| Flow per mm travel (default nozzle²; configurable) | 56 | `Efactor = nozzlesize**2/(0.25*np.pi*1.75**2)` |
 | Offset previous ring by r | 533 | `a,b,next_shape = offsets(coords, r=r)` |
 | Heal with 0.001mm buffer, clip to boundary | 534 | `current_shape = next_shape.buffer(0.001).intersection(boundary_polygon)` |
 | Loop while current_shape non-empty | 414 | `while not current_shape.is_empty and i < 10e4` |
@@ -145,8 +145,25 @@ Every step in the flowchart above maps to a specific line in Kaiser's [CustomSup
 
 - `wave_overhang_ring_overlap`: fraction by which successive rings overlap (default 0.15 matches Kaiser's reference)
 - `wave_overhang_max_iterations`: safety cap on ring count
+- `wave_overhang_flow_mm3_per_mm`: shared with Andersons; see [shared flow setting](#shared-flow-setting)
 
-Flow is fixed at `nozzle²` mm³/mm and doesn't respond to `wave_overhang_flow_ratio`. This is layer-height-independent by design: at 0.2mm layers that equals ~2× standard extrusion, at 0.12mm (Kaiser's tested layer height) it's ~3.3×. Each ring deposits a consistent volume per mm regardless of how thin the slice is, which is what gives the ring-to-ring bond enough material.
+## Shared flow setting
+
+Both algorithms use `wave_overhang_flow_mm3_per_mm` to control how much plastic is extruded per millimetre of wave-overhang line. The default is `0.16` mm³/mm, which equals `nozzle²` for a 0.4 mm nozzle (and matches Kaiser's reference calibration).
+
+Why a fixed mm³/mm rather than a layer-height-dependent ratio: a wave-overhang line hangs in air, not squished against a layer below. There's nothing to squish into, so layer height has no effect on the bead's cross-section. Only the nozzle bore and the mm³/mm extrusion rate set the bead size.
+
+Recommended values for other nozzle sizes:
+
+| Nozzle | `wave_overhang_flow_mm3_per_mm` |
+|---|---|
+| 0.3 mm | 0.09 |
+| 0.4 mm | **0.16 (default)** |
+| 0.5 mm | 0.25 |
+| 0.6 mm | 0.36 |
+| 0.8 mm | 0.64 |
+
+Raise if wave lines look thin or broken; lower if they blob together. The value applies identically to Andersons and Kaiser, so tuning transfers between algorithms.
 
 ### Source
 

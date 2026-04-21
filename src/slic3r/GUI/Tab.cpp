@@ -2422,12 +2422,12 @@ void TabPrint::build()
         // Andersons sees the wavefront-propagation knobs. Mixed in one section
         // so empty-algorithm sections don't render as blank headers.
         optgroup = page->new_optgroup(L("Algorithm tuning"), L"param_overhang");
+        optgroup->append_single_option_line("wave_overhang_flow_mm3_per_mm");
         optgroup->append_single_option_line("wave_overhang_ring_overlap");
         optgroup->append_single_option_line("wave_overhang_pattern");
         optgroup->append_single_option_line("wave_overhang_perimeter_overlap");
         optgroup->append_single_option_line("wave_overhang_minimum_width");
         optgroup->append_single_option_line("wave_overhang_line_spacing");
-        optgroup->append_single_option_line("wave_overhang_flow_ratio");
         optgroup->append_single_option_line("wave_overhang_spacing_mode");
         optgroup->append_single_option_line("wave_overhang_min_new_area");
 

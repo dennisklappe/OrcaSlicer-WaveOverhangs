@@ -127,21 +127,19 @@ Center-to-center distance between adjacent wave extrusions.
 - **Type:** float (mm) · **Default:** `0.35` · **Min:** `0.01`
 - **Tuning:** tighter (0.28 to 0.30) = denser fill, stronger, slower, risk of over-extrusion on cantilevers. Wider (0.40 to 0.50) = faster, visible gaps between rings, weaker.
 
-#### `wave_overhang_flow_ratio`
+#### `wave_overhang_flow_mm3_per_mm`
 
-Multiplier applied to the base extrusion flow for wave-overhang lines. Base cross-section is `nozzle_diameter × layer_height`; the final per-mm volume is `base × flow_ratio`.
+Absolute volume of plastic extruded per millimetre of wave-overhang line. Applied uniformly by both Andersons and Kaiser; replaces the old `wave_overhang_flow_ratio`.
 
-- **Type:** float (multiplier) · **Default:** `2.0` · **Range:** `0.1 to 3.0`
-- **Why 2.0:** Wave-overhang lines hang in air, not squished against a layer below, so the `width × layer-height` shape does not apply. Empirically they need roughly 2× the base flow to stay continuous: this matches Andersons' reference value of `~0.15 mm²` for a 0.4 mm nozzle.
-- **Why a ratio (not an absolute mm²):** keeps tuning portable across layer heights. A ratio of `2.0` tuned at 0.2 mm layer still makes sense at 0.3 mm layer: the effective cross-section scales with the geometry, instead of silently under-extruding when you change layer height.
-- **`1.0`** reverts to Orca's base flow (width × layer-height). This typically under-extrudes wave lines because they aren't actually squished.
-- **Above 2.0** if wave lines still look thin / starved on cantilevered tips.
-- **Below 2.0** if wave lines blob or merge.
+- **Type:** float (mm³/mm) · **Default:** `0.16` · **Range:** `0.02 to 1.5`
+- **Why absolute (not a ratio):** a wave-overhang line hangs in air, not squished against a layer below. Nothing to squish into means layer height has no effect on the bead's cross-section; the bead size is set by nozzle bore and mm³/mm extrusion rate alone. An absolute mm³/mm captures that directly.
+- **Why 0.16:** equals `nozzle²` for a 0.4 mm nozzle, which matches Kaiser's reference calibration and also matches the old `flow_ratio = 2.0` at 0.2 mm layer height.
+- **For other nozzle sizes:** use `nozzle_diameter²` as a starting point. 0.3 mm → 0.09, 0.5 mm → 0.25, 0.6 mm → 0.36, 0.8 mm → 0.64. The setting is not automatically adjusted when you change the printer profile, so update it by hand if you move between nozzle sizes.
 
 **Tuning guide:**
-- Start at `2.0` and print.
-- If wave lines look thin / starved / broken: raise to `2.2 to 2.5`.
-- If wave lines blob or merge: lower to `1.7 to 1.9`.
+- Start at `0.16` (or `nozzle²` for your nozzle) and print.
+- If wave lines look thin / starved / broken: raise by 10 to 20 % (e.g. 0.18 to 0.20 for a 0.4 mm nozzle).
+- If wave lines blob or merge: lower by 10 to 20 % (e.g. 0.13 to 0.14).
 
 #### `wave_overhang_spacing_mode`
 
@@ -295,7 +293,7 @@ When `wave_overhang_debug_gcode = true` (the default), four kinds of comments ap
 
 ```
 ; WAVE_OVERHANG_CONFIG region=<N> algo=<andersons|kaiser> outer_perim=<int>
-  spacing=<mm> width=<mm> flow_ratio=<x> speed=<mm/s> travel=<mm/s> fan=<%>
+  spacing=<mm> width=<mm> flow_mm3_per_mm=<x> speed=<mm/s> travel=<mm/s> fan=<%>
   floor_layers=<int> min_angle=<deg> min_length=<mm> max_iterations=<int>
   ring_overlap=<frac>
   pattern=<smart|monotonic|zigzag> spacing_mode=<uniform|progressive> seam_mode=<alternating|aligned|random>

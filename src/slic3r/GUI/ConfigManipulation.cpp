@@ -979,6 +979,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhangs_instead_of_bridges"),
         std::string("wave_overhang_algorithm"),
         std::string("wave_overhang_outer_perimeters"),
+        std::string("wave_overhang_flow_mm3_per_mm"),
         std::string("wave_overhang_print_speed"),
         std::string("wave_overhang_travel_speed"),
         std::string("wave_overhang_fan_speed"),
@@ -1000,7 +1001,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhang_perimeter_overlap"),
         std::string("wave_overhang_minimum_width"),
         std::string("wave_overhang_line_spacing"),
-        std::string("wave_overhang_flow_ratio"),
         std::string("wave_overhang_spacing_mode"),
         std::string("wave_overhang_min_new_area"),
     })
