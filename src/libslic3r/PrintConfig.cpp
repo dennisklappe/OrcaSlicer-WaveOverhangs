@@ -7954,14 +7954,6 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         value = "1";
     } else if (opt_key == "initial_layer_flow_ratio") {
         opt_key = "bottom_solid_infill_flow_ratio";
-    } else if (opt_key == "wave_overhang_flow_ratio") {
-        // Semantic change, not just a rename. Old was a multiplier on
-        // width × layer_height; new is an absolute mm³/mm. We can't translate
-        // without knowing the user's layer_height at save time. Reset to the
-        // new default (0.16 = nozzle² for 0.4 mm nozzle). Users who tuned
-        // explicitly will need to re-tune.
-        opt_key = "wave_overhang_flow_mm3_per_mm";
-        value = "0.16";
     } else if (opt_key == "ironing_direction") {
         opt_key = "ironing_angle";
     } else if (opt_key == "ironing_angle" && boost::starts_with(value, "-")) {
