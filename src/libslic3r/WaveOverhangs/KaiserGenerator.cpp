@@ -23,6 +23,7 @@
 #include <functional>
 #include <limits>
 
+#include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -76,18 +77,6 @@ void densify_polygons_contour(Polygons &polys, coord_t spacing_scaled)
             pl.points.pop_back();
         p.points = std::move(pl.points);
     }
-}
-
-// True iff `p` lies within `tol` (scaled) of any boundary segment. Matches
-// Kaiser's `boundary.boundary.distance(Point) < 1e-6`.
-bool point_on_any_line(const Point &p, const Lines &boundary_lines, double tol)
-{
-    const double tol2 = tol * tol;
-    for (const Line &l : boundary_lines) {
-        if (l.distance_to_squared(p) < tol2)
-            return true;
-    }
-    return false;
 }
 
 } // namespace
@@ -170,7 +159,14 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
 
         densify_polygons_contour(seed_polys, densify_spacing_scaled);
 
-        const Lines boundary_lines = to_lines(boundary_polys);
+        // Boundary lines wrapped in an AABB tree so the per-vertex
+        // "is this point within tol of any boundary segment?" query in the
+        // ring walk below is O(log N) instead of the O(N) linear scan the
+        // original port used. On complex geometry (hole-in-the-layer,
+        // multi-arm overhangs) with ~500 boundary segments and 1000-point
+        // rings, the linear scan dominated Kaiser's runtime and the slicer
+        // visibly stalled around the perimeter-gen phase.
+        AABBTreeLines::LinesDistancer<Line> boundary_distancer{to_lines(boundary_polys)};
 
         // Wave rings naturally grow through the supported region before
         // reaching the overhang (Kaiser's algorithm is built that way: seed
@@ -229,7 +225,7 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
 
                 std::vector<bool> on_bd(pts.size(), false);
                 for (size_t i = 0; i < pts.size(); ++i)
-                    on_bd[i] = point_on_any_line(pts[i], boundary_lines, boundary_touch_tol);
+                    on_bd[i] = boundary_distancer.distance_from_lines<false>(pts[i]) < boundary_touch_tol;
 
                 // Alternate direction on odd rings (Kaiser line 467) unless
                 // user overrode seam_mode. Aligned → never reverse; Random →
