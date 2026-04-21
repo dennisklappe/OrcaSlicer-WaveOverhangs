@@ -649,6 +649,14 @@ void PrintObject::prepare_infill()
     this->apply_wave_overhang_floor_layer_authority();
     m_print->throw_if_canceled();
 
+    // Orca: wave-overhang bridge suppression. Runs after the floor-layer authority
+    // so bridges the authority pass didn't touch (residual pockets in overhang
+    // areas that the wave generator couldn't grow into) get reclassified to
+    // stInternalSolid. Without this pass those residuals print as bridge pattern
+    // mixed in with waves, which the "instead of bridges" flag is meant to prevent.
+    this->apply_wave_overhang_bridge_suppression();
+    m_print->throw_if_canceled();
+
     // combine fill surfaces to honor the "infill every N layers" option
     this->combine_infill();
     m_print->throw_if_canceled();
@@ -1881,6 +1889,94 @@ void PrintObject::apply_wave_overhang_floor_layer_authority()
 }
 // ==============================================================================================================
 // === ORCA: End of apply_wave_overhang_floor_layer_authority ===================================================
+// ==============================================================================================================
+
+// ==============================================================================================================
+// === ORCA: Wave-overhang bridge suppression ===================================================================
+// When wave_overhangs + wave_overhangs_instead_of_bridges are on for a region, the wave generator runs on the
+// overhang area at perimeter-gen time, covers what it can (saved in wave_overhang_floor_polygons), and leaves
+// any small pockets it could not grow into as unclaimed residual. process_external_surfaces later sees those
+// residuals as candidate bridges (a pocket above empty space below with supported edges = bridge) and classifies
+// them stBottomBridge / stInternalBridge. The Fill pipeline then prints bridge pattern inside a region that is
+// visually and mechanically a wave-overhang: different flow, different cooling, obvious seam in the preview.
+//
+// This pass intercepts those bridges. For each layer in a region with both flags on, we compute the layer's
+// overhang footprint (this_slices minus lower_slices) and reclassify any stBottomBridge / stInternalBridge
+// surfaces overlapping that footprint to stInternalSolid. Outside the overhang footprint, bridges stay bridges.
+// Runs AFTER apply_wave_overhang_floor_layer_authority so the authority pass's decisions (wave layer itself
+// gets no fill; floor layers above are solid) are preserved where they land, and the only surfaces we touch
+// are the residual-bridge ones the authority pass intentionally skipped.
+// ==============================================================================================================
+void PrintObject::apply_wave_overhang_bridge_suppression()
+{
+    bool any = false;
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        const PrintRegionConfig &rconf = this->printing_region(region_id).config();
+        if (rconf.wave_overhangs.value && rconf.wave_overhangs_instead_of_bridges.value) {
+            any = true;
+            break;
+        }
+    }
+    if (!any)
+        return;
+
+    BOOST_LOG_TRIVIAL(info) << "Applying wave-overhang bridge suppression...";
+
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        const PrintRegionConfig &rconf = this->printing_region(region_id).config();
+        if (!rconf.wave_overhangs.value || !rconf.wave_overhangs_instead_of_bridges.value)
+            continue;
+
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
+            [this, region_id](const tbb::blocked_range<size_t> &range) {
+                for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
+                    m_print->throw_if_canceled();
+                    if (idx_layer == 0) continue; // no lower layer, nothing can be an overhang
+
+                    Layer       *layer = m_layers[idx_layer];
+                    const Layer *lower = m_layers[idx_layer - 1];
+
+                    // Overhang footprint = this-layer outline minus lower-layer outline.
+                    Polygons overhang = diff(to_polygons(layer->lslices), to_polygons(lower->lslices));
+                    if (overhang.empty())
+                        continue;
+
+                    LayerRegion *layerm = layer->m_regions[region_id];
+                    Surfaces    &surfs  = layerm->fill_surfaces.surfaces;
+                    Surfaces     new_surfaces;
+                    new_surfaces.reserve(surfs.size() + 4);
+                    for (Surface &s : surfs) {
+                        if (s.surface_type != stBottomBridge && s.surface_type != stInternalBridge) {
+                            new_surfaces.push_back(std::move(s));
+                            continue;
+                        }
+                        Polygons   sp      = to_polygons(s);
+                        ExPolygons inside  = intersection_ex(sp, overhang, ApplySafetyOffset::Yes);
+                        if (inside.empty()) {
+                            new_surfaces.push_back(std::move(s));
+                            continue;
+                        }
+                        ExPolygons outside = diff_ex(sp, to_polygons(inside), ApplySafetyOffset::Yes);
+                        const SurfaceType orig = s.surface_type;
+                        // Reclassify inside-overhang part → solid infill (no bridge pattern).
+                        for (auto &ex_in : union_safety_offset_ex(inside)) {
+                            Surface tmp{s, std::move(ex_in)};
+                            tmp.surface_type = stInternalSolid;
+                            tmp.bridge_angle = 0; // no longer a bridge; clear the orientation hint
+                            new_surfaces.push_back(std::move(tmp));
+                        }
+                        // Keep outside-overhang bridge classification untouched.
+                        for (auto &ex_out : union_safety_offset_ex(outside))
+                            new_surfaces.emplace_back(orig, std::move(ex_out));
+                    }
+                    surfs = std::move(new_surfaces);
+                }
+            });
+        m_print->throw_if_canceled();
+    }
+}
+// ==============================================================================================================
+// === ORCA: End of apply_wave_overhang_bridge_suppression ======================================================
 // ==============================================================================================================
 
 void PrintObject::process_external_surfaces()
