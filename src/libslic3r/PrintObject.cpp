@@ -649,6 +649,14 @@ void PrintObject::prepare_infill()
     this->apply_wave_overhang_floor_layer_authority();
     m_print->throw_if_canceled();
 
+    // Orca: wave-overhang bridge suppression. Runs after the floor-layer authority
+    // so bridges the authority pass didn't touch (residual pockets in overhang
+    // areas that the wave generator couldn't grow into) get reclassified to
+    // stInternalSolid. Without this pass those residuals print as bridge pattern
+    // mixed in with waves, which the "instead of bridges" flag is meant to prevent.
+    this->apply_wave_overhang_bridge_suppression();
+    m_print->throw_if_canceled();
+
     // combine fill surfaces to honor the "infill every N layers" option
     this->combine_infill();
     m_print->throw_if_canceled();
@@ -1881,6 +1889,67 @@ void PrintObject::apply_wave_overhang_floor_layer_authority()
 }
 // ==============================================================================================================
 // === ORCA: End of apply_wave_overhang_floor_layer_authority ===================================================
+// ==============================================================================================================
+
+// ==============================================================================================================
+// === ORCA: Wave-overhang bridge suppression ===================================================================
+// When wave_overhangs + wave_overhangs_instead_of_bridges are on for a region, the user has asked for waves to
+// replace bridges in that region entirely. Two kinds of bridge get classified by earlier passes:
+//
+//   stBottomBridge   : solid over empty space (classic cantilever-style bridge).
+//   stInternalBridge : solid over sparse infill (bridge_over_infill creates these).
+//
+// A geometric "inside the overhang footprint" filter (layer.lslices diff lower.lslices) catches stBottomBridge
+// but misses stInternalBridge, because stInternalBridge sits above sparse infill (still material in lslices).
+// Users saw teal "Internal bridge" patches inside wave layers even with both flags on.
+//
+// Simpler, region-scoped semantics: when the user opts in by setting both flags, suppress ALL bridges in the
+// region. Reclassify stBottomBridge / stInternalBridge to stInternalSolid so the Fill pipeline uses regular
+// solid infill, which bonds cleanly with surrounding wave extrusions and uses the same flow model.
+//
+// Runs AFTER apply_wave_overhang_floor_layer_authority. The authority pass's decisions stay where they land;
+// we only touch surfaces the authority pass kept as bridges.
+// ==============================================================================================================
+void PrintObject::apply_wave_overhang_bridge_suppression()
+{
+    bool any = false;
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        const PrintRegionConfig &rconf = this->printing_region(region_id).config();
+        if (rconf.wave_overhangs.value && rconf.wave_overhangs_instead_of_bridges.value) {
+            any = true;
+            break;
+        }
+    }
+    if (!any)
+        return;
+
+    BOOST_LOG_TRIVIAL(info) << "Applying wave-overhang bridge suppression...";
+
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        const PrintRegionConfig &rconf = this->printing_region(region_id).config();
+        if (!rconf.wave_overhangs.value || !rconf.wave_overhangs_instead_of_bridges.value)
+            continue;
+
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
+            [this, region_id](const tbb::blocked_range<size_t> &range) {
+                for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
+                    m_print->throw_if_canceled();
+                    Layer       *layer  = m_layers[idx_layer];
+                    LayerRegion *layerm = layer->m_regions[region_id];
+                    Surfaces    &surfs  = layerm->fill_surfaces.surfaces;
+                    for (Surface &s : surfs) {
+                        if (s.surface_type == stBottomBridge || s.surface_type == stInternalBridge) {
+                            s.surface_type = stInternalSolid;
+                            s.bridge_angle = 0;
+                        }
+                    }
+                }
+            });
+        m_print->throw_if_canceled();
+    }
+}
+// ==============================================================================================================
+// === ORCA: End of apply_wave_overhang_bridge_suppression ======================================================
 // ==============================================================================================================
 
 void PrintObject::process_external_surfaces()
