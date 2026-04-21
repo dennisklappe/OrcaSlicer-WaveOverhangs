@@ -61,7 +61,7 @@ Practical implication: treat wave overhangs as a tool for **smaller, self-contai
 Things that have helped in testing so far:
 
 - **Material choice:** PLA works best. PETG / ABS / PC are much more likely to delaminate or warp.
-- **Tune the layers above the overhang:** the first 1–3 layers *above* the wave region often do most of the pulling. Slower speed, reduced flow, or extra cooling on those layers can make a visible difference. See `wave_overhang_floor_layers` in [WAVE_OVERHANG_SETTINGS.md](WAVE_OVERHANG_SETTINGS.md).
+- **Tune the layers above the overhang:** the first 1 to 3 layers *above* the wave region often do most of the pulling. Slower speed, reduced flow, or extra cooling on those layers can make a visible difference. See `wave_overhang_floor_layers` in [WAVE_OVERHANG_SETTINGS.md](WAVE_OVERHANG_SETTINGS.md).
 - **Cooling strategy:** default to max part-cooling on the wave layer itself; experiment with the layers above.
 - **Nozzle temperature:** lower end of the material's working range tends to reduce reheating-induced relaxation.
 - **Size limits:** if your overhang is larger than a few cm, consider falling back to traditional support material.

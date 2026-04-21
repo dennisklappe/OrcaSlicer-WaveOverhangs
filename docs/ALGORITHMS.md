@@ -23,12 +23,10 @@ The real differences between the two are **what the seed looks like** and **what
 |---|---|---|
 | **Seed** | Narrow band along the support-overhang boundary | Full lower-slice polygon shrunk inward by 2 × nozzle (treated as a closed curve) |
 | **What each iteration offsets** | The accumulated filled region | The previous ring (a curve) |
-| **What an iteration emits** | A polyline sampled along the new outline — a wavefront | A closed ring around the previous ring |
+| **What an iteration emits** | A polyline sampled along the new outline (a wavefront) | A closed ring around the previous ring |
 | **How rings connect** | Pattern mode: Smart / Monotonic / ZigZag | Strict lateral offset of the previous ring |
 | **Loop terminates when** | New area growth falls below a threshold (saturation) | The outward offset can't grow further inside the current-layer boundary |
 | **Flow model** | `flow_ratio × standard flow` (layer-height-dependent) | Fixed `nozzle²` mm³/mm (layer-height-independent) |
-
-Neither algorithm grows "inward from the outer wall" — the outer wall of an overhang would have to be printed on air, which is the problem these algorithms exist to solve. Both grow *outward from the support*.
 
 ## Andersons
 
@@ -66,12 +64,12 @@ flowchart TD
 
 ### Key parameters
 
-- `wave_overhang_line_spacing` — distance between successive wavefronts
-- `wave_overhang_flow_ratio` — multiplier on standard flow per wave extrusion (layer-height-dependent by nature)
-- `wave_overhang_pattern` — Smart / Monotonic / ZigZag, affects how rings are traversed after all are generated
-- `wave_overhang_perimeter_overlap` — how far waves extend toward the outer wall
-- `wave_overhang_minimum_width` — split waves at narrow necks narrower than this
-- `wave_overhang_min_new_area` — saturation threshold
+- `wave_overhang_line_spacing`: distance between successive wavefronts
+- `wave_overhang_flow_ratio`: multiplier on standard flow per wave extrusion (layer-height-dependent by nature)
+- `wave_overhang_pattern`: Smart / Monotonic / ZigZag, affects how rings are traversed after all are generated
+- `wave_overhang_perimeter_overlap`: how far waves extend toward the outer wall
+- `wave_overhang_minimum_width`: split waves at narrow necks narrower than this
+- `wave_overhang_min_new_area`: saturation threshold
 
 ### Source
 
@@ -134,10 +132,10 @@ Every step in the flowchart above maps to a specific line in Kaiser's [CustomSup
 | Seed from lower-slice outer wall, shrunk by 2×nozzle | 174 | `seedpoly = Polygon(seedshape).buffer(-2*nozzlesize)` |
 | First ring at r/2 | 403 | `bin1, bin2, shape = offsets(seed_curve, r/2)` |
 | Clip to boundary | 404 | `current_shape = shape.intersection(boundary_polygon)` |
-| Mark on-boundary vertices | 427–434 | `if boundary_polygon.boundary.distance(Point(x,y))<1e-6: isOnBoundary[j] = True` |
-| Direction flip on odd iterations | 440–448 | `if i%2==0: ... else: list(reversed(...))` |
-| Rotate ring start to closest boundary vertex to last_tip | 455–459 | `first_index = closest_point(xlast, ylast, points_filtered, isOnBoundary)` |
-| Extrude vs travel decision | 473–490 | `if (isOnBoundary_filtered[j-1] and isOnBoundary_filtered[j]): # G0 else: # G1` |
+| Mark on-boundary vertices | 427-434 | `if boundary_polygon.boundary.distance(Point(x,y))<1e-6: isOnBoundary[j] = True` |
+| Direction flip on odd iterations | 440-448 | `if i%2==0: ... else: list(reversed(...))` |
+| Rotate ring start to closest boundary vertex to last_tip | 455-459 | `first_index = closest_point(xlast, ylast, points_filtered, isOnBoundary)` |
+| Extrude vs travel decision | 473-490 | `if (isOnBoundary_filtered[j-1] and isOnBoundary_filtered[j]): # G0 else: # G1` |
 | Flow per mm travel = nozzle² / (π/4 · 1.75²) | 56 | `Efactor = nozzlesize**2/(0.25*np.pi*1.75**2)` |
 | Offset previous ring by r | 533 | `a,b,next_shape = offsets(coords, r=r)` |
 | Heal with 0.001mm buffer, clip to boundary | 534 | `current_shape = next_shape.buffer(0.001).intersection(boundary_polygon)` |
@@ -145,9 +143,8 @@ Every step in the flowchart above maps to a specific line in Kaiser's [CustomSup
 
 ### Key parameters
 
-- `wave_overhang_ring_overlap` — fraction by which successive rings overlap (default 0.15 matches Kaiser's reference)
-- `wave_overhang_line_width` — width of each extruded line
-- `wave_overhang_max_iterations` — safety cap on ring count
+- `wave_overhang_ring_overlap`: fraction by which successive rings overlap (default 0.15 matches Kaiser's reference)
+- `wave_overhang_max_iterations`: safety cap on ring count
 
 Flow is fixed at `nozzle²` mm³/mm and doesn't respond to `wave_overhang_flow_ratio`. This is layer-height-independent by design: at 0.2mm layers that equals ~2× standard extrusion, at 0.12mm (Kaiser's tested layer height) it's ~3.3×. Each ring deposits a consistent volume per mm regardless of how thin the slice is, which is what gives the ring-to-ring bond enough material.
 
@@ -167,6 +164,6 @@ Flow is fixed at `nozzle²` mm³/mm and doesn't respond to `wave_overhang_flow_r
 
 ## Which one to pick
 
-Andersons is the battle-tested default — it came from a published-slicer port and handles a wide range of overhang geometries out of the box. Kaiser LaSO is a second angle on the same problem that some people might prefer for highly directional or ridge-like overhangs where strict lateral-offset ring patterns look cleaner than pattern-connected wavefronts.
+Both algorithms are still in active research and get tuned frequently. Neither one is strictly better yet. The honest answer is: try both on your model and see what actually lands for your printer, filament, and geometry.
 
-Try both on your model and upload the results to [waveoverhangs.com](https://waveoverhangs.com) so other people can see what actually worked for your setup.
+Please upload your results (success or failure) at [waveoverhangs.com](https://waveoverhangs.com). Every data point helps shape what the defaults and the per-geometry recommendations should be, and shows other people what has worked for which setup.

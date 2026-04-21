@@ -1,12 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 340" font-family="-apple-system, 'Segoe UI', sans-serif">
   <style>
-    .panel-title { font-size: 18px; font-weight: 600; fill: #0a0a0a; }
-    .label       { font-size: 11px; fill: #6b6b66; }
-    .layer-edge  { fill: none; stroke: #0a0a0a; stroke-width: 1.5; }
+    .panel-title { font-size: 18px; font-weight: 600; fill: #1a1a1a; }
+    .label       { font-size: 11px; fill: #6b6b6b; }
+    .layer-edge  { fill: none; stroke: #1a1a1a; stroke-width: 1.5; }
     .support     { fill: #ececea; }
     .seed        { fill: #ff5e1a; fill-opacity: 0.35; stroke: #ff5e1a; stroke-width: 1.5; }
-    .ring        { fill: none; stroke: #2b3a5c; stroke-width: 1.75; }
-    .caption     { font-size: 12px; fill: #6b6b66; text-anchor: middle; }
+    .ring        { fill: none; stroke: #1e40af; stroke-width: 1.75; }
+    .caption     { font-size: 12px; fill: #6b6b6b; text-anchor: middle; }
+
+    @media (prefers-color-scheme: dark) {
+      .panel-title { fill: #e8e8e8; }
+      .label       { fill: #9a9a95; }
+      .layer-edge  { stroke: #e8e8e8; }
+      .support     { fill: #2a2a2a; }
+      .ring        { stroke: #60a5fa; }
+      .caption     { fill: #9a9a95; }
+    }
   </style>
 
   <!-- Panel titles -->
