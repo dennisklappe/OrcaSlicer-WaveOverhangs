@@ -1162,18 +1162,12 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
                                                         this->m_scaled_resolution, *this->object_config, *this->print_config);
 
         if (use_wave_overhangs) {
-            // Wave-overhang lines hang in air. The right flow is a fixed
-            // mm³/mm that scales with nozzle², layer-height-independent
-            // (both algorithms share the same physics; the line is a bead
-            // dropping out of the nozzle, not plastic squished into a slot).
-            // A stored value of 0 means "auto": derive from nozzle² so users
-            // on non-default nozzle sizes get the right default without
-            // per-profile tuning.
-            double flow_mm3_per_mm = this->config->wave_overhang_flow_mm3_per_mm.value;
-            if (flow_mm3_per_mm <= 0.0) {
-                const double nozzle = this->overhang_flow.nozzle_diameter();
-                flow_mm3_per_mm = nozzle * nozzle;
-            }
+            // Wave-overhang lines hang in air, not squished against a layer
+            // below, so the mm³/mm is independent of layer height. Both
+            // algorithms read the same config key and override whatever
+            // flow the generator put on the path initially, so the user
+            // sees one knob with predictable semantics.
+            const double flow_mm3_per_mm = this->config->wave_overhang_flow_mm3_per_mm.value;
             for (ExtrusionPaths &region : extra_perimeters)
                 for (ExtrusionPath &path : region)
                     if (path.wave_overhang)
