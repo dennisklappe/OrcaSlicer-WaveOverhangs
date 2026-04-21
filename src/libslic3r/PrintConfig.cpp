@@ -4674,24 +4674,23 @@ void PrintConfigDef::init_fff_params()
     def->min = 0.01;
     def->set_default_value(new ConfigOptionFloat(0.35));
 
-    def = this->add("wave_overhang_flow_ratio", coFloat);
-    def->label = L("Flow ratio");
+    def = this->add("wave_overhang_flow_mm3_per_mm", coFloat);
+    def->label = L("Wave flow");
     def->category = L("Strength");
-    def->tooltip = L("Multiplier on the base extrusion flow for wave-overhang lines. "
-                     "Wave lines hang in air instead of being squished against a layer below, so they need "
-                     "extra plastic to stay continuous. The default 2.0 matches Andersons' reference value "
-                     "for a 0.4 mm nozzle (~0.15 mm² cross-section), translated into a geometry-independent ratio.\n\n"
-                     "Worked examples at 0.4 mm line width × 0.2 mm layer: 1.0x = 0.08 mm², 2.0x = 0.16 mm², 2.5x = 0.20 mm². "
-                     "Scale proportionally for other geometries.\n\n"
-                     "Raise further if wave lines look thin or broken; lower toward 1.0 if they blob together. "
-                     "1.0 reverts to Orca's base flow (width × layer height), which typically under-extrudes cantilevered lines.\n\n"
-                     "Using a ratio (instead of an absolute cross-section area) keeps tuning portable across layer heights: "
-                     "the same ratio transfers cleanly from a 0.2 mm to a 0.3 mm layer without re-calibration.");
-    def->sidetext = L("x");
+    def->tooltip = L("Volume of plastic extruded per millimetre of wave-overhang line, in mm³/mm. "
+                     "Used by both Andersons and Kaiser algorithms.\n\n"
+                     "Wave-overhang lines hang in air instead of being squished against a layer below, so the "
+                     "standard width × layer-height flow model does not apply. The right amount of plastic scales "
+                     "with the square of nozzle diameter: 0.16 for a 0.4 mm nozzle, 0.36 for 0.6 mm, 0.64 for 0.8 mm. "
+                     "This tracks Kaiser's reference and matches Andersons' effective flow at 0.2 mm layer height.\n\n"
+                     "Raise if wave lines look thin or broken; lower if they blob together. Unlike the older "
+                     "flow-ratio knob this value is layer-height-independent by design: the bead is hanging in "
+                     "air, so layer height has no effect on its cross-section.");
+    def->sidetext = L("mm³/mm");
     def->mode = comAdvanced;
-    def->min = 0.1;
-    def->max = 3.0;
-    def->set_default_value(new ConfigOptionFloat(2.0));
+    def->min = 0.02;
+    def->max = 1.5;
+    def->set_default_value(new ConfigOptionFloat(0.16));
 
     def = this->add("wave_overhang_print_speed", coFloat);
     def->label = L("Print speed");

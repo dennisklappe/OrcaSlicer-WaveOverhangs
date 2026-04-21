@@ -38,9 +38,9 @@ This fork ports the technique into OrcaSlicer and exposes two pluggable generato
 
 - **Two wave‑overhang algorithms** with an in‑GUI dropdown
   - **Andersons**: port of [stmcculloch/PrusaSlicer‑WaveOverhangs](https://github.com/stmcculloch/PrusaSlicer-WaveOverhangs). Arc‑overhang descendant with narrow‑region splitting and Smart/ZigZag/Monotonic pattern selection.
-  - **Kaiser LaSO**: C++ reimplementation of [Rieks Kaiser's MSc thesis script](https://github.com/riekskaiser/wave_LaSO). Auto seed‑curve detection, multi‑overhang handling, pipeline‑integrated (no G‑code post‑processing). Still experimental, not producing reliable prints yet.
+  - **Kaiser LaSO**: C++ reimplementation of [Rieks Kaiser's MSc thesis script](https://github.com/riekskaiser/wave_LaSO). Auto seed‑curve detection, multi‑overhang handling, pipeline‑integrated (no G‑code post‑processing). Still in research; shares the flow model with Andersons and works on simple overhangs, but complex geometries are unreliable.
 - **Dedicated Wave overhangs tab** in Print Settings with grouped sections: General, Geometry, Algorithm tuning (algorithm‑specific rows appear per selected algorithm), Speed, Cooling, Floor layers, Support integration, Debug.
-- **~20 expert tunables** for experimentation: line spacing, line width, flow ratio, ring overlap, seam mode, spacing mode, pattern, perimeter overlap, minimum wave width, max iterations, authoritative floor layers, cooling overrides, and more.
+- **~20 expert tunables** for experimentation: line spacing, flow (mm³/mm), ring overlap, seam mode, spacing mode, pattern, perimeter overlap, minimum wave width, max iterations, authoritative floor layers, cooling overrides, and more.
 - **Community test‑print database** at **[waveoverhangs.com](https://waveoverhangs.com)** where you can upload your results with settings and compare prints side‑by‑side.
 - **Wave‑aware support integration**: supports only generate for overhang areas the wave couldn't cover.
 - **G‑code debug markers**: `;WAVE_OVERHANG_CONFIG …` header block and per‑region `;WAVE_OVERHANG_START/END` tags for easy post‑process verification.
@@ -64,7 +64,7 @@ Prebuilt binaries for tagged releases on the **[Releases page](https://github.co
 5. Slice and inspect the G‑code preview. Wave extrusions appear over detected overhang regions.
 
 > **Simple mode** shows just the master toggle plus the algorithm dropdown.
-> Switch to **Advanced** (top‑right mode selector) to tune individual parameters like line spacing, flow ratio, ring overlap, seam mode, etc.
+> Switch to **Advanced** (top‑right mode selector) to tune individual parameters like line spacing, flow (mm³/mm), ring overlap, seam mode, etc.
 
 For the full reference of every config option with tuning hints, see **[docs/WAVE_OVERHANG_SETTINGS.md](docs/WAVE_OVERHANG_SETTINGS.md)**.
 
@@ -106,8 +106,8 @@ make -j$(nproc)
 ## Current limitations
 
 - **Experimental.** The tunable space is large (~20 knobs across two algorithms) and most parameter combinations have not been print‑tested yet. Expect rough edges. Please share what works and what doesn't at **[waveoverhangs.com](https://waveoverhangs.com)**.
-- **Kaiser LaSO still unreliable.** The Kaiser algorithm is in the slicer as a second option but not yet producing consistently good prints. Stick with Andersons for now unless you're helping debug Kaiser.
-- **PLA recommended.** Wave overhangs need each ring to cool and become rigid before the next pass anchors to it. PLA with max part‑cooling works well. PETG, ABS and PC are likely to fail (PETG cools too slowly and delaminates under heavy fan).
+- **Kaiser LaSO works on simple overhangs, not complex ones.** After the v0.2.0 anchor-band fix Kaiser now produces clean cantilever prints on simple convex overhangs, and now shares the flow model with Andersons. Complex geometries (concave shapes, narrow multi-arm supports) are still unreliable. Andersons remains the recommended default; try Kaiser on straight ridges where a strict lateral-offset pattern looks cleaner.
+- **PLA recommended.** Wave overhangs need each ring to cool and become rigid before the next pass anchors to it. PLA with max part‑cooling works well. PETG, ABS and PC are likely to fail (PETG cools too slowly and delaminates under heavy fan). If you've tested other materials, please upload the results (success or failure) to **[waveoverhangs.com/upload](https://waveoverhangs.com/upload)**; failures are just as valuable for mapping out what's possible.
 - **Warping on larger spans.** Laterally supported overhangs are prone to warping driven by thermal gradients, reheating of earlier layers, and nozzle pressure. Smaller overhangs print cleanly; larger spans may still need traditional supports. See **[docs/LIMITATIONS.md](docs/LIMITATIONS.md)** for the mechanisms and mitigations.
 - **Kaiser pin supports are not ported.** Kaiser's original places discrete pin‑support nubs under overhangs. Not planned, since the goal here is fully support‑free overhangs. Use `support_remaining_areas_after_wave_overhangs` with Orca's normal supports if wave can't cover everything.
 - **Platform testing status:** real‑print tested on Linux and Windows. macOS builds pass CI but haven't been validated against a physical printer yet.

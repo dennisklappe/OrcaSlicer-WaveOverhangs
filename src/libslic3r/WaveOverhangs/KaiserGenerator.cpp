@@ -113,10 +113,11 @@ GenerateResult KaiserGenerator::generate(const ExPolygons   &overhang_area,
     const coord_t first_offset = std::max<coord_t>(1, r_scaled / 2);
     const coord_t densify_spacing_scaled = coord_t(scale_(0.1));
 
-    // Kaiser's flow: Efactor = nozzle² / (π/4 · 1.75²). Multiplied by filament
-    // cross-section, volumetric output = nozzle² mm³/mm, layer-height-
-    // independent. This is why a fixed flow_ratio wasn't reproducing Kaiser's
-    // calibration across layer heights.
+    // Placeholder extrusion rate for the ExtrusionPath constructor. The final
+    // mm³/mm is set by PerimeterGenerator from wave_overhang_flow_mm3_per_mm
+    // (auto-derives to nozzle² when 0), applied uniformly to both algorithms
+    // so users get one knob with the same physics model regardless of which
+    // generator emitted the rings.
     const double kaiser_mm3_per_mm = nozzle_mm * nozzle_mm;
 
     const Flow wave_flow = params.line_width > 0. ? params.overhang_flow.with_width(float(line_width_mm))

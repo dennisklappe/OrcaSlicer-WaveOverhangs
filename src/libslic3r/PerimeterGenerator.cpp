@@ -1161,24 +1161,23 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
                                                         this->config->wall_loops, this->overhang_flow,
                                                         this->m_scaled_resolution, *this->object_config, *this->print_config);
 
-        if (use_wave_overhangs && this->config->wave_overhang_algorithm != woaKaiser) {
-            // Andersons only: wave-overhang lines are cantilevered into air, so
-            // the user often wants more (or less) plastic than Orca's base
-            // width × layer-height would give. Scale whatever flow Orca already
-            // computed by the ratio so the knob stays portable across layer
-            // heights and line widths.
-            //
-            // Kaiser deliberately opts out: its generator emits an absolute
-            // nozzle² mm³/mm directly (see KaiserGenerator.cpp), matching the
-            // Python reference. Applying flow_ratio on top would double-count
-            // the over-extrusion and cause layer shifts from nozzle drag.
-            const double flow_ratio = this->config->wave_overhang_flow_ratio.value;
-            if (flow_ratio > 0.0 && flow_ratio != 1.0) {
-                for (ExtrusionPaths &region : extra_perimeters)
-                    for (ExtrusionPath &path : region)
-                        if (path.wave_overhang)
-                            path.mm3_per_mm *= flow_ratio;
+        if (use_wave_overhangs) {
+            // Wave-overhang lines hang in air. The right flow is a fixed
+            // mm³/mm that scales with nozzle², layer-height-independent
+            // (both algorithms share the same physics; the line is a bead
+            // dropping out of the nozzle, not plastic squished into a slot).
+            // A stored value of 0 means "auto": derive from nozzle² so users
+            // on non-default nozzle sizes get the right default without
+            // per-profile tuning.
+            double flow_mm3_per_mm = this->config->wave_overhang_flow_mm3_per_mm.value;
+            if (flow_mm3_per_mm <= 0.0) {
+                const double nozzle = this->overhang_flow.nozzle_diameter();
+                flow_mm3_per_mm = nozzle * nozzle;
             }
+            for (ExtrusionPaths &region : extra_perimeters)
+                for (ExtrusionPath &path : region)
+                    if (path.wave_overhang)
+                        path.mm3_per_mm = flow_mm3_per_mm;
         }
         if (!extra_perimeters.empty()) {
             ExtrusionEntityCollection *this_islands_perimeters = static_cast<ExtrusionEntityCollection *>(this->loops->entities.back());
