@@ -1893,19 +1893,22 @@ void PrintObject::apply_wave_overhang_floor_layer_authority()
 
 // ==============================================================================================================
 // === ORCA: Wave-overhang bridge suppression ===================================================================
-// When wave_overhangs + wave_overhangs_instead_of_bridges are on for a region, the wave generator runs on the
-// overhang area at perimeter-gen time, covers what it can (saved in wave_overhang_floor_polygons), and leaves
-// any small pockets it could not grow into as unclaimed residual. process_external_surfaces later sees those
-// residuals as candidate bridges (a pocket above empty space below with supported edges = bridge) and classifies
-// them stBottomBridge / stInternalBridge. The Fill pipeline then prints bridge pattern inside a region that is
-// visually and mechanically a wave-overhang: different flow, different cooling, obvious seam in the preview.
+// When wave_overhangs + wave_overhangs_instead_of_bridges are on for a region, the user has asked for waves to
+// replace bridges in that region entirely. Two kinds of bridge get classified by earlier passes:
 //
-// This pass intercepts those bridges. For each layer in a region with both flags on, we compute the layer's
-// overhang footprint (this_slices minus lower_slices) and reclassify any stBottomBridge / stInternalBridge
-// surfaces overlapping that footprint to stInternalSolid. Outside the overhang footprint, bridges stay bridges.
-// Runs AFTER apply_wave_overhang_floor_layer_authority so the authority pass's decisions (wave layer itself
-// gets no fill; floor layers above are solid) are preserved where they land, and the only surfaces we touch
-// are the residual-bridge ones the authority pass intentionally skipped.
+//   stBottomBridge   : solid over empty space (classic cantilever-style bridge).
+//   stInternalBridge : solid over sparse infill (bridge_over_infill creates these).
+//
+// A geometric "inside the overhang footprint" filter (layer.lslices diff lower.lslices) catches stBottomBridge
+// but misses stInternalBridge, because stInternalBridge sits above sparse infill (still material in lslices).
+// Users saw teal "Internal bridge" patches inside wave layers even with both flags on.
+//
+// Simpler, region-scoped semantics: when the user opts in by setting both flags, suppress ALL bridges in the
+// region. Reclassify stBottomBridge / stInternalBridge to stInternalSolid so the Fill pipeline uses regular
+// solid infill, which bonds cleanly with surrounding wave extrusions and uses the same flow model.
+//
+// Runs AFTER apply_wave_overhang_floor_layer_authority. The authority pass's decisions stay where they land;
+// we only touch surfaces the authority pass kept as bridges.
 // ==============================================================================================================
 void PrintObject::apply_wave_overhang_bridge_suppression()
 {
@@ -1931,45 +1934,15 @@ void PrintObject::apply_wave_overhang_bridge_suppression()
             [this, region_id](const tbb::blocked_range<size_t> &range) {
                 for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
                     m_print->throw_if_canceled();
-                    if (idx_layer == 0) continue; // no lower layer, nothing can be an overhang
-
-                    Layer       *layer = m_layers[idx_layer];
-                    const Layer *lower = m_layers[idx_layer - 1];
-
-                    // Overhang footprint = this-layer outline minus lower-layer outline.
-                    Polygons overhang = diff(to_polygons(layer->lslices), to_polygons(lower->lslices));
-                    if (overhang.empty())
-                        continue;
-
+                    Layer       *layer  = m_layers[idx_layer];
                     LayerRegion *layerm = layer->m_regions[region_id];
                     Surfaces    &surfs  = layerm->fill_surfaces.surfaces;
-                    Surfaces     new_surfaces;
-                    new_surfaces.reserve(surfs.size() + 4);
                     for (Surface &s : surfs) {
-                        if (s.surface_type != stBottomBridge && s.surface_type != stInternalBridge) {
-                            new_surfaces.push_back(std::move(s));
-                            continue;
+                        if (s.surface_type == stBottomBridge || s.surface_type == stInternalBridge) {
+                            s.surface_type = stInternalSolid;
+                            s.bridge_angle = 0;
                         }
-                        Polygons   sp      = to_polygons(s);
-                        ExPolygons inside  = intersection_ex(sp, overhang, ApplySafetyOffset::Yes);
-                        if (inside.empty()) {
-                            new_surfaces.push_back(std::move(s));
-                            continue;
-                        }
-                        ExPolygons outside = diff_ex(sp, to_polygons(inside), ApplySafetyOffset::Yes);
-                        const SurfaceType orig = s.surface_type;
-                        // Reclassify inside-overhang part → solid infill (no bridge pattern).
-                        for (auto &ex_in : union_safety_offset_ex(inside)) {
-                            Surface tmp{s, std::move(ex_in)};
-                            tmp.surface_type = stInternalSolid;
-                            tmp.bridge_angle = 0; // no longer a bridge; clear the orientation hint
-                            new_surfaces.push_back(std::move(tmp));
-                        }
-                        // Keep outside-overhang bridge classification untouched.
-                        for (auto &ex_out : union_safety_offset_ex(outside))
-                            new_surfaces.emplace_back(orig, std::move(ex_out));
                     }
-                    surfs = std::move(new_surfaces);
                 }
             });
         m_print->throw_if_canceled();
