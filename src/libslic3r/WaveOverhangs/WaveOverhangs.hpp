@@ -35,7 +35,12 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     double          scaled_resolution,
     int             max_iterations            = 0,
     double          min_new_area_mm2          = 0.01,
-    bool            use_instead_of_bridges    = false);
+    bool            use_instead_of_bridges    = false,
+    // Corner-aware spacing taper. Disabled when corner_taper_distance_mm <= 0 or
+    // line_spacing_corner_mm is not smaller than wave_line_spacing.
+    double          line_spacing_corner_mm    = 0.0,
+    double          corner_taper_distance_mm  = 0.0,
+    double          corner_angle_threshold_deg = 90.0);
 
 } // namespace Slic3r::WaveOverhangs
 

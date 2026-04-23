@@ -94,6 +94,69 @@ void for_each_boundary_point(const ExPolygon &expoly, Fn &&fn)
             fn(pt);
 }
 
+// Detect sharp convex corners on an overhang polygon. A vertex is a "corner"
+// when its interior angle is below the threshold AND the polygon turns the
+// outward (convex) way there. CCW polygons (outer contours) are convex on
+// positive turns; holes are wound CW and reverse that. Returns the vertex
+// points in scaled coordinates.
+//
+// Corners flagged here are the ones that warp the worst in wave overhangs:
+// the free-air side of the overhang has little material to resist cooling
+// contraction, and sharp tips concentrate that contraction into the smallest
+// area. The caller uses these points as seeds for the reinforcement zone.
+Points detect_overhang_corners(const Polygons &polys, double angle_threshold_rad)
+{
+    Points corners;
+    for (const Polygon &poly : polys) {
+        const size_t n = poly.points.size();
+        if (n < 3) continue;
+        const bool is_ccw = poly.is_counter_clockwise();
+        for (size_t i = 0; i < n; ++i) {
+            const Point &A = poly.points[(i + n - 1) % n];
+            const Point &B = poly.points[i];
+            const Point &C = poly.points[(i + 1) % n];
+            Vec2d v1 = (B - A).cast<double>();
+            Vec2d v2 = (C - B).cast<double>();
+            if (v1.squaredNorm() < 1. || v2.squaredNorm() < 1.)
+                continue;
+            const double turn = angle(v1, v2);  // -π .. π
+            // For CCW: positive turn is convex (outward). For CW (hole):
+            // negative turn is convex-outward-from-the-solid-material.
+            const bool convex = is_ccw ? turn > 0. : turn < 0.;
+            if (! convex) continue;
+            const double interior_angle_rad = M_PI - std::abs(turn);
+            if (interior_angle_rad < angle_threshold_rad)
+                corners.emplace_back(B);
+        }
+    }
+    return corners;
+}
+
+// Union of disks (radius `radius_scaled`) around each corner point. Used as
+// the "reinforcement zone" mask for the corner-aware spacing taper: wave
+// fronts that fall inside this mask are emitted at the tighter corner
+// spacing, fronts outside are left at normal spacing.
+Polygons build_corner_influence(const Points &corners, coord_t radius_scaled)
+{
+    if (corners.empty() || radius_scaled <= 0)
+        return {};
+    Polygons disks;
+    disks.reserve(corners.size());
+    constexpr int disk_sides = 16;  // coarse — it's a mask, not a print path
+    for (const Point &c : corners) {
+        Polygon disk;
+        disk.points.reserve(disk_sides);
+        for (int k = 0; k < disk_sides; ++k) {
+            const double a = 2.0 * M_PI * double(k) / double(disk_sides);
+            disk.points.emplace_back(
+                c.x() + coord_t(std::cos(a) * double(radius_scaled)),
+                c.y() + coord_t(std::sin(a) * double(radius_scaled)));
+        }
+        disks.emplace_back(std::move(disk));
+    }
+    return union_(disks);
+}
+
 struct ClosestBoundaryPair {
     Point  a;
     Point  b;
@@ -635,13 +698,36 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     double          scaled_resolution,
     int             max_iterations,
     double          min_new_area_mm2,
-    bool            use_instead_of_bridges)
+    bool            use_instead_of_bridges,
+    double          line_spacing_corner_mm,
+    double          corner_taper_distance_mm,
+    double          corner_angle_threshold_deg)
 {
     const coord_t base_spacing       = overhang_flow.scaled_spacing();
     const Flow    wave_flow          = wave_line_width > 0. ? overhang_flow.with_width(float(wave_line_width)) : overhang_flow;
     const coord_t perimeter_overlap  = std::max<coord_t>(0, wave_perimeter_overlap > 0. ? coord_t(scale_(wave_perimeter_overlap)) : 0);
     const coord_t wave_spacing       = std::max<coord_t>(1, wave_line_spacing > 0. ? coord_t(scale_(wave_line_spacing)) : base_spacing);
     const coord_t min_wave_width     = std::max<coord_t>(0, minimum_wave_width > 0. ? coord_t(scale_(minimum_wave_width)) : 0);
+
+    // Corner-aware spacing taper parameters. Taper is off when the user leaves
+    // line_spacing_corner at 0, sets it >= the main spacing, or leaves the
+    // taper distance at 0. In the disabled state the main loop below runs
+    // unchanged — critical for backwards compatibility with existing profiles.
+    const coord_t wave_spacing_corner = (line_spacing_corner_mm > 0.
+                                         && line_spacing_corner_mm < wave_line_spacing)
+                                        ? std::max<coord_t>(1, coord_t(scale_(line_spacing_corner_mm)))
+                                        : wave_spacing;
+    const coord_t corner_taper_dist   = (corner_taper_distance_mm > 0.)
+                                        ? coord_t(scale_(corner_taper_distance_mm))
+                                        : 0;
+    const bool    taper_enabled       = wave_spacing_corner < wave_spacing && corner_taper_dist > 0;
+    // Sub-steps between main wavefronts. Example: main 0.35 mm, corner 0.175 mm
+    // → 2 sub-steps (one intercalated front between each pair of main fronts).
+    // Capped at 8 to guard against a pathological corner spacing near zero.
+    const int     taper_substeps     = taper_enabled
+                                       ? std::min(8, std::max(2, int(std::round(double(wave_spacing) / double(wave_spacing_corner)))))
+                                       : 1;
+    const double  corner_angle_rad   = std::max(10.0, std::min(179.0, corner_angle_threshold_deg)) * M_PI / 180.0;
     const coord_t anchors_size       = std::min(coord_t(scale_(EXTERNAL_INFILL_MARGIN)), base_spacing * (perimeter_count + 1));
     const coord_t seed_expansion     = std::max<coord_t>(1, base_spacing / 10);
     const coord_t shell_inner_edge   = additional_shell_count > 0 ? overhang_flow.scaled_width() + (additional_shell_count - 1) * base_spacing : 0;
@@ -672,6 +758,17 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
         Polygons wave_cover_area   = additional_shell_count > 0 ?
             shrink(overhang_to_cover, std::max<coord_t>(0, shell_inner_edge - perimeter_overlap), jtRound, 0.) :
             expand(overhang_to_cover, perimeter_overlap, jtRound, 0.);
+
+        // Corner-influence mask for this overhang. Detected from the overhang
+        // contour (the free-air boundary), then dilated into a disk union.
+        // Empty when taper is disabled or no sharp corners were found — in
+        // that case the inner loop below short-circuits the intercalation.
+        Polygons corner_influence;
+        if (taper_enabled) {
+            Points corners = detect_overhang_corners(overhang_to_cover, corner_angle_rad);
+            if (! corners.empty())
+                corner_influence = build_corner_influence(corners, corner_taper_dist);
+        }
         Polygons real_overhang     = intersection(wave_cover_area, overhangs);
         if (real_overhang.empty())
             wave_cover_area.clear();
@@ -711,10 +808,42 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
                 std::vector<Polylines> front_levels;
                 double accumulated_area = area(accumulated_region);
                 int    iteration        = 0;
+                // Per-region flag: only run the taper if there's a corner
+                // mask AND the mask actually overlaps the wave cover area.
+                const bool taper_region_active = taper_enabled
+                    && ! corner_influence.empty()
+                    && ! intersection(corner_influence, wave_cover_polygons).empty();
                 for (;;) {
                     if (max_iterations > 0 && iteration >= max_iterations)
                         break;
                     ++iteration;
+
+                    // Intercalated corner-only fronts, emitted BEFORE the main
+                    // advance step so they sit between the previous main front
+                    // and the next one. Each sub-step s ∈ [1..substeps-1]
+                    // offsets by s * corner_spacing from the current
+                    // accumulated_region, clipped to the corner-influence mask
+                    // so only the reinforced zone gets the extra density.
+                    if (taper_region_active) {
+                        for (int sub = 1; sub < taper_substeps; ++sub) {
+                            const coord_t sub_offset = coord_t(std::int64_t(sub) * std::int64_t(wave_spacing_corner));
+                            Polygons sub_region = intersection(
+                                offset(accumulated_region, float(sub_offset), jtRound, 0.),
+                                wave_cover_polygons);
+                            if (sub_region.empty()) continue;
+                            Polylines sub_fronts = intersection_pl(to_polylines(sub_region), trim_boundary);
+                            sub_fronts = intersection_pl(sub_fronts, corner_influence);
+                            for (Polyline &front : sub_fronts)
+                                front.simplify(std::min(0.05 * double(wave_spacing_corner), scaled_resolution));
+                            sub_fronts.erase(
+                                std::remove_if(sub_fronts.begin(), sub_fronts.end(),
+                                               [](const Polyline &front) { return front.points.size() < 2; }),
+                                sub_fronts.end());
+                            sub_fronts = reconnect_polylines(sub_fronts, wave_spacing_corner);
+                            if (! sub_fronts.empty())
+                                front_levels.emplace_back(std::move(sub_fronts));
+                        }
+                    }
 
                     Polygons next_region = intersection(offset(accumulated_region, float(wave_spacing), jtRound, 0.), wave_cover_polygons);
                     if (next_region.empty())
