@@ -2554,7 +2554,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         " ring_overlap=%.2f"
                         " pattern=%s spacing_mode=%s seam_mode=%s"
                         " perimeter_overlap=%.2f minimum_wave_width=%.2f"
-                        " min_new_area=%.4f"
+                        " min_new_area=%.4f end_retract=%.2f"
                         " nozzle_temp_override=%d min_wave_time=%.2f min_layer_time=%.2f"
                         " wall_loops=%d top_shell_layers=%d bottom_shell_layers=%d"
                         " infill_density=%.0f infill_pattern=%s"
@@ -2575,6 +2575,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         rc.wave_overhang_perimeter_overlap.value,
                         rc.wave_overhang_minimum_width.value,
                         rc.wave_overhang_min_new_area.value,
+                        rc.wave_overhang_end_retract_length.value,
                         rc.wave_overhang_nozzle_temp.value,
                         rc.wave_overhang_min_wave_time.value,
                         rc.wave_overhang_min_layer_time.value,
@@ -7152,6 +7153,20 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     }
     if (path.wave_overhang)
         m_inside_wave_overhang = false;
+
+    // Orca: wave-overhang end-of-line retraction. Wave lines finish mid-air,
+    // so leftover nozzle pressure oozes as a visible blob against the next
+    // travel or the enclosing perimeter. Force a retraction after the final
+    // extrusion; the next wave line's lead-in travel will unretract via
+    // Orca's normal state tracking (m_writer tracks retract state on the
+    // filament). A config value of 0 means "let normal travel-distance
+    // retraction heuristics decide" — current behaviour.
+    if (path.wave_overhang) {
+        const double wave_end_retract = m_config.wave_overhang_end_retract_length.value;
+        if (wave_end_retract > 0.) {
+            gcode += m_writer.retract(false, wave_end_retract);
+        }
+    }
 
     if (emit_wave_overhang_markers)
         gcode += "; WAVE_OVERHANG_END\n";

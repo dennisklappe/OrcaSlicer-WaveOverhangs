@@ -1168,6 +1168,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                     wave_overhang_min_length))
     ((ConfigOptionInt,                       wave_overhang_max_iterations))
     ((ConfigOptionFloat,                     wave_overhang_min_new_area))
+    ((ConfigOptionFloat,                     wave_overhang_end_retract_length))
     ((ConfigOptionBool,                      support_remaining_areas_after_wave_overhangs))
     ((ConfigOptionInt, wall_filament))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
