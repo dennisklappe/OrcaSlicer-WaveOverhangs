@@ -89,10 +89,15 @@ Minimum perimeter length (mm) of a detected overhang below which wave generation
 
 #### `wave_overhang_outer_perimeters`
 
-Number of additional concentric outer perimeters drawn inside the overhang region *before* the wave fill.
+Number of outer perimeters preserved inside the overhang region. Everything inward of that becomes wave pattern. Independent of *Strength > Walls* (`wall_loops`): if you set this to `1`, the overhang zone always has one outer wall + wave regardless of how many walls the rest of the object prints.
 
 - **Type:** int · **Default:** `1` · **Range:** `0 to unbounded`
-- **Tuning:** `1` is usually plenty. Raise to `2` for thicker outer shells on structural parts; drop to `0` for pure wave-only regions (experimental).
+- **How it works:** the overhang region of the layer is computed from the island geometry (island − lower_slices). The outermost `N` normal perimeters in that region are kept untouched; inner perimeters are clipped away and replaced by wave pattern. The wave starts exactly where the preserved walls end, so there is no gap between them.
+- **Interaction with `wall_loops`:** the setting is capped at the effective wall count for the layer. Two cases matter:
+  - If you set `wave_overhang_outer_perimeters = 5` but `wall_loops = 2`, only 2 walls exist, so effectively 2 are preserved and wave fills everything inside.
+  - On topmost layers with `only_one_wall_top` enabled, only 1 wall is generated regardless of `wall_loops`, so the cap pulls effective preservation down to 1.
+  Without the cap the wave region would be over-shrunk and the slicer would fill the leftover band with bridge paths instead of wave.
+- **Tuning:** `1` is usually plenty. Raise to `2` or `3` for thicker outer shells on structural parts. Set to `0` for pure wave from the model boundary inward (no outer perimeter, experimental).
 
 #### `wave_overhang_pattern`
 

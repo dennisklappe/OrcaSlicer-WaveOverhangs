@@ -4625,8 +4625,12 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wave_overhang_outer_perimeters", coInt);
     def->label = L("Perimeters");
     def->category = L("Strength");
-    def->tooltip = L("Number of additional concentric outer-shell perimeters printed inside the "
-                     "overhang region before the wave fill. 1 is usually enough.");
+    def->tooltip = L("Number of outer perimeters preserved inside the overhang region. The rest of the "
+                     "overhang is replaced by the wave pattern. Independent of Quality › Walls: "
+                     "setting this to 1 always gives one outer wall then wave, regardless of how many "
+                     "walls the rest of the object uses. 1 is usually enough. Set to 0 for pure wave "
+                     "(no perimeter at the overhang boundary). Capped at the effective wall count for "
+                     "the layer (e.g. 1 on topmost layers with \"only one wall top\").");
     def->mode = comAdvanced;
     def->min = 0;
     def->set_default_value(new ConfigOptionInt(1));
