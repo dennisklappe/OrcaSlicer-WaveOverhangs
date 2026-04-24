@@ -526,11 +526,16 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         if (!paths.empty()) {
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
+                // Orca: copy Arachne's inset_idx onto the wrapping ExtrusionLoop so downstream
+                // code (wave-overhang carve, etc.) can distinguish outer (0) from inner (1+)
+                // perimeters. Without this the loop inherits the ExtrusionEntity default -1
+                // and looks like "untagged" to anything that keys on inset_idx.
+                extrusion_loop.inset_idx = extrusion->inset_idx;
                 if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) ==
                     (pg_extrusion.is_contour || pg_extrusions.size() == 2))
                     extrusion_loop.make_counter_clockwise();
                 else
-                    extrusion_loop.make_clockwise();  
+                    extrusion_loop.make_clockwise();
                 // TODO: it seems in practice that ExtrusionLoops occasionally have significantly disconnected paths,
                 // triggering the asserts below. Is this a problem?
                 for (auto it = std::next(extrusion_loop.paths.begin()); it != extrusion_loop.paths.end(); ++it) {
@@ -553,12 +558,14 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     assert(std::prev(it)->polyline.last_point() == it->polyline.first_point());
                 }
                 ExtrusionMultiPath multi_path;
+                multi_path.inset_idx = extrusion->inset_idx;
                 multi_path.paths.emplace_back(std::move(paths.front()));
 
                 for (auto it_path = std::next(paths.begin()); it_path != paths.end(); ++it_path) {
                     if (multi_path.paths.back().last_point() != it_path->first_point()) {
                         extrusion_coll.append(ExtrusionMultiPath(std::move(multi_path)));
                         multi_path = ExtrusionMultiPath();
+                        multi_path.inset_idx = extrusion->inset_idx;
                     }
                     multi_path.paths.emplace_back(std::move(*it_path));
                 }
@@ -1169,7 +1176,18 @@ static ExtrusionEntityCollection clip_inner_perimeters_in_zone(const ExtrusionEn
         dst_paths.reserve(dst_paths.size() + src_paths.size());
         for (const ExtrusionPath &p : src_paths) {
             Polylines kept = diff_pl(Polylines{p.polyline}, clip_region);
+            // Retract each kept polyline's endpoints by half a line-width. diff_pl cuts
+            // the wall centerline exactly at the clip boundary, but the physical extrusion
+            // footprint extends ~half a line-width past the centerline endpoint as a
+            // rounded cap - which was poking into the wave area as visible overlap.
+            // Shortening the centerline by half a width pulls those caps back so they end
+            // right at the clip boundary, matching the wave's extrusion edge cleanly.
+            const double half_w = scale_(double(p.width) * 0.5);
             for (Polyline &pl : kept) {
+                if (pl.points.size() < 2)
+                    continue;
+                pl.clip_start(half_w);
+                pl.clip_end(half_w);
                 if (pl.points.size() < 2)
                     continue;
                 ExtrusionPath np(p);
@@ -1182,8 +1200,11 @@ static ExtrusionEntityCollection clip_inner_perimeters_in_zone(const ExtrusionEn
     for (const ExtrusionEntity *ent : src.entities) {
         if (!ent)
             continue;
-        // Preserve outer N perimeters (and anything that doesn't track inset_idx) intact.
-        if (ent->inset_idx < 0 || ent->inset_idx < preserve_outer_count) {
+        // Preserve the outer N *numbered* perimeters (inset_idx 0..N-1) intact. Entities
+        // with inset_idx = -1 are gap-fill / thin-wall / uncategorised extrusions; those
+        // fall through to the normal clip so anything of theirs inside the wave-covered
+        // overhang gets carved out just like inner perimeters.
+        if (ent->inset_idx >= 0 && ent->inset_idx < preserve_outer_count) {
             out.append(*ent);
             continue;
         }
@@ -1217,6 +1238,14 @@ static ExtrusionEntityCollection clip_inner_perimeters_in_zone(const ExtrusionEn
                 np.inset_idx = ent->inset_idx;
                 out.append(std::move(np));
             }
+        } else if (const ExtrusionEntityCollection *coll = dynamic_cast<const ExtrusionEntityCollection*>(ent)) {
+            // Recurse into nested collections (Arachne occasionally wraps groups of
+            // gap-fill / thin-wall paths in a sub-collection). Without recursion any
+            // paths inside would fall through the `else` at the bottom and be preserved
+            // verbatim - leaving visible crosshatch fragments at overhang corners.
+            ExtrusionEntityCollection clipped = clip_inner_perimeters_in_zone(*coll, clip_region, preserve_outer_count);
+            if (!clipped.empty())
+                out.append(std::move(clipped));
         } else {
             out.append(*ent);
         }
@@ -1253,7 +1282,22 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
         const int effective_outer = std::min(wave_outer, effective_wall_loops);
         ExPolygons wave_infill = infill_area;
         if (use_wave_overhangs) {
-            const float inset = float(this->perimeter_flow.scaled_spacing()) * float(effective_outer);
+            // Position the wave's outer boundary just past where the preserved N walls'
+            // extrusion footprints end. Walls occupy roughly:
+            //   wall 0   centerline: ext_perimeter_width / 2
+            //   wall N-1 centerline: ext_perimeter_width / 2 + (N-1) * perimeter_spacing
+            //   wall N-1 inner edge: centerline + perimeter_width / 2
+            // Use the inner-edge distance + small clearance so the wave's outermost line
+            // doesn't visually touch wall N-1. Plain N * spacing under-shoots the real
+            // position (ignores ext inset + inner-width) and makes the wave's outer line
+            // share space with wall N-1.
+            // Inset = N perimeter-spacings inward from the island boundary. This positions
+            // the wave's outermost line so its extrusion touches wall N-1's extrusion (needed
+            // physically for bonding). The 1-line visual overlap in the preview that comes
+            // with this is the physical bond; any attempt to add clearance has broken print.
+            const float inset = effective_outer > 0
+                ? float(this->perimeter_flow.scaled_spacing()) * float(effective_outer)
+                : 0.0f;
             wave_infill = effective_outer > 0
                 ? offset_ex(ExPolygons{island_region}, -inset)
                 : ExPolygons{island_region};
@@ -1288,15 +1332,34 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
                 new_perimeters.append(paths);
             }
             if (use_wave_overhangs && !filled_area.empty()) {
-                // Clip normal perimeters whose inset_idx >= wave_outer anywhere the wave
-                // actually laid extrusions. Using filled_area directly (not intersected with
-                // the geometric overhang zone) catches the small anchor band where the wave
-                // reaches into the supported material for stability - otherwise the walls
-                // keep running through that strip and visibly overlap the wave at overhang
-                // corners. Bridgeable overhangs the wave chose to skip are unaffected because
-                // filled_area is empty there.
+                // Clip normal perimeters whose inset_idx >= wave_outer across the entire
+                // geometric overhang zone of this island (island - lower_slices), not just
+                // where the wave's filled_area actually reached. Earlier attempts that
+                // clipped against filled_area left walls surviving at sharp convex
+                // corners of the overhang because the wave's propagation rounds off those
+                // tips while the walls wrap all the way to the geometric corner (visible
+                // overlap patches on Classic wall_generator profiles like Ender 3 /
+                // Kobra S1 - wider than any reasonable filled_area dilation).
+                //
+                // Slight outward dilation of the overhang zone catches the anchor band
+                // where the wave extrudes into the supported material for stability.
+                // Bridgeable overhangs the wave chose to skip stay untouched because the
+                // `!filled_area.empty()` gate bails out when no wave paths were produced.
+                // Use RAW lower_slices here (not `this->lower_slices_polygons()` = grown by
+                // nozzle/2). The grown version narrows overhang_zone on the supported side,
+                // leaving a ~nozzle/2 band where walls escape the clip but the wave anchors
+                // into - producing visible fragments at the transition. The raw overhang
+                // plus a perimeter-spacing anchor margin catches the full band.
+                const Polygons island_polys = to_polygons(ExPolygons{island_region});
+                const Polygons lower_raw    = to_polygons(*this->lower_slices);
+                const Polygons overhang_zone = diff(island_polys, lower_raw);
+                // Wider margin (3 spacings) to also catch inset walls 2+ running through
+                // the overhang transition band. The outermost N preserved walls aren't
+                // affected because the clip's preserve check keeps them regardless.
+                const coord_t anchor_margin = 3 * this->perimeter_flow.scaled_spacing();
+                const Polygons clip_region = expand(overhang_zone, anchor_margin, jtRound, 0.);
                 ExtrusionEntityCollection clipped =
-                    clip_inner_perimeters_in_zone(*this_islands_perimeters, filled_area, wave_outer);
+                    clip_inner_perimeters_in_zone(*this_islands_perimeters, clip_region, wave_outer);
                 new_perimeters.append(std::move(clipped.entities));
             } else {
                 new_perimeters.append(this_islands_perimeters->entities);
