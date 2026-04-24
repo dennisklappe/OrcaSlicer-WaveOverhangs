@@ -1226,23 +1226,18 @@ static ExtrusionEntityCollection clip_perimeters_outside_of(const ExtrusionEntit
     return out;
 }
 
-void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const ExPolygon &island_region)
+void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
 {
     const bool use_wave_overhangs = this->config->wave_overhangs;
     const bool gate_extra_perims  = this->config->extra_perimeters_on_overhangs || use_wave_overhangs;
     if (!m_spiral_vase && this->lower_slices != nullptr && this->config->detect_overhang_wall && gate_extra_perims &&
         this->config->wall_loops > 0 && this->layer_id > this->object_config->raft_layers) {
-        // For wave overhangs, feed the full pre-perimeter island to the generator so the wave
-        // sees the complete overhang zone, not just the wall-shrunk leftover. This lets
-        // wave_overhang_outer_perimeters work independently of wall_loops. The legacy
-        // extra_perimeters_on_overhangs path still gets the post-perimeter infill_area since
-        // it's meant to add perimeters on top of existing ones.
-        ExPolygons wave_input_area;
-        if (use_wave_overhangs)
-            wave_input_area.emplace_back(island_region);
-
+        // Keep passing the post-perimeter infill_area to the wave generator. Passing the full
+        // island would trip should_generate_waves_for_region's bridgeability check (perfect
+        // anchors on a big region = "bridgeable" = wave skipped = normal perimeters survive),
+        // which regresses the very case this change is meant to fix.
         auto [extra_perimeters, filled_area] = use_wave_overhangs
-            ? generate_wave_overhang_paths(wave_input_area, this->lower_slices_polygons(),
+            ? generate_wave_overhang_paths(infill_area, this->lower_slices_polygons(),
                                            this->config->wall_loops, *this->config,
                                            this->overhang_flow, this->m_scaled_resolution)
             : generate_extra_perimeters_over_overhangs(infill_area, this->lower_slices_polygons(),
@@ -1868,7 +1863,7 @@ void PerimeterGenerator::process_classic()
         }
         this->fill_surfaces->append(infill_exp, stInternal);
 
-        apply_extra_perimeters(infill_exp, surface.expolygon);
+        apply_extra_perimeters(infill_exp);
 
         // BBS: get the no-overlap infill expolygons
         {
@@ -2725,7 +2720,7 @@ void PerimeterGenerator::process_arachne()
         }
         this->fill_surfaces->append(infill_exp, stInternal);
 
-        apply_extra_perimeters(infill_exp, surface.expolygon);
+        apply_extra_perimeters(infill_exp);
 
         // BBS: get the no-overlap infill expolygons
         {
