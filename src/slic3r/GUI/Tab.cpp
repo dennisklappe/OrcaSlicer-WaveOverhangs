@@ -2423,6 +2423,7 @@ void TabPrint::build()
         // so empty-algorithm sections don't render as blank headers.
         optgroup = page->new_optgroup(L("Algorithm tuning"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_flow_mm3_per_mm");
+        optgroup->append_single_option_line("wave_overhang_end_retract_length");
         optgroup->append_single_option_line("wave_overhang_ring_overlap");
         optgroup->append_single_option_line("wave_overhang_pattern");
         optgroup->append_single_option_line("wave_overhang_perimeter_overlap");
