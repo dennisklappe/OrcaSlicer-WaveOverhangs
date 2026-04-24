@@ -141,6 +141,15 @@ Absolute volume of plastic extruded per millimetre of wave-overhang line. Applie
 - If wave lines look thin / starved / broken: raise by 10 to 20 % (e.g. 0.18 to 0.20 for a 0.4 mm nozzle).
 - If wave lines blob or merge: lower by 10 to 20 % (e.g. 0.13 to 0.14).
 
+#### `wave_overhang_end_retract_length`
+
+Forced retraction (in mm) emitted at the end of every wave-overhang line. Independent of the filament's normal retraction settings.
+
+- **Type:** float (mm) · **Default:** `0.0` · **Range:** `0 to 10`
+- **Why:** wave lines finish in mid-air, so residual nozzle pressure dribbles a small blob that sticks to the next travel path or piles up against the enclosing perimeter. Orca's normal retraction is travel-distance-gated; short inter-wave travels often don't cross the threshold, so most wave line ends never retract.
+- **What it does:** after each wave line, emits `G1 E-<length> F...` (labelled `; WAVE_OVERHANG_END` in the G-code). The next wave line's lead-in travel automatically unretracts via the filament's existing state tracking.
+- **Tuning:** `0` = disabled, use normal retraction heuristic (current behaviour for existing profiles). Start at `0.4 to 0.8 mm` if you see end-of-line blobs or over-extrusion piled against the outer perimeter; raise until the artifacts go away. Above `1.5 mm` you risk under-extrusion at the start of the next line.
+
 #### `wave_overhang_spacing_mode`
 
 How ring-to-ring step varies across the wave.
