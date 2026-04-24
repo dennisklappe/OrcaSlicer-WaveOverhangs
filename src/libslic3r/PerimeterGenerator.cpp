@@ -1236,17 +1236,25 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
         // perimeters are the walls.
         //
         // Compute the wave's input region from the island geometry directly: island shrunk
-        // inward by N * perimeter_spacing. This is the area starting exactly where the N
-        // preserved walls end. Deriving from the island (not from expanding infill_area by
-        // wall_loops - N) makes this robust for layers where the effective wall count differs
-        // from config->wall_loops - e.g. only_one_wall_top on the topmost layer generates
-        // one wall regardless of wall_loops, and expanding by (wall_loops - N) over-extends
-        // past the single wall and glitches the wave.
+        // inward by effective_outer * perimeter_spacing, where effective_outer is capped at
+        // the number of walls that will actually be generated for this layer. Capping matters
+        // because:
+        //   - If the user sets wave_outer > wall_loops, only wall_loops walls exist, so the
+        //     wave should start where those walls end (wall_loops * spacing), not further in.
+        //   - Topmost layers with only_one_wall_top generate a single wall regardless of
+        //     wall_loops, so the cap pulls effective_outer down to 1 there.
+        // Without the cap the wave region is over-shrunk, leaving a strip of overhang that
+        // neither the walls nor the wave covers - the slicer fills it with bridge paths.
         const int wave_outer = std::max(0, this->config->wave_overhang_outer_perimeters.value);
+        int effective_wall_loops = this->config->wall_loops;
+        const bool is_topmost_layer = (this->upper_slices == nullptr);
+        if (is_topmost_layer && this->config->only_one_wall_top && effective_wall_loops > 1)
+            effective_wall_loops = 1;
+        const int effective_outer = std::min(wave_outer, effective_wall_loops);
         ExPolygons wave_infill = infill_area;
         if (use_wave_overhangs) {
-            const float inset = float(this->perimeter_flow.scaled_spacing()) * float(wave_outer);
-            wave_infill = wave_outer > 0
+            const float inset = float(this->perimeter_flow.scaled_spacing()) * float(effective_outer);
+            wave_infill = effective_outer > 0
                 ? offset_ex(ExPolygons{island_region}, -inset)
                 : ExPolygons{island_region};
         }
