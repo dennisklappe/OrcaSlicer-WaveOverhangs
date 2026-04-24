@@ -1226,7 +1226,7 @@ static ExtrusionEntityCollection clip_perimeters_outside_of(const ExtrusionEntit
     return out;
 }
 
-void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
+void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const ExPolygon &island_region)
 {
     const bool use_wave_overhangs = this->config->wave_overhangs;
     const bool gate_extra_perims  = this->config->extra_perimeters_on_overhangs || use_wave_overhangs;
@@ -1263,11 +1263,24 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
             for (const ExtrusionPaths &paths : extra_perimeters) {
                 new_perimeters.append(paths);
             }
-            if (use_wave_overhangs) {
-                // Carve the existing wall_loops out of the wave-covered area so the overhang
-                // zone prints only the wave's own shells and pattern, not the Quality-tab
-                // perimeters running through it as extra rings.
-                ExtrusionEntityCollection clipped = clip_perimeters_outside_of(*this_islands_perimeters, filled_area);
+            if (use_wave_overhangs && !filled_area.empty()) {
+                // Clip normal perimeters out of the island's overhang zone so only the wave's
+                // output lives there. We don't clip against filled_area directly because the
+                // wave's internal anchor shrink and the wall_loops shrink of infill_area
+                // leave filled_area smaller than the real overhang — the outer wall_loops
+                // rings would survive at the overhang edge. Instead, carve the full geometric
+                // overhang (island - lower_slices) and gate it by proximity to where the
+                // wave actually covered, so bridgeable overhangs that the wave chose to skip
+                // keep their perimeters intact.
+                Polygons island_polys = to_polygons(ExPolygons{island_region});
+                Polygons overhang_zone = diff(island_polys, this->lower_slices_polygons());
+                // Generous reach from the wave's footprint so we catch the full overhang
+                // band the wave was meant to service. EXTERNAL_INFILL_MARGIN matches the
+                // anchor-size ceiling in the wave generator.
+                const coord_t reach = coord_t(scale_(EXTERNAL_INFILL_MARGIN));
+                Polygons clip_region = intersection(expand(filled_area, reach, jtRound, 0.),
+                                                    overhang_zone);
+                ExtrusionEntityCollection clipped = clip_perimeters_outside_of(*this_islands_perimeters, clip_region);
                 new_perimeters.append(std::move(clipped.entities));
             } else {
                 new_perimeters.append(this_islands_perimeters->entities);
@@ -1863,7 +1876,7 @@ void PerimeterGenerator::process_classic()
         }
         this->fill_surfaces->append(infill_exp, stInternal);
 
-        apply_extra_perimeters(infill_exp);
+        apply_extra_perimeters(infill_exp, surface.expolygon);
 
         // BBS: get the no-overlap infill expolygons
         {
@@ -2720,7 +2733,7 @@ void PerimeterGenerator::process_arachne()
         }
         this->fill_surfaces->append(infill_exp, stInternal);
 
-        apply_extra_perimeters(infill_exp);
+        apply_extra_perimeters(infill_exp, surface.expolygon);
 
         // BBS: get the no-overlap infill expolygons
         {
