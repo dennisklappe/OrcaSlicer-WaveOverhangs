@@ -1233,18 +1233,22 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
         // Semantic: wave_overhang_outer_perimeters = N means "keep N outermost normal
         // perimeters inside the overhang zone, replace the rest with wave pattern". The wave
         // itself produces only the pattern (additional_shell_count=0); the N preserved normal
-        // perimeters are the walls. To avoid a gap between the kept perimeters and where the
-        // wave starts, expand infill_area outward by (wall_loops - N) * perimeter_spacing so
-        // the wave reaches exactly where the preserved perimeters end.
+        // perimeters are the walls.
+        //
+        // Compute the wave's input region from the island geometry directly: island shrunk
+        // inward by N * perimeter_spacing. This is the area starting exactly where the N
+        // preserved walls end. Deriving from the island (not from expanding infill_area by
+        // wall_loops - N) makes this robust for layers where the effective wall count differs
+        // from config->wall_loops - e.g. only_one_wall_top on the topmost layer generates
+        // one wall regardless of wall_loops, and expanding by (wall_loops - N) over-extends
+        // past the single wall and glitches the wave.
         const int wave_outer = std::max(0, this->config->wave_overhang_outer_perimeters.value);
-        const int wall_loops = this->config->wall_loops;
         ExPolygons wave_infill = infill_area;
         if (use_wave_overhangs) {
-            const int extra = std::max(0, wall_loops - wave_outer);
-            if (extra > 0) {
-                const float expand_by = float(this->perimeter_flow.scaled_spacing()) * float(extra);
-                wave_infill = offset_ex(infill_area, expand_by);
-            }
+            const float inset = float(this->perimeter_flow.scaled_spacing()) * float(wave_outer);
+            wave_infill = wave_outer > 0
+                ? offset_ex(ExPolygons{island_region}, -inset)
+                : ExPolygons{island_region};
         }
 
         auto [extra_perimeters, filled_area] = use_wave_overhangs
@@ -1276,16 +1280,15 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
                 new_perimeters.append(paths);
             }
             if (use_wave_overhangs && !filled_area.empty()) {
-                // Clip normal perimeters whose inset_idx >= wave_outer inside the geometric
-                // overhang zone, gated by proximity to where the wave actually covered so
-                // bridgeable overhangs the wave chose to skip are left alone.
-                const Polygons island_polys = to_polygons(ExPolygons{island_region});
-                const Polygons overhang_zone = diff(island_polys, this->lower_slices_polygons());
-                const coord_t reach = coord_t(scale_(EXTERNAL_INFILL_MARGIN));
-                const Polygons clip_region = intersection(expand(filled_area, reach, jtRound, 0.),
-                                                          overhang_zone);
+                // Clip normal perimeters whose inset_idx >= wave_outer anywhere the wave
+                // actually laid extrusions. Using filled_area directly (not intersected with
+                // the geometric overhang zone) catches the small anchor band where the wave
+                // reaches into the supported material for stability - otherwise the walls
+                // keep running through that strip and visibly overlap the wave at overhang
+                // corners. Bridgeable overhangs the wave chose to skip are unaffected because
+                // filled_area is empty there.
                 ExtrusionEntityCollection clipped =
-                    clip_inner_perimeters_in_zone(*this_islands_perimeters, clip_region, wave_outer);
+                    clip_inner_perimeters_in_zone(*this_islands_perimeters, filled_area, wave_outer);
                 new_perimeters.append(std::move(clipped.entities));
             } else {
                 new_perimeters.append(this_islands_perimeters->entities);
