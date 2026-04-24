@@ -4766,6 +4766,21 @@ void PrintConfigDef::init_fff_params()
     def->max = 300;
     def->set_default_value(new ConfigOptionFloat(0.0));
 
+    def = this->add("wave_overhang_end_retract_length", coFloat);
+    def->label = L("End-of-line retract");
+    def->category = L("Quality");
+    def->tooltip = L("Force a retraction of this many mm at the end of every wave-overhang line, "
+                     "independent of the filament's normal retraction settings. Relieves nozzle "
+                     "pressure so residual melt doesn't ooze into the gap between adjacent wave "
+                     "lines or bead up against the enclosing perimeter. The next wave line's lead-in "
+                     "travel automatically unretracts. Set to 0 to rely on Orca's normal travel-"
+                     "distance retraction heuristic.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 10;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
     def = this->add("wave_overhang_floor_layers", coInt);
     def->label = L("Floor layers");
     def->category = L("Strength");
