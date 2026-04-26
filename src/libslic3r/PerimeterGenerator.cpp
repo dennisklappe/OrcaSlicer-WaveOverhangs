@@ -1183,10 +1183,21 @@ static ExtrusionEntityCollection clip_inner_perimeters_in_zone(const ExtrusionEn
             // Shortening the centerline by half a width pulls those caps back so they end
             // right at the clip boundary, matching the wave's extrusion edge cleanly.
             const double half_w = scale_(double(p.width) * 0.5);
+            // Polylines shorter than 2 * half_w would be drained past empty by the
+            // chained clip_start + clip_end below: Polyline::clip_end pop_backs without
+            // re-checking emptiness on every iteration and underflows its remove_after_index
+            // counter (size_t), which surfaces non-deterministically as bad_alloc or
+            // length_error in a sibling allocation under TBB. Skip those polylines and
+            // re-check size between the two clip calls.
+            const double cap_drain_length = 2.0 * half_w + double(SCALED_EPSILON);
             for (Polyline &pl : kept) {
                 if (pl.points.size() < 2)
                     continue;
+                if (half_w > 0. && pl.length() <= cap_drain_length)
+                    continue;
                 pl.clip_start(half_w);
+                if (pl.points.size() < 2)
+                    continue;
                 pl.clip_end(half_w);
                 if (pl.points.size() < 2)
                     continue;
