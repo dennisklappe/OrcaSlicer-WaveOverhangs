@@ -6295,12 +6295,24 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     //       encoded inline so CoolingBuffer doesn't need access to region config.
     const bool wave_fan_active = path.wave_overhang && m_config.wave_overhang_fan_speed.value >= 0
                                  && m_enable_cooling_markers;
+    // Orca: wave-overhang Hilbert floor fan override. Reuses the existing
+    // WAVE_OVERHANG_FAN marker scheme but pulls the percentage from
+    // wave_overhang_floor_fan_speed and does NOT set m_inside_wave_overhang
+    // (floor paths should use normal travel speeds, not wave travel speeds).
+    const bool wave_floor_fan_active = path.wave_overhang_floor
+                                       && m_config.wave_overhang_floor_fan_speed.value >= 0
+                                       && m_enable_cooling_markers;
     if (path.wave_overhang)
         m_inside_wave_overhang = true;
     if (wave_fan_active) {
         char buf[64];
         snprintf(buf, sizeof(buf), ";_WAVE_OVERHANG_FAN_START %d\n",
                  m_config.wave_overhang_fan_speed.value);
+        gcode += buf;
+    } else if (wave_floor_fan_active) {
+        char buf[64];
+        snprintf(buf, sizeof(buf), ";_WAVE_OVERHANG_FAN_START %d\n",
+                 m_config.wave_overhang_floor_fan_speed.value);
         gcode += buf;
     }
 
@@ -6657,6 +6669,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     // user-configured wave speed. Also disables variable_speed so we emit a single F.
     if (path.wave_overhang && m_config.wave_overhang_print_speed.value > 0) {
         speed = m_config.wave_overhang_print_speed.value;
+        variable_speed = false;
+        new_points.clear();
+    } else if (path.wave_overhang_floor && m_config.wave_overhang_floor_print_speed.value > 0) {
+        // Orca: wave-overhang Hilbert floor speed override. Slower print on the floor
+        // layers gives each Hilbert line more time to dissipate heat before its
+        // neighbours land, which reduces the residual thermal stress driving warping.
+        speed = m_config.wave_overhang_floor_print_speed.value;
         variable_speed = false;
         new_points.clear();
     }
@@ -7149,7 +7168,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     this->set_last_pos(path.last_point());
 
     // Orca: wave-overhang — close fan-override scope and clear state flag.
-    if (wave_fan_active)
+    if (wave_fan_active || wave_floor_fan_active)
         gcode += ";_WAVE_OVERHANG_FAN_END\n";
     if (wave_temp_active && restore_nozzle_temp > 0) {
         char buf[64];

@@ -22,6 +22,25 @@
 
 namespace Slic3r {
 
+// Orca: recursively tag every ExtrusionPath leaf inside an entity tree as a
+// wave-overhang-floor path. Used to mark Hilbert-pattern infill on the solid
+// floor layers above wave overhangs so the G-code stage applies the
+// wave_overhang_floor_print_speed and wave_overhang_floor_fan_speed overrides.
+static void tag_wave_overhang_floor_recursive(ExtrusionEntity *ent)
+{
+    if (!ent) return;
+    if (auto *path = dynamic_cast<ExtrusionPath*>(ent)) {
+        path->wave_overhang_floor = true;
+    } else if (auto *loop = dynamic_cast<ExtrusionLoop*>(ent)) {
+        for (ExtrusionPath &p : loop->paths) p.wave_overhang_floor = true;
+    } else if (auto *mp = dynamic_cast<ExtrusionMultiPath*>(ent)) {
+        for (ExtrusionPath &p : mp->paths) p.wave_overhang_floor = true;
+    } else if (auto *coll = dynamic_cast<ExtrusionEntityCollection*>(ent)) {
+        for (ExtrusionEntity *child : coll->entities)
+            tag_wave_overhang_floor_recursive(child);
+    }
+}
+
 // Calculate infill rotation angle (in radians) for a given layer from a rotation template.
 // Grammar subset handled (rotation only):
 //   [±]α[*Z or !][joint][-][N|B|T][length][* or !]
@@ -271,6 +290,11 @@ struct SurfaceFillParams
     // Params for Lateral honeycomb
     float infill_overhang_angle = 60.f;
 
+    // Orca: True when this fill is a Hilbert-curve floor over a wave-overhang region.
+    // Used by Layer::make_fills() to tag produced ExtrusionPaths so the G-code stage
+    // applies wave_overhang_floor_print_speed / wave_overhang_floor_fan_speed overrides.
+    bool wave_overhang_floor = false;
+
 	bool operator<(const SurfaceFillParams &rhs) const {
 #define RETURN_COMPARE_NON_EQUAL(KEY) if (this->KEY < rhs.KEY) return true; if (this->KEY > rhs.KEY) return false;
 #define RETURN_COMPARE_NON_EQUAL_TYPED(TYPE, KEY) if (TYPE(this->KEY) < TYPE(rhs.KEY)) return true; if (TYPE(this->KEY) > TYPE(rhs.KEY)) return false;
@@ -303,6 +327,7 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(symmetric_infill_y_axis);
 		RETURN_COMPARE_NON_EQUAL(infill_lock_depth);
 		RETURN_COMPARE_NON_EQUAL(skin_infill_depth);		RETURN_COMPARE_NON_EQUAL(infill_overhang_angle);
+		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, wave_overhang_floor);
 
 		return false;
 	}
@@ -330,7 +355,8 @@ struct SurfaceFillParams
 				this->lateral_lattice_angle_2	    == rhs.lateral_lattice_angle_2 &&
 				this->infill_lock_depth      ==  rhs.infill_lock_depth &&
 				this->skin_infill_depth      ==  rhs.skin_infill_depth &&
-                this->infill_overhang_angle == rhs.infill_overhang_angle;
+                this->infill_overhang_angle == rhs.infill_overhang_angle &&
+                this->wave_overhang_floor   == rhs.wave_overhang_floor;
 	}
 };
 
@@ -890,6 +916,43 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     } else if (surface.is_solid_infill()) {
                         params.pattern = region_config.internal_solid_infill_pattern.value;
                         params.density = 100.f;
+                        // Orca: wave-overhang Hilbert floor. When the region opts in via
+                        // wave_overhang_floor_use_hilbert and this surface lies inside the
+                        // layer's wave_overhang_shadow polygon and we are within the bottom
+                        // M layers above the wave (cap = wave_overhang_floor_hilbert_layers,
+                        // 0 = match wave_overhang_floor_layers), override the pattern to
+                        // ipHilbertCurve and apply wave_overhang_floor_hilbert_density.
+                        // Fractal scan paths leave the smallest residual thermal stress,
+                        // reducing warping in the cantilevered overhangs below.
+                        if (region_config.wave_overhangs.value
+                            && region_config.wave_overhang_floor_use_hilbert.value
+                            && !layer.wave_overhang_shadow_polygons.empty()) {
+                            const int floor_layers       = std::max(0, region_config.wave_overhang_floor_layers.value);
+                            const int hilbert_layers_cfg = std::max(0, region_config.wave_overhang_floor_hilbert_layers.value);
+                            const int hilbert_cap = (hilbert_layers_cfg > 0)
+                                ? std::min(hilbert_layers_cfg, floor_layers)
+                                : floor_layers;
+                            if (hilbert_cap > 0) {
+                                int k = -1;
+                                const Layer *cur = &layer;
+                                for (int d = 1; d <= hilbert_cap; ++d) {
+                                    cur = cur->lower_layer;
+                                    if (!cur) break;
+                                    if (!cur->wave_overhang_floor_polygons.empty()) {
+                                        k = d;
+                                        break;
+                                    }
+                                }
+                                if (k >= 1 && k <= hilbert_cap) {
+                                    Polygons surf_polys = to_polygons(surface);
+                                    if (!intersection(surf_polys, layer.wave_overhang_shadow_polygons).empty()) {
+                                        params.pattern = ipHilbertCurve;
+                                        params.density = float(std::clamp(region_config.wave_overhang_floor_hilbert_density.value, 1, 100));
+                                        params.wave_overhang_floor = true;
+                                    }
+                                }
+                            }
+                        }
                     } else {
                         if (region_config.top_surface_pattern == ipMonotonic || region_config.top_surface_pattern == ipMonotonicLine)
                             params.pattern = ipMonotonic;
@@ -1298,6 +1361,11 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         }
 		if (surface_fill.params.pattern == ipGrid)
 			params.can_reverse = false;
+		// Orca: snapshot fill entity count before this surface_fill's expolygons
+		// produce paths, so we can tag the new entries as wave-overhang-floor paths
+		// (used for the per-region speed/fan overrides at G-code emission).
+		auto &dst_entities = m_regions[surface_fill.region_id]->fills.entities;
+		const size_t wo_floor_dst_size_before = dst_entities.size();
 		for (ExPolygon& expoly : surface_fill.expolygons) {
 
       f->no_overlap_expolygons = intersection_ex(surface_fill.no_overlap_expolygons, ExPolygons() = {expoly}, ApplySafetyOffset::Yes);
@@ -1321,7 +1389,13 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
 			// BBS: make fill
 			f->fill_surface_extrusion(&surface_fill.surface,
 				params,
-				m_regions[surface_fill.region_id]->fills.entities);
+				dst_entities);
+		}
+		// Orca: now tag every newly-produced path/loop/multi-path/sub-collection if
+		// this SurfaceFill represented a wave-overhang Hilbert floor.
+		if (surface_fill.params.wave_overhang_floor) {
+			for (size_t i = wo_floor_dst_size_before; i < dst_entities.size(); ++i)
+				tag_wave_overhang_floor_recursive(dst_entities[i]);
 		}
     }
 

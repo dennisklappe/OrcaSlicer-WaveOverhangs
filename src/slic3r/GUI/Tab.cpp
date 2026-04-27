@@ -2444,6 +2444,11 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Floor layers"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_floor_layers");
+        optgroup->append_single_option_line("wave_overhang_floor_use_hilbert");
+        optgroup->append_single_option_line("wave_overhang_floor_hilbert_layers");
+        optgroup->append_single_option_line("wave_overhang_floor_hilbert_density");
+        optgroup->append_single_option_line("wave_overhang_floor_print_speed");
+        optgroup->append_single_option_line("wave_overhang_floor_fan_speed");
 
         optgroup = page->new_optgroup(L("Support integration"), L"param_overhang");
         optgroup->append_single_option_line("support_remaining_areas_after_wave_overhangs");

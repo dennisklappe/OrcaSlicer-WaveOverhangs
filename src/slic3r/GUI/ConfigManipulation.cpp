@@ -988,6 +988,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhang_min_wave_time"),
         std::string("wave_overhang_min_layer_time"),
         std::string("wave_overhang_floor_layers"),
+        std::string("wave_overhang_floor_use_hilbert"),
         std::string("wave_overhang_min_angle"),
         std::string("wave_overhang_min_length"),
         std::string("wave_overhang_max_iterations"),
@@ -1006,6 +1007,17 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhang_min_new_area"),
     })
         toggle_line(k, wo_enabled && is_andersons);
+
+    // Orca: wave-overhang Hilbert floor sub-options. Only meaningful when the
+    // master Hilbert toggle is on AND wave overhangs themselves are enabled.
+    const bool wo_floor_hilbert = wo_enabled && config->opt_bool("wave_overhang_floor_use_hilbert");
+    for (const std::string &k : {
+        std::string("wave_overhang_floor_hilbert_layers"),
+        std::string("wave_overhang_floor_hilbert_density"),
+        std::string("wave_overhang_floor_print_speed"),
+        std::string("wave_overhang_floor_fan_speed"),
+    })
+        toggle_line(k, wo_floor_hilbert);
 
     for (const std::string &k : {
         std::string("wave_overhang_ring_overlap"),
