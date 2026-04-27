@@ -41,6 +41,7 @@ GenerateResult AndersonsGenerator::generate(const ExPolygons   &overhang_area,
         params.max_iterations,
         params.min_new_area,
         params.use_instead_of_bridges,
+        params.corner_taper_enable,
         params.line_spacing_corner,
         params.corner_taper_distance,
         params.corner_angle_threshold);

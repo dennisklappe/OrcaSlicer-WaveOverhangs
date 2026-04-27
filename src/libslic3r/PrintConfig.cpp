@@ -4766,14 +4766,27 @@ void PrintConfigDef::init_fff_params()
     def->max = 300;
     def->set_default_value(new ConfigOptionFloat(0.0));
 
+    def = this->add("wave_overhang_corner_taper_enable", coBool);
+    def->label = L("Enable corner-aware spacing taper");
+    def->category = L("Quality");
+    def->tooltip = L("When enabled, the wave-overhang generator densifies line spacing near sharp "
+                     "convex corners of the overhang outline. Corners warp worst because their "
+                     "cantilevered wave lines are short and have little neighbouring material to "
+                     "fuse with, so they curl as PLA cools. Packing more lines into a small radius "
+                     "around each corner gives each short line a neighbour to bond with, resisting "
+                     "the curl. Andersons-only; the corner radius, denser spacing, and angle "
+                     "threshold appear when this is on.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("wave_overhang_line_spacing_corner", coFloat);
     def->label = L("Corner line spacing");
     def->category = L("Quality");
     def->tooltip = L("Denser line spacing used near detected sharp corners of the overhang region. "
                      "Corners warp worst because short cantilevered wave lines cool unevenly and curl. "
                      "Packing more lines into the corner zone gives each line a nearby neighbour to "
-                     "fuse with, resisting the curl. Set equal to the main line spacing (or 0) to "
-                     "disable corner-aware tapering.");
+                     "fuse with, resisting the curl. Must be smaller than the main line spacing for "
+                     "the taper to engage; the master toggle above must also be on.");
     def->sidetext = L("mm");
     def->mode = comAdvanced;
     def->min = 0;

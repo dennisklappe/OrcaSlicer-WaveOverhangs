@@ -1005,8 +1005,21 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhang_line_spacing"),
         std::string("wave_overhang_spacing_mode"),
         std::string("wave_overhang_min_new_area"),
+        std::string("wave_overhang_corner_taper_enable"),
     })
         toggle_line(k, wo_enabled && is_andersons);
+
+    // Orca: corner-reinforcement sub-options. Master toggle reveals the three
+    // tunables — same shape as the Hilbert-floor section below. Sub-options
+    // are gated on master toggle + Andersons (Kaiser doesn't honour them).
+    const bool wo_corner_taper = wo_enabled && is_andersons
+        && config->opt_bool("wave_overhang_corner_taper_enable");
+    for (const std::string &k : {
+        std::string("wave_overhang_line_spacing_corner"),
+        std::string("wave_overhang_corner_taper_distance"),
+        std::string("wave_overhang_corner_angle_threshold"),
+    })
+        toggle_line(k, wo_corner_taper);
 
     // Orca: wave-overhang Hilbert floor sub-options. Only meaningful when the
     // master Hilbert toggle is on AND wave overhangs themselves are enabled.

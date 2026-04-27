@@ -699,6 +699,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     int             max_iterations,
     double          min_new_area_mm2,
     bool            use_instead_of_bridges,
+    bool            corner_taper_enable,
     double          line_spacing_corner_mm,
     double          corner_taper_distance_mm,
     double          corner_angle_threshold_deg)
@@ -709,18 +710,23 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     const coord_t wave_spacing       = std::max<coord_t>(1, wave_line_spacing > 0. ? coord_t(scale_(wave_line_spacing)) : base_spacing);
     const coord_t min_wave_width     = std::max<coord_t>(0, minimum_wave_width > 0. ? coord_t(scale_(minimum_wave_width)) : 0);
 
-    // Corner-aware spacing taper parameters. Taper is off when the user leaves
-    // line_spacing_corner at 0, sets it >= the main spacing, or leaves the
-    // taper distance at 0. In the disabled state the main loop below runs
-    // unchanged — critical for backwards compatibility with existing profiles.
-    const coord_t wave_spacing_corner = (line_spacing_corner_mm > 0.
+    // Corner-aware spacing taper parameters. The master gate is the user-facing
+    // toggle: when corner_taper_enable is false the rest is ignored and the
+    // main loop runs unchanged (matches v0.2.x behaviour). When enabled, the
+    // taper still self-disables if the values don't make sense — corner
+    // spacing must be smaller than main spacing AND the taper distance must
+    // be > 0, otherwise there is nothing to densify.
+    const coord_t wave_spacing_corner = (corner_taper_enable
+                                         && line_spacing_corner_mm > 0.
                                          && line_spacing_corner_mm < wave_line_spacing)
                                         ? std::max<coord_t>(1, coord_t(scale_(line_spacing_corner_mm)))
                                         : wave_spacing;
-    const coord_t corner_taper_dist   = (corner_taper_distance_mm > 0.)
+    const coord_t corner_taper_dist   = (corner_taper_enable && corner_taper_distance_mm > 0.)
                                         ? coord_t(scale_(corner_taper_distance_mm))
                                         : 0;
-    const bool    taper_enabled       = wave_spacing_corner < wave_spacing && corner_taper_dist > 0;
+    const bool    taper_enabled       = corner_taper_enable
+                                        && wave_spacing_corner < wave_spacing
+                                        && corner_taper_dist > 0;
     // Sub-steps between main wavefronts. Example: main 0.35 mm, corner 0.175 mm
     // → 2 sub-steps (one intercalated front between each pair of main fronts).
     // Capped at 8 to guard against a pathological corner spacing near zero.

@@ -1173,6 +1173,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                     wave_overhang_min_length))
     ((ConfigOptionInt,                       wave_overhang_max_iterations))
     ((ConfigOptionFloat,                     wave_overhang_min_new_area))
+    ((ConfigOptionBool,                      wave_overhang_corner_taper_enable))
     ((ConfigOptionFloat,                     wave_overhang_line_spacing_corner))
     ((ConfigOptionFloat,                     wave_overhang_corner_taper_distance))
     ((ConfigOptionFloat,                     wave_overhang_corner_angle_threshold))
