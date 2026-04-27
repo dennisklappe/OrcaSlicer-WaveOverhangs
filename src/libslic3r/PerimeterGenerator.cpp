@@ -1121,6 +1121,9 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     params.pattern              = region_config.wave_overhang_pattern.value;
     params.min_new_area         = region_config.wave_overhang_min_new_area.value;
     params.use_instead_of_bridges = region_config.wave_overhangs_instead_of_bridges.value;
+    params.line_spacing_corner    = region_config.wave_overhang_line_spacing_corner.value;
+    params.corner_taper_distance  = region_config.wave_overhang_corner_taper_distance.value;
+    params.corner_angle_threshold = region_config.wave_overhang_corner_angle_threshold.value;
 
     // wave_overhang_min_angle is intentionally NOT enforced here. The incoming
     // overhang region has already been classified as erOverhangPerimeter upstream

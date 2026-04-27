@@ -2554,7 +2554,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         " ring_overlap=%.2f"
                         " pattern=%s spacing_mode=%s seam_mode=%s"
                         " perimeter_overlap=%.2f minimum_wave_width=%.2f"
-                        " min_new_area=%.4f end_retract=%.2f"
+                        " min_new_area=%.4f"
+                        " corner_spacing=%.3f corner_taper=%.2f corner_angle=%.0f"
+                        " end_retract=%.2f"
                         " nozzle_temp_override=%d min_wave_time=%.2f min_layer_time=%.2f"
                         " wall_loops=%d top_shell_layers=%d bottom_shell_layers=%d"
                         " infill_density=%.0f infill_pattern=%s"
@@ -2575,6 +2577,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         rc.wave_overhang_perimeter_overlap.value,
                         rc.wave_overhang_minimum_width.value,
                         rc.wave_overhang_min_new_area.value,
+                        rc.wave_overhang_line_spacing_corner.value,
+                        rc.wave_overhang_corner_taper_distance.value,
+                        rc.wave_overhang_corner_angle_threshold.value,
                         rc.wave_overhang_end_retract_length.value,
                         rc.wave_overhang_nozzle_temp.value,
                         rc.wave_overhang_min_wave_time.value,
