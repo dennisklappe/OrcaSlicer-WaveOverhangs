@@ -36,8 +36,11 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     int             max_iterations            = 0,
     double          min_new_area_mm2          = 0.01,
     bool            use_instead_of_bridges    = false,
-    // Corner-aware spacing taper. Disabled when corner_taper_distance_mm <= 0 or
-    // line_spacing_corner_mm is not smaller than wave_line_spacing.
+    // Corner-aware spacing taper. Master gate: corner_taper_enable=false skips
+    // the taper entirely regardless of the other three values. When enabled
+    // it also requires line_spacing_corner_mm < wave_line_spacing AND
+    // corner_taper_distance_mm > 0 to actually emit denser corner fronts.
+    bool            corner_taper_enable        = false,
     double          line_spacing_corner_mm    = 0.0,
     double          corner_taper_distance_mm  = 0.0,
     double          corner_angle_threshold_deg = 90.0);

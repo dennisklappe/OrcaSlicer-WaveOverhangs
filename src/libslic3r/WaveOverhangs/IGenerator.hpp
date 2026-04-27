@@ -40,8 +40,13 @@ struct CommonParams {
     double      min_new_area           = 0.01;  // mm^2; early-termination threshold on new-area growth.
     bool        use_instead_of_bridges = false; // when true, wave over flat bridgeable spans too.
     // Corner-aware spacing taper: densify line spacing near sharp overhang corners
-    // so short cantilevered wave lines have neighbours to fuse with. When taper is
-    // disabled (defaults), the main propagation is untouched.
+    // so short cantilevered wave lines have neighbours to fuse with. The master
+    // gate is `corner_taper_enable`; when false the main propagation runs
+    // verbatim regardless of the other three values. The downstream generator
+    // ALSO refuses to engage when line_spacing_corner is 0 or >= line_spacing,
+    // or when corner_taper_distance is 0, so a partially-configured taper is
+    // a no-op rather than a silent surprise.
+    bool        corner_taper_enable    = false;
     double      line_spacing_corner    = 0.0;   // mm; 0 or >= line_spacing means taper off.
     double      corner_taper_distance  = 0.0;   // mm; radius of corner influence. 0 = taper off.
     double      corner_angle_threshold = 90.0;  // degrees; interior angle below this is a corner.
