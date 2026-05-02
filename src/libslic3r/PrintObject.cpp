@@ -1864,7 +1864,13 @@ void PrintObject::apply_wave_overhang_floor_layer_authority()
                     //                       wave extrusions ARE the fill, no overlay needed.
                     //   1 <= k <= N       : stInternalSolid — uniform solid infill above wave.
                     //   k > N or k == -1  : stInternal — sparse infill (N=0 => zero solid).
-                    SurfaceType inside_type = (k >= 1 && k <= floor_layers) ? stInternalSolid : stInternal;
+                    // Exception: stTop / stBottom / stBottomBridge are geometric classifications
+                    // (the part's actual top face / bed-touching bottom / overhang bottom), not
+                    // shell propagation. Demoting them to stInternal would print real surfaces
+                    // as sparse infill (issue #47, "missing line between top surface and wave
+                    // overhang"). Preserve those originals; authority still demotes propagated
+                    // stInternalSolid, which was the original intent of this pass.
+                    const SurfaceType authority_default = (k >= 1 && k <= floor_layers) ? stInternalSolid : stInternal;
 
                     const Polygons &shadow = layer->wave_overhang_shadow_polygons;
                     LayerRegion *layerm = layer->m_regions[region_id];
@@ -1884,6 +1890,9 @@ void PrintObject::apply_wave_overhang_floor_layer_authority()
                             new_surfaces.emplace_back(orig, std::move(ex_out));
                         if (k == 0)
                             continue; // no fill on the wave layer itself
+                        const bool is_geometric_face =
+                            orig == stTop || orig == stBottom || orig == stBottomBridge;
+                        const SurfaceType inside_type = is_geometric_face ? orig : authority_default;
                         for (auto &ex_in : union_safety_offset_ex(inside))
                             new_surfaces.emplace_back(inside_type, std::move(ex_in));
                     }
