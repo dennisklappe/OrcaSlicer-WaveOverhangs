@@ -407,7 +407,7 @@ jobs:
         shell: bash
         run: |
           ./build_linux.sh -istrlL
-          ./scripts/check_appimage_libs.sh ./build/package ./build/package/bin/orca-slicer
+          ./scripts/check_appimage_libs.sh ./build/package ./build/package/bin/orca-waveoverhangs
           mv -n ./build/OrcaSlicerWaveOverhangs_Linux_V${{ env.ver_pure }}.AppImage ./build/OrcaSlicerWaveOverhangs_Linux_AppImage${{ env.ubuntu-ver-str }}_${{ env.ver }}.AppImage
           chmod +x ./build/OrcaSlicerWaveOverhangs_Linux_AppImage${{ env.ubuntu-ver-str }}_${{ env.ver }}.AppImage
           tar -cvpf build_tests.tar build/tests

@@ -3,6 +3,9 @@
 
 set(SLIC3R_APP_NAME "OrcaSlicer-WaveOverhangs")
 set(SLIC3R_APP_KEY "OrcaSlicerWaveOverhangs")
+# gettext catalog domain. Stays "OrcaSlicer" because the .po/.mo files
+# are named OrcaSlicer_<lang>.po / OrcaSlicer.mo (inherited from upstream).
+set(SLIC3R_GETTEXT_DOMAIN "OrcaSlicer")
 
 if(NOT DEFINED BBL_INTERNAL_TESTING)
 set(BBL_INTERNAL_TESTING "0")
