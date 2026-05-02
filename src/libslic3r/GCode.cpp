@@ -6679,6 +6679,20 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         speed = m_config.wave_overhang_floor_print_speed.value;
         variable_speed = false;
         new_points.clear();
+    } else if (path.wave_overhang_perimeter && m_config.wave_overhang_perimeter_speed.value > 0) {
+        // Orca: walls in wave-overhang layers anchor onto cantilevered wave traces;
+        // override to the user-configured perimeter speed so they can grip without
+        // pulling the wave loose at the regular outer/inner wall speed.
+        speed = m_config.wave_overhang_perimeter_speed.value;
+        variable_speed = false;
+        new_points.clear();
+    } else if (path.wave_overhang_floor_perimeter && m_config.wave_overhang_floor_perimeter_speed.value > 0) {
+        // Orca: walls on floor layers above wave-overhang regions ride a fragile
+        // shadow that warps with fast walls landing on top; slow them to keep the
+        // substrate near bed temperature and let thermal stress relax.
+        speed = m_config.wave_overhang_floor_perimeter_speed.value;
+        variable_speed = false;
+        new_points.clear();
     }
 
     double F = speed * 60;  // convert mm/sec to mm/min

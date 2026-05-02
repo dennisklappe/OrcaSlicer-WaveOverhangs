@@ -2450,6 +2450,7 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Motion"), L"param_speed");
         optgroup->append_single_option_line("wave_overhang_print_speed");
+        optgroup->append_single_option_line("wave_overhang_perimeter_speed");
         optgroup->append_single_option_line("wave_overhang_travel_speed");
         optgroup->append_single_option_line("wave_overhang_end_retract_length");
 
@@ -2465,6 +2466,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("wave_overhang_floor_hilbert_layers");
         optgroup->append_single_option_line("wave_overhang_floor_hilbert_density");
         optgroup->append_single_option_line("wave_overhang_floor_print_speed");
+        optgroup->append_single_option_line("wave_overhang_floor_perimeter_speed");
         optgroup->append_single_option_line("wave_overhang_floor_fan_speed");
 
         optgroup = page->new_optgroup(L("Debug"), L"param_overhang");

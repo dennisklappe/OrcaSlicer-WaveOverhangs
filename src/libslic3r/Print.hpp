@@ -536,6 +536,10 @@ private:
     // overhang region to stInternalSolid so residuals (small pockets the wave
     // generator couldn't grow into) print as solid infill instead of bridge pattern.
     void apply_wave_overhang_bridge_suppression();
+    // Orca: tag perimeter ExtrusionPaths in wave-overhang layers and floor layers above
+    // so the G-code stage applies wave_overhang_perimeter_speed (wave layers) or
+    // wave_overhang_floor_perimeter_speed (floor layers) to those walls.
+    void tag_wave_overhang_perimeters();
     void combine_infill();
     void _generate_support_material();
     std::pair<FillAdaptive::OctreePtr, FillAdaptive::OctreePtr> prepare_adaptive_infill_data(

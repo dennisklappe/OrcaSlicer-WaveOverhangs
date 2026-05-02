@@ -4705,6 +4705,19 @@ void PrintConfigDef::init_fff_params()
     def->min = 0.1;
     def->set_default_value(new ConfigOptionFloat(2.0));
 
+    def = this->add("wave_overhang_perimeter_speed", coFloat);
+    def->label = L("Perimeter speed");
+    def->category = L("Speed");
+    def->tooltip = L("Print speed for the walls (perimeters) on layers that contain wave-overhang "
+                     "traces. The walls in those layers anchor onto the cantilevered wave traces, "
+                     "so printing them at the regular outer/inner wall speed often pulls the wave "
+                     "loose or starves adhesion. 0 = inherit the normal wall speed.");
+    def->sidetext = L("mm/s");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 1000;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
     def = this->add("wave_overhang_travel_speed", coFloat);
     def->label = L("Travel speed");
     def->category = L("Speed");
@@ -4888,6 +4901,19 @@ void PrintConfigDef::init_fff_params()
                      "Slower speeds give each line more time to dissipate heat before the next "
                      "neighbouring line lands on top, reducing the residual thermal stress that drives "
                      "warping. 0 = inherit the normal solid-infill speed.");
+    def->sidetext = L("mm/s");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 1000;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("wave_overhang_floor_perimeter_speed", coFloat);
+    def->label = L("Floor perimeter speed");
+    def->category = L("Speed");
+    def->tooltip = L("Print speed for the walls (perimeters) on the floor layers above wave-overhang "
+                     "regions. The fragile wave shadow underneath warps when fast walls land on top, "
+                     "so slowing them lets the substrate stay closer to bed temperature and relaxes "
+                     "thermal stress. 0 = inherit the normal wall speed.");
     def->sidetext = L("mm/s");
     def->mode = comAdvanced;
     def->min = 0;

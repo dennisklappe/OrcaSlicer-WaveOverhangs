@@ -657,6 +657,12 @@ void PrintObject::prepare_infill()
     this->apply_wave_overhang_bridge_suppression();
     m_print->throw_if_canceled();
 
+    // Orca: tag perimeters in wave/floor layers so the wall-speed overrides apply.
+    // Runs after the authority + bridge-suppression passes since both depend on
+    // wave_overhang_floor_polygons / wave_overhang_shadow_polygons being settled.
+    this->tag_wave_overhang_perimeters();
+    m_print->throw_if_canceled();
+
     // combine fill surfaces to honor the "infill every N layers" option
     this->combine_infill();
     m_print->throw_if_canceled();
@@ -1950,6 +1956,64 @@ void PrintObject::apply_wave_overhang_bridge_suppression()
 }
 // ==============================================================================================================
 // === ORCA: End of apply_wave_overhang_bridge_suppression ======================================================
+// ==============================================================================================================
+
+// ==============================================================================================================
+// === ORCA: Tag wave-overhang perimeters =======================================================================
+// Walks every layer after the floor-layer authority pass has populated wave_overhang_floor_polygons (wave
+// layers) and wave_overhang_shadow_polygons (wave + floor layers). For every perimeter ExtrusionPath in a
+// region with wave_overhangs enabled, sets one of two flags so GCode.cpp can apply the per-layer-class wall
+// speed override:
+//   wave_overhang_perimeter        : path lives on a layer that emitted wave traces (floor_polygons non-empty)
+//   wave_overhang_floor_perimeter  : path lives on a layer in the wave shadow but is NOT a wave layer itself
+// ==============================================================================================================
+namespace {
+// Recursively flag every leaf ExtrusionPath inside an entity tree.
+static void tag_wave_overhang_perimeter_recursive(ExtrusionEntity *ent, bool floor_layer)
+{
+    if (!ent) return;
+    auto stamp = [floor_layer](ExtrusionPath &p) {
+        if (floor_layer) p.wave_overhang_floor_perimeter = true;
+        else             p.wave_overhang_perimeter       = true;
+    };
+    if (auto *path = dynamic_cast<ExtrusionPath*>(ent))         { stamp(*path); }
+    else if (auto *loop = dynamic_cast<ExtrusionLoop*>(ent))    { for (ExtrusionPath &p : loop->paths) stamp(p); }
+    else if (auto *mp = dynamic_cast<ExtrusionMultiPath*>(ent)) { for (ExtrusionPath &p : mp->paths)   stamp(p); }
+    else if (auto *coll = dynamic_cast<ExtrusionEntityCollection*>(ent))
+        for (ExtrusionEntity *child : coll->entities) tag_wave_overhang_perimeter_recursive(child, floor_layer);
+}
+} // anonymous namespace
+
+void PrintObject::tag_wave_overhang_perimeters()
+{
+    bool any_wave = false;
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id)
+        if (this->printing_region(region_id).config().wave_overhangs.value) { any_wave = true; break; }
+    if (!any_wave)
+        return;
+
+    BOOST_LOG_TRIVIAL(info) << "Tagging wave-overhang perimeters...";
+
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
+        [this](const tbb::blocked_range<size_t> &range) {
+            for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
+                m_print->throw_if_canceled();
+                Layer *layer = m_layers[idx_layer];
+                const bool is_wave_layer  = !layer->wave_overhang_floor_polygons.empty();
+                const bool is_floor_layer = !is_wave_layer && !layer->wave_overhang_shadow_polygons.empty();
+                if (!is_wave_layer && !is_floor_layer)
+                    continue;
+                for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+                    if (!this->printing_region(region_id).config().wave_overhangs.value)
+                        continue;
+                    LayerRegion *layerm = layer->m_regions[region_id];
+                    tag_wave_overhang_perimeter_recursive(&layerm->perimeters, is_floor_layer);
+                }
+            }
+        });
+}
+// ==============================================================================================================
+// === ORCA: End of tag_wave_overhang_perimeters ================================================================
 // ==============================================================================================================
 
 void PrintObject::process_external_surfaces()
