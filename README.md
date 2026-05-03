@@ -11,10 +11,18 @@ Fork of OrcaSlicer with wave‑pattern overhang printing, two pluggable algorith
 
 <br>
 
+https://github.com/user-attachments/assets/c9d8f19e-277a-43d4-9078-1988bb0c89c0
+
+<sub><i>Wave overhangs in action: a 90° cantilever printing without any support material. <a href="https://www.reddit.com/r/3Dprinting/comments/1t2qskk/overhangs_that_flow_like_waves_no_supports/">Original Reddit post.</a></i></sub>
+
+<br>
+
 [![Download](https://img.shields.io/github/v/release/dennisklappe/OrcaSlicer-WaveOverhangs?include_prereleases&label=Download&color=brightgreen&style=for-the-badge)](https://github.com/dennisklappe/OrcaSlicer-WaveOverhangs/releases)
 [![Build](https://img.shields.io/github/actions/workflow/status/dennisklappe/OrcaSlicer-WaveOverhangs/build_all.yml?branch=main&label=Build&style=for-the-badge)](https://github.com/dennisklappe/OrcaSlicer-WaveOverhangs/actions/workflows/build_all.yml)
 [![Stars](https://img.shields.io/github/stars/dennisklappe/OrcaSlicer-WaveOverhangs?style=for-the-badge)](https://github.com/dennisklappe/OrcaSlicer-WaveOverhangs/stargazers)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue?style=for-the-badge)](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/LICENSE.txt)
+
+> **As featured on [The WAN Show](https://www.youtube.com/live/0xp-pOVTrsI?t=5785) with Linus Sebastian and Luke Lafreniere** (Topic #6, 1:36:26 - 1:41:44).
 
 > **⚠️ Experimental / Alpha.** Feedback and test prints welcome. Open an issue with your results.
 
@@ -24,7 +32,11 @@ Fork of OrcaSlicer with wave‑pattern overhang printing, two pluggable algorith
 
 ## What are wave overhangs?
 
-Wave overhangs is a slicing algorithm that lets you print 90‑degree overhangs without support material. Toolpaths are generated recursively based on wave‑propagation theory. Each new ring anchors to the previous one, and the pattern keeps propagating outward until it fills the available space, diffracting around corners and even around holes.
+In normal FDM printing, every layer needs something underneath it. Steep overhangs (anything past ~50°) sag or fall off the nozzle, so the slicer adds disposable support material that you snap off afterwards.
+
+Wave overhangs replace those supports with a different toolpath. Instead of straight infill lines that need vertical backing, the slicer draws a sequence of curved rings that ripple outward from the supported edge into open air. Each new ring is laterally anchored to the previous one, like waves spreading on a pond, so it stays put even with nothing below it. The pattern propagates around corners, around holes, and across complex shapes until the layer is filled.
+
+The result: support‑free overhangs up to 90°, less wasted filament, and no post‑processing snap‑off step.
 
 This fork ports the technique into OrcaSlicer and exposes two pluggable generators plus a large tunable parameter space, so people can experiment and find what works for their printer and material.
 
