@@ -1,8 +1,8 @@
-blank_issues_enabled: false
+blank_issues_enabled: true
 contact_links:
-  - name: Community Support (Discord channel)
-    url: https://discord.gg/P4VE9UY9gJ
-    about: Please ask and answer support "how do I?"questions here.
-  - name: Discussion Forum
-    url: https://github.com/OrcaSlicer/OrcaSlicer/discussions
-    about: Please raise ideas and feature suggestions here.
+  - name: Discussion / questions
+    url: https://github.com/dennisklappe/OrcaSlicer-WaveOverhangs/discussions
+    about: Ask questions, share prints, or chat about wave overhangs here.
+  - name: Upstream OrcaSlicer issue
+    url: https://github.com/OrcaSlicer/OrcaSlicer/issues
+    about: For bugs in core OrcaSlicer behavior unrelated to wave overhangs, file upstream.
