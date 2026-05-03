@@ -87,7 +87,7 @@ For the full contrast table, iteration flowcharts, Python → C++ mapping, and s
 
 ## Building from source
 
-Dependencies are the same as upstream OrcaSlicer: CMake ≥ 3.13, gcc or clang, GTK3, plus the bundled deps under `deps/`. See the upstream [OrcaSlicer build docs](https://github.com/OrcaSlicer/OrcaSlicer/wiki/How-to-build) for the full platform‑by‑platform guide.
+Dependencies are the same as upstream OrcaSlicer: CMake ≥ 3.13, gcc or clang, GTK3, plus the bundled deps under `deps/`. See the upstream [OrcaSlicer build docs](https://github.com/OrcaSlicer/OrcaSlicer/wiki/how_to_build) for the full platform‑by‑platform guide.
 
 ```bash
 # 1. Build bundled deps
