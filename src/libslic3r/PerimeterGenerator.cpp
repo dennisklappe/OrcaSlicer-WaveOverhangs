@@ -1368,10 +1368,12 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
                 const Polygons island_polys = to_polygons(ExPolygons{island_region});
                 const Polygons lower_raw    = to_polygons(*this->lower_slices);
                 const Polygons overhang_zone = diff(island_polys, lower_raw);
-                // Wider margin (3 spacings) to also catch inset walls 2+ running through
-                // the overhang transition band. The outermost N preserved walls aren't
-                // affected because the clip's preserve check keeps them regardless.
-                const coord_t anchor_margin = 3 * this->perimeter_flow.scaled_spacing();
+                // 1.5 spacings: tight enough that inset walls in the supported
+                // region reach close to the wave boundary, wide enough that
+                // walls actually crossing into the overhang still get clipped.
+                // Previous 3-spacing margin clipped inner walls too aggressively,
+                // leaving them visibly short of the wave on the wave layer (#47).
+                const coord_t anchor_margin = coord_t(this->perimeter_flow.scaled_spacing() * 1.5);
                 const Polygons clip_region = expand(overhang_zone, anchor_margin, jtRound, 0.);
                 ExtrusionEntityCollection clipped =
                     clip_inner_perimeters_in_zone(*this_islands_perimeters, clip_region, wave_outer);
@@ -1381,10 +1383,53 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
             }
             this_islands_perimeters->swap(new_perimeters);
 
+            // Issue #47: carve fill_surfaces by the geometric overhang zone of
+            // this island (island - RAW lower_slices) instead of the wave's
+            // reported filled_area. Two issues this fixes:
+            //  - The wave receives lower_slices grown by nozzle/2, so its
+            //    overhangs polygon is inset from the actual unsupported edge,
+            //    leaving a ~0.2 mm strip past the supported boundary that
+            //    fell through as a bridge surface visually overlapping the
+            //    wave's outer ring.
+            //  - The closing offset applied to the wave's accumulated_region
+            //    pushed filled_area further into the supported area than the
+            //    wave actually painted, carving a sub-extrusion-width strip
+            //    out of regular fill. The rectilinear infill couldn't fit a
+            //    line into that strip on alternating scan-direction layers,
+            //    so a visible missing line appeared at the wave/fill boundary
+            //    every other layer.
+            // The geometric overhang zone is exactly the unsupported region
+            // and stops at the supported boundary, so it both fully covers
+            // what the wave paints over air AND doesn't bleed into the cube
+            // top below. Wave's anchoring extrusions in the supported edge
+            // band overlap with regular fill there by ~one line-width, but
+            // that's preferable to either failure mode above.
+            Polygons fill_carve = filled_area;
+            if (use_wave_overhangs && this->lower_slices != nullptr) {
+                const Polygons island_polys = to_polygons(ExPolygons{island_region});
+                const Polygons lower_raw    = to_polygons(*this->lower_slices);
+                Polygons raw_overhang       = diff(island_polys, lower_raw);
+                if (! raw_overhang.empty()) {
+                    // Compensate for the fill generator's overshoot past the
+                    // fill_surface boundary. Two effects stack: the rectilinear
+                    // top fill extends end-of-line past the fill_surface edge
+                    // by ~half a line-width to ensure coverage, AND the line
+                    // itself has width. Without compensation, top fill on the
+                    // wave layer collides with the wave's first ring across
+                    // roughly a full extrusion width (visible in the slicer as
+                    // top-fill lines passing through wave lines).
+                    // Pushing the carve inward by 1.25 line-widths offsets
+                    // both effects so top-fill's line edge stops just shy of
+                    // the wave's outermost ring with a small visual clearance.
+                    const coord_t fill_overshoot_compensation = coord_t(this->overhang_flow.scaled_width() * 1.25);
+                    fill_carve = expand(raw_overhang, fill_overshoot_compensation, jtRound, 0.);
+                }
+            }
+
             SurfaceCollection orig_surfaces = *this->fill_surfaces;
             this->fill_surfaces->clear();
             for (const auto &surface : orig_surfaces.surfaces) {
-                auto new_surfaces = diff_ex({surface.expolygon}, filled_area);
+                auto new_surfaces = diff_ex({surface.expolygon}, fill_carve);
                 this->fill_surfaces->append(new_surfaces, surface);
             }
 
@@ -1400,7 +1445,15 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
             // mask even at floor_layers=0 so it can SUPPRESS Orca's default
             // bottom_shell_layers from auto-adding solid layers above the wave.
             if (use_wave_overhangs) {
-                append(this->out_wave_overhang_floor_polygons, filled_area);
+                // Stash fill_carve (the geometric overhang zone, see #47 above)
+                // rather than filled_area. The shadow mask consumer wants to
+                // know "where on this layer is the wave responsible for fill",
+                // which is exactly the unsupported region. Using filled_area's
+                // closing-offset hull instead extended the shadow into the
+                // supported area on layers below the wave, demoting solid
+                // shells to sparse infill in a thin strip and exposing the
+                // alternating-layer fill-pattern gap (#47).
+                append(this->out_wave_overhang_floor_polygons, fill_carve);
             }
 
             // Orca: stash wave-overhang coverage footprint unconditionally whenever
@@ -1408,7 +1461,7 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
             // support pipeline when support_remaining_areas_after_wave_overhangs is
             // enabled. See Layer::wave_overhang_covered_polygons.
             if (use_wave_overhangs) {
-                append(this->out_wave_overhang_covered_polygons, filled_area);
+                append(this->out_wave_overhang_covered_polygons, fill_carve);
             }
         }
     }
