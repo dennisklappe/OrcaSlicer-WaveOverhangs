@@ -6294,26 +6294,37 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     //       travel uses the wave travel-speed override. Cleared at end of _extrude().
     //       Also emit a fan marker that CoolingBuffer post-processes; the fan % is
     //       encoded inline so CoolingBuffer doesn't need access to region config.
-    const bool wave_fan_active = path.wave_overhang && m_config.wave_overhang_fan_speed.value >= 0
+    // Orca: wave-overhang fan overrides. The marker carries two values:
+    // "<main_fan_pct> <aux_fan_pct>" where -1 on either side means "no override".
+    // CoolingBuffer routes main → set_fan() (M106 P0) and aux → set_additional_fan()
+    // (M106 P2). Aux override is opt-in: defaults to -1 so existing profiles keep
+    // current behaviour, and is also gated on the printer's auxiliary_fan flag in
+    // CoolingBuffer.
+    const int wave_main_fan = m_config.wave_overhang_fan_speed.value;
+    const int wave_aux_fan  = m_config.wave_overhang_aux_fan_speed.value;
+    const bool wave_fan_active = path.wave_overhang
+                                 && (wave_main_fan >= 0 || wave_aux_fan >= 0)
                                  && m_enable_cooling_markers;
     // Orca: wave-overhang Hilbert floor fan override. Reuses the existing
-    // WAVE_OVERHANG_FAN marker scheme but pulls the percentage from
-    // wave_overhang_floor_fan_speed and does NOT set m_inside_wave_overhang
+    // WAVE_OVERHANG_FAN marker scheme but pulls the percentages from the
+    // wave_overhang_floor_*_fan_speed pair and does NOT set m_inside_wave_overhang
     // (floor paths should use normal travel speeds, not wave travel speeds).
+    const int wave_floor_main_fan = m_config.wave_overhang_floor_fan_speed.value;
+    const int wave_floor_aux_fan  = m_config.wave_overhang_floor_aux_fan_speed.value;
     const bool wave_floor_fan_active = path.wave_overhang_floor
-                                       && m_config.wave_overhang_floor_fan_speed.value >= 0
+                                       && (wave_floor_main_fan >= 0 || wave_floor_aux_fan >= 0)
                                        && m_enable_cooling_markers;
     if (path.wave_overhang)
         m_inside_wave_overhang = true;
     if (wave_fan_active) {
         char buf[64];
-        snprintf(buf, sizeof(buf), ";_WAVE_OVERHANG_FAN_START %d\n",
-                 m_config.wave_overhang_fan_speed.value);
+        snprintf(buf, sizeof(buf), ";_WAVE_OVERHANG_FAN_START %d %d\n",
+                 wave_main_fan, wave_aux_fan);
         gcode += buf;
     } else if (wave_floor_fan_active) {
         char buf[64];
-        snprintf(buf, sizeof(buf), ";_WAVE_OVERHANG_FAN_START %d\n",
-                 m_config.wave_overhang_floor_fan_speed.value);
+        snprintf(buf, sizeof(buf), ";_WAVE_OVERHANG_FAN_START %d %d\n",
+                 wave_floor_main_fan, wave_floor_aux_fan);
         gcode += buf;
     }
 

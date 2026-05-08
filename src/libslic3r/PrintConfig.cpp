@@ -4738,6 +4738,20 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->set_default_value(new ConfigOptionInt(100));
 
+    def = this->add("wave_overhang_aux_fan_speed", coInt);
+    def->label = L("Aux fan speed");
+    def->category = L("Cooling");
+    def->tooltip = L("Auxiliary (chamber/side) fan percentage forced during wave-overhang extrusions. "
+                     "Useful when you want strong sideways airflow on the unsupported wave tracks "
+                     "without ramping up the printhead fan (which can cause an intra-layer thermal "
+                     "gradient near the nozzle). Requires the printer's auxiliary fan to be enabled. "
+                     "-1 = inherit the normal aux fan speed.");
+    def->sidetext = L("%");
+    def->mode = comAdvanced;
+    def->min = -1;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionInt(-1));
+
     def = this->add("wave_overhang_nozzle_temp", coInt);
     def->label = L("Nozzle temperature");
     def->category = L("Cooling");
@@ -4928,6 +4942,20 @@ void PrintConfigDef::init_fff_params()
                      "thermal stress relax before it solidifies into a permanently-curled state. "
                      "Counter-intuitive but matches the cited research: warmer = more stress relaxation. "
                      "-1 = inherit the normal fan speed.");
+    def->sidetext = L("%");
+    def->mode = comAdvanced;
+    def->min = -1;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionInt(-1));
+
+    def = this->add("wave_overhang_floor_aux_fan_speed", coInt);
+    def->label = L("Hilbert floor aux fan speed");
+    def->category = L("Cooling");
+    def->tooltip = L("Auxiliary (chamber/side) fan percentage forced during the Hilbert-pattern floor "
+                     "layers above wave-overhang regions. Pair with a low printhead fan to keep the "
+                     "layer warm near the nozzle while still moving air through the chamber. "
+                     "Requires the printer's auxiliary fan to be enabled. "
+                     "-1 = inherit the normal aux fan speed.");
     def->sidetext = L("%");
     def->mode = comAdvanced;
     def->min = -1;

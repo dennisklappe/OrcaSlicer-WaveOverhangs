@@ -2456,6 +2456,7 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Cooling"), L"param_cooling");
         optgroup->append_single_option_line("wave_overhang_fan_speed");
+        optgroup->append_single_option_line("wave_overhang_aux_fan_speed");
         optgroup->append_single_option_line("wave_overhang_nozzle_temp");
         optgroup->append_single_option_line("wave_overhang_min_wave_time");
         optgroup->append_single_option_line("wave_overhang_min_layer_time");
@@ -2468,6 +2469,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("wave_overhang_floor_print_speed");
         optgroup->append_single_option_line("wave_overhang_floor_perimeter_speed");
         optgroup->append_single_option_line("wave_overhang_floor_fan_speed");
+        optgroup->append_single_option_line("wave_overhang_floor_aux_fan_speed");
 
         optgroup = page->new_optgroup(L("Debug"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_debug_gcode");
