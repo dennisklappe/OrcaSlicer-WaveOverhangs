@@ -131,10 +131,9 @@ make -j$(nproc)
 ## Credits & research references
 
 **Wave overhang algorithm research**
-> **Wave‑inspired path‑planning strategy for support‑free horizontal overhangs in FDM** (paper to be published).
+> Andersons, J. *et al.* (2026). *Wave‑Inspired Path‑Planning Strategy for Support‑Free Horizontal Overhangs in FDM.* SSRN pre‑print. [doi.org/10.2139/ssrn.6640458](https://doi.org/10.2139/ssrn.6640458)
 > Reference Python implementation and interactive visualiser: [andersonsjanis/Wave‑overhangs](https://github.com/andersonsjanis/Wave-overhangs).
-> Accompanying dataset (placeholder while paper is in review): [10.17632/xhw8xkjyc2.1](https://data.mendeley.com/datasets/xhw8xkjyc2/1).
-> Authors: **Janis A. Andersons**, **Salomé Sanchez**, **Tom Vaneker**.
+> Accompanying dataset: [10.17632/xhw8xkjyc2.1](https://data.mendeley.com/datasets/xhw8xkjyc2/1).
 
 **Arc‑overhang algorithm** (the predecessor wave overhangs builds on)
 > Steven McCulloch: [stmcculloch/arc‑overhang](https://github.com/stmcculloch/arc-overhang)
