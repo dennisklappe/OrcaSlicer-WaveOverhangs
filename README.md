@@ -67,6 +67,8 @@ This fork ports the technique into OrcaSlicer and exposes two pluggable generato
 
 Prebuilt binaries for tagged releases on the **[Releases page](https://github.com/dennisklappe/OrcaSlicer-WaveOverhangs/releases)**. Linux AppImage, Windows portable zip + installer, macOS universal DMG.
 
+**Linux:** make the AppImage executable (`chmod +x OrcaSlicerWaveOverhangs_Linux_*.AppImage`) before running it. If it fails to start with a missing shared library, run it from a terminal to see which library is missing and install the matching distro package. Common ones: `libwebpdecoder3`, `libwebp7`, `libheif1` (Debian/Ubuntu/Mint package names; other distros vary).
+
 ---
 
 ## Using wave overhangs
