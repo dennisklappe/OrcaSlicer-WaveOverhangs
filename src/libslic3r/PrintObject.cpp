@@ -1850,33 +1850,48 @@ void PrintObject::apply_wave_overhang_floor_layer_authority()
                     if (layer->wave_overhang_shadow_polygons.empty())
                         continue;
 
-                    // Distance k (in layers) to the nearest wave-producing layer at or below
-                    // this one. k == 0 means THIS layer is the wave layer itself.
-                    int k = -1;
-                    for (int d = 0; d <= floor_layers && (int)idx_layer - d >= 0; ++d) {
-                        if (!m_layers[idx_layer - d]->wave_overhang_floor_polygons.empty()) {
-                            k = d;
-                            break;
-                        }
-                    }
-                    // Authority target for the shadow area on THIS layer:
-                    //   k == 0            : wave layer itself — skip inside-shadow fill; the
-                    //                       wave extrusions ARE the fill, no overlay needed.
-                    //   1 <= k <= N       : stInternalSolid — uniform solid infill above wave.
-                    //   k > N or k == -1  : stInternal — sparse infill (N=0 => zero solid).
-                    // Exception: stTop / stBottom / stBottomBridge are geometric classifications
-                    // (the part's actual top face / bed-touching bottom / overhang bottom), not
-                    // shell propagation. Demoting them to stInternal would print real surfaces
-                    // as sparse infill (issue #47, "missing line between top surface and wave
-                    // overhang"). Preserve those originals; authority still demotes propagated
-                    // stInternalSolid, which was the original intent of this pass.
-                    const SurfaceType authority_default = (k >= 1 && k <= floor_layers) ? stInternalSolid : stInternal;
+                    // Classify the wave shadow by each point's vertical distance to the
+                    // nearest wave strip at or below it. This is a per-POINT decision,
+                    // not per-layer: on an angled overhang every layer carries its own
+                    // wave strip, so a single per-layer "is this a wave layer" flag (the
+                    // old `k`) treated every such layer as k == 0 and dropped the fill
+                    // across its whole multi-layer shadow — wiping out the solid infill
+                    // that belongs above the wave strip of the layer BELOW (issue #67).
+                    //
+                    //   own crescent (this layer's own wave strip) : dropped — the wave
+                    //       extrusions are the fill, no overlay needed.
+                    //   1..N layers above a wave strip             : stInternalSolid —
+                    //       uniform solid infill bonding onto the wave below.
+                    //   rest of the shadow                         : stInternal (sparse;
+                    //       N == 0 => the whole shadow becomes sparse).
+                    //
+                    // Exception: stTop / stBottom / stBottomBridge are geometric
+                    // classifications (the part's real top face / bed-touching bottom /
+                    // overhang bottom), not shell propagation. Demoting them would print
+                    // real surfaces as sparse infill (issue #47, "missing line between
+                    // top surface and wave overhang"). Preserve those originals outside
+                    // the own crescent.
+                    Polygons own = m_layers[idx_layer]->wave_overhang_floor_polygons;
+                    if (! own.empty())
+                        own = union_(own);
+                    Polygons solid; // union of wave strips 1..N layers below this one
+                    for (int d = 1; d <= floor_layers && (int) idx_layer - d >= 0; ++d)
+                        append(solid, m_layers[idx_layer - d]->wave_overhang_floor_polygons);
+                    if (! solid.empty())
+                        solid = union_(solid);
+                    // own crescent wins over solid: a point on this layer's own wave
+                    // strip is filled by the wave even if it also sits above a lower one.
+                    const Polygons solid_only = solid.empty() ? Polygons{} : diff(solid, own);
+                    Polygons covered = own;
+                    append(covered, solid);
+                    if (! covered.empty())
+                        covered = union_(covered);
 
                     const Polygons &shadow = layer->wave_overhang_shadow_polygons;
                     LayerRegion *layerm = layer->m_regions[region_id];
                     Surfaces &surfs = layerm->fill_surfaces.surfaces;
                     Surfaces new_surfaces;
-                    new_surfaces.reserve(surfs.size() + 4);
+                    new_surfaces.reserve(surfs.size() + 6);
                     for (Surface &s : surfs) {
                         Polygons   p       = to_polygons(s);
                         ExPolygons inside  = intersection_ex(p, shadow, ApplySafetyOffset::Yes);
@@ -1884,17 +1899,25 @@ void PrintObject::apply_wave_overhang_floor_layer_authority()
                             new_surfaces.push_back(std::move(s));
                             continue;
                         }
-                        ExPolygons outside = diff_ex(p, to_polygons(inside), ApplySafetyOffset::Yes);
-                        const SurfaceType orig = s.surface_type;
-                        for (auto &ex_out : union_safety_offset_ex(outside))
-                            new_surfaces.emplace_back(orig, std::move(ex_out));
-                        if (k == 0)
-                            continue; // no fill on the wave layer itself
-                        const bool is_geometric_face =
+                        const Polygons    inside_p = to_polygons(inside);
+                        const SurfaceType orig     = s.surface_type;
+                        const bool        is_geometric_face =
                             orig == stTop || orig == stBottom || orig == stBottomBridge;
-                        const SurfaceType inside_type = is_geometric_face ? orig : authority_default;
-                        for (auto &ex_in : union_safety_offset_ex(inside))
-                            new_surfaces.emplace_back(inside_type, std::move(ex_in));
+
+                        // Outside the shadow: keep the original classification.
+                        for (auto &ex_out : union_safety_offset_ex(diff_ex(p, inside_p, ApplySafetyOffset::Yes)))
+                            new_surfaces.emplace_back(orig, std::move(ex_out));
+                        // Solid floor: 1..N layers above a lower wave strip.
+                        if (! solid_only.empty()) {
+                            const SurfaceType t = is_geometric_face ? orig : stInternalSolid;
+                            for (auto &ex_in : union_safety_offset_ex(intersection_ex(inside_p, solid_only, ApplySafetyOffset::Yes)))
+                                new_surfaces.emplace_back(t, std::move(ex_in));
+                        }
+                        // Sparse: shadow that is neither the own crescent nor a solid
+                        // floor layer. The own crescent itself is dropped (wave fills it).
+                        const SurfaceType t = is_geometric_face ? orig : stInternal;
+                        for (auto &ex_in : union_safety_offset_ex(diff_ex(inside_p, covered, ApplySafetyOffset::Yes)))
+                            new_surfaces.emplace_back(t, std::move(ex_in));
                     }
                     surfs = std::move(new_surfaces);
                 }
