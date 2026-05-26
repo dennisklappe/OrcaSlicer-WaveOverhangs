@@ -40,6 +40,8 @@ Wave overhangs replace those supports with a different toolpath. Instead of stra
 
 The result: support‑free overhangs up to 90°, less wasted filament, and no post‑processing snap‑off step.
 
+**Angled overhangs work too.** The wave isn't restricted to fully horizontal overhangs. Any perimeter Orca classifies as overhang (geometrically: the extrusion extends past the layer below) becomes a candidate for wave, and there's no minimum angle setting. Practically, the wave only fills the unsupported portion of each layer, so a mild 50° wall only sees wave activity on the small lip that protrudes past the previous layer, while an 85° near‑horizontal cantilever sees wave across most of it.
+
 This fork ports the technique into OrcaSlicer and exposes a large tunable parameter space, so people can experiment and find what works for their printer and material.
 
 ![Standard vs arc vs wave overhangs](docs/images/fig_2_compare_standard_arc_and_wave_overhangs.png)

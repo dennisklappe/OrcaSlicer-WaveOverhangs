@@ -26,6 +26,8 @@ This document describes every config option added by the wave-overhangs fork of 
 
 Wave overhangs let you print steep cantilevered overhangs without supports. Instead of dropping support columns from the bed, each ring of extrusion anchors to the one before it and the nozzle marches outward into empty space one fused-plastic rung at a time. The generator emits expanding wavefronts seeded at the supported edge of the overhang.
 
+**Wave overhangs are angle-agnostic.** The trigger is geometric, not an angle threshold: any perimeter Orca's *Strength → Detect overhang walls* + *Overhang reverse threshold* pipeline flags as overhang becomes a candidate for wave. So angled overhangs (slopes anywhere between vertical and fully horizontal) are supported, with the wave only filling the part of each layer that protrudes past the previous one. The `wave_overhang_min_angle` setting on the profile is inert (kept for compat); see its entry under [General](#general) below for the rationale.
+
 ## How to enable
 
 1. Open a model with an overhang.
