@@ -7,7 +7,7 @@
 # OrcaSlicer‑WaveOverhangs
 
 **Print steep overhangs without supports.**
-Fork of OrcaSlicer with wave‑pattern overhang printing, two pluggable algorithms, and a rich expert‑mode parameter space.
+Fork of OrcaSlicer with wave‑pattern overhang printing and a rich expert‑mode parameter space.
 
 <br>
 
@@ -40,21 +40,19 @@ Wave overhangs replace those supports with a different toolpath. Instead of stra
 
 The result: support‑free overhangs up to 90°, less wasted filament, and no post‑processing snap‑off step.
 
-This fork ports the technique into OrcaSlicer and exposes two pluggable generators plus a large tunable parameter space, so people can experiment and find what works for their printer and material.
+This fork ports the technique into OrcaSlicer and exposes a large tunable parameter space, so people can experiment and find what works for their printer and material.
 
 ![Standard vs arc vs wave overhangs](docs/images/fig_2_compare_standard_arc_and_wave_overhangs.png)
 
-> Comparison of standard, arc‑overhang, and wave‑overhang toolpaths. Image from Janis A. Andersons' wave‑overhang research (see [Credits](#credits--research-references)).
+> Comparison of standard, arc‑overhang, and wave‑overhang toolpaths. Image from the underlying wave‑overhang research (see [Credits](#credits--research-references)).
 
 ---
 
 ## Main features
 
-- **Two wave‑overhang algorithms** with an in‑GUI dropdown
-  - **Andersons**: port of [stmcculloch/PrusaSlicer‑WaveOverhangs](https://github.com/stmcculloch/PrusaSlicer-WaveOverhangs). Arc‑overhang descendant with narrow‑region splitting and Smart/ZigZag/Monotonic pattern selection.
-  - **Kaiser LaSO**: C++ reimplementation of [Rieks Kaiser's MSc thesis script](https://github.com/riekskaiser/wave_LaSO). Auto seed‑curve detection, multi‑overhang handling, pipeline‑integrated (no G‑code post‑processing). Still in research; shares the flow model with Andersons and works on simple overhangs, but complex geometries are unreliable.
-- **Dedicated Wave overhangs tab** in Print Settings with grouped sections: General, Geometry, Algorithm tuning (algorithm‑specific rows appear per selected algorithm), Speed, Cooling, Floor layers, Support integration, Debug.
-- **~20 expert tunables** for experimentation: line spacing, flow (mm³/mm), ring overlap, seam mode, spacing mode, pattern, perimeter overlap, minimum wave width, max iterations, authoritative floor layers, cooling overrides, and more.
+- **Single wave‑overhang generator** with expanding wavefronts, narrow‑region splitting, and Smart/ZigZag/Monotonic pattern selection.
+- **Dedicated Wave overhangs tab** in Print Settings with grouped sections: General, Detection, Pattern, Corner reinforcement, Motion, Cooling, Floor layers, Debug.
+- **~20 expert tunables** for experimentation: line spacing, flow (mm³/mm), seam mode, spacing mode, pattern, perimeter overlap, minimum wave width, max iterations, authoritative floor layers, cooling overrides, and more.
 - **Community test‑print database** at **[waveoverhangs.com](https://waveoverhangs.com)** where you can upload your results with settings and compare prints side‑by‑side.
 - **Wave‑aware support integration**: supports only generate for overhang areas the wave couldn't cover.
 - **G‑code debug markers**: `;WAVE_OVERHANG_CONFIG …` header block and per‑region `;WAVE_OVERHANG_START/END` tags for easy post‑process verification.
@@ -76,11 +74,10 @@ Prebuilt binaries for tagged releases on the **[Releases page](https://github.co
 1. Launch the slicer, open a model with an overhang.
 2. Go to **Print Settings → Wave overhangs** tab.
 3. Toggle **Use wave overhangs (Experimental)** on.
-4. Pick an algorithm (Andersons or Kaiser).
-5. Slice and inspect the G‑code preview. Wave extrusions appear over detected overhang regions.
+4. Slice and inspect the G‑code preview. Wave extrusions appear over detected overhang regions.
 
-> **Simple mode** shows just the master toggle plus the algorithm dropdown.
-> Switch to **Advanced** (top‑right mode selector) to tune individual parameters like line spacing, flow (mm³/mm), ring overlap, seam mode, etc.
+> **Simple mode** shows just the master toggle.
+> Switch to **Advanced** (top‑right mode selector) to tune individual parameters like line spacing, flow (mm³/mm), seam mode, etc.
 
 For the full reference of every config option with tuning hints, see **[docs/WAVE_OVERHANG_SETTINGS.md](docs/WAVE_OVERHANG_SETTINGS.md)**.
 
@@ -88,16 +85,15 @@ For the full reference of every config option with tuning hints, see **[docs/WAV
 
 ---
 
-## The algorithms
+## How it works
 
-Both algorithms compute a **seed** at or near the supported edge of the overhang, then propagate rings outward from it into the unsupported region until the rings can't grow further inside the current layer.
+The generator computes a **seed** at or near the supported edge of the overhang, then propagates wavefronts outward from it into the unsupported region until the fronts can't grow further inside the current layer.
 
-- **Andersons** seeds from a narrow band along the support‑overhang boundary. Each iteration offsets the accumulated covered region outward and emits a polyline along the new front; a pattern mode (Smart / Monotonic / ZigZag) decides how the fronts connect.
-- **Kaiser LaSO** seeds from the whole lower‑slice polygon shrunk inward by 2 × nozzle. Each iteration offsets the *previous ring* outward by `r` and emits it as a closed loop.
+The seed is a narrow band along the support‑overhang boundary. Each iteration offsets the accumulated covered region outward and emits a polyline along the new front; a pattern mode (Smart / Monotonic / ZigZag) decides how the fronts connect.
 
-![Andersons vs Kaiser propagation](docs/images/algorithms/propagation.svg)
+![Wavefront propagation](docs/images/algorithms/propagation.svg)
 
-For the full contrast table, iteration flowcharts, Python → C++ mapping, and source pointers, see **[docs/ALGORITHMS.md](docs/ALGORITHMS.md)**.
+For the iteration flowchart and source pointers, see **[docs/ALGORITHMS.md](docs/ALGORITHMS.md)**.
 
 ---
 
@@ -121,11 +117,9 @@ make -j$(nproc)
 
 ## Current limitations
 
-- **Experimental.** The tunable space is large (~20 knobs across two algorithms) and most parameter combinations have not been print‑tested yet. Expect rough edges. Please share what works and what doesn't at **[waveoverhangs.com](https://waveoverhangs.com)**.
-- **Kaiser LaSO works on simple overhangs, not complex ones.** After the v0.2.0 anchor-band fix Kaiser now produces clean cantilever prints on simple convex overhangs, and now shares the flow model with Andersons. Complex geometries (concave shapes, narrow multi-arm supports) are still unreliable. Andersons remains the recommended default; try Kaiser on straight ridges where a strict lateral-offset pattern looks cleaner.
+- **Experimental.** The tunable space is large (~20 knobs) and most parameter combinations have not been print‑tested yet. Expect rough edges. Please share what works and what doesn't at **[waveoverhangs.com](https://waveoverhangs.com)**.
 - **PLA recommended.** Wave overhangs need each ring to cool and become rigid before the next pass anchors to it. PLA with max part‑cooling works well. PETG, ABS and PC are likely to fail (PETG cools too slowly and delaminates under heavy fan). If you've tested other materials, please upload the results (success or failure) to **[waveoverhangs.com/upload](https://waveoverhangs.com/upload)**; failures are just as valuable for mapping out what's possible.
 - **Warping on larger spans.** Laterally supported overhangs are prone to warping driven by thermal gradients, reheating of earlier layers, and nozzle pressure. Smaller overhangs print cleanly; larger spans may still need traditional supports. See **[docs/LIMITATIONS.md](docs/LIMITATIONS.md)** for the mechanisms and mitigations.
-- **Kaiser pin supports are not ported.** Kaiser's original places discrete pin‑support nubs under overhangs. Not planned, since the goal here is fully support‑free overhangs. Use `support_remaining_areas_after_wave_overhangs` with Orca's normal supports if wave can't cover everything.
 - **Platform testing status:** real‑print tested on Linux and Windows. macOS builds pass CI but haven't been validated against a physical printer yet.
 
 ---
@@ -133,20 +127,14 @@ make -j$(nproc)
 ## Credits & research references
 
 **Wave overhang algorithm research**
-> Andersons, J. *et al.* (2026). *Wave‑Inspired Path‑Planning Strategy for Support‑Free Horizontal Overhangs in FDM.* SSRN pre‑print. [doi.org/10.2139/ssrn.6640458](https://doi.org/10.2139/ssrn.6640458)
-> Reference Python implementation and interactive visualiser: [andersonsjanis/Wave‑overhangs](https://github.com/andersonsjanis/Wave-overhangs).
+> *Wave‑Inspired Path‑Planning Strategy for Support‑Free Horizontal Overhangs in FDM.* (2026) SSRN pre‑print. [doi.org/10.2139/ssrn.6640458](https://doi.org/10.2139/ssrn.6640458)
 > Accompanying dataset: [10.17632/xhw8xkjyc2.1](https://data.mendeley.com/datasets/xhw8xkjyc2/1).
 
 **Arc‑overhang algorithm** (the predecessor wave overhangs builds on)
 > Steven McCulloch: [stmcculloch/arc‑overhang](https://github.com/stmcculloch/arc-overhang)
 
-**PrusaSlicer integration of wave overhangs** (what our Andersons port is based on)
+**PrusaSlicer wave‑overhang integration** (the basis for this OrcaSlicer port)
 > Steven McCulloch: [stmcculloch/PrusaSlicer‑WaveOverhangs](https://github.com/stmcculloch/PrusaSlicer-WaveOverhangs)
-
-**Kaiser LaSO algorithm** (the second algorithm in this fork)
-> Rieks Kaiser: [riekskaiser/wave_LaSO](https://github.com/riekskaiser/wave_LaSO)
-> *Investigating the warping of Laterally Supported Overhangs in fused deposition modelling, the Python code.*
-> Written in the context of Rieks Kaiser's master thesis (Mechanical Engineering, University of Twente).
 
 **OrcaSlicer base**
 > OrcaSlicer team: [OrcaSlicer/OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer)
@@ -157,6 +145,6 @@ make -j$(nproc)
 
 - Open issues for bugs, feature requests, or print failures.
 - PRs welcome. Base off `main`.
-- When reporting test results, please share: model, algorithm and parameter values used, printer, photos, G‑code snippet.
+- When reporting test results, please share: model, parameter values used, printer, photos, G‑code snippet.
 
 License: **AGPL‑3.0** (inherited from OrcaSlicer).

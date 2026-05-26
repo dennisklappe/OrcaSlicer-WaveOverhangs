@@ -45,7 +45,7 @@ body:
       label: WAVE_OVERHANG_CONFIG header line(s)
       description: Paste the `; WAVE_OVERHANG_CONFIG ...` line(s). If multiple print regions, include all of them.
       render: text
-      placeholder: "; WAVE_OVERHANG_CONFIG region=0 algo=andersons outer_perim=1 ..."
+      placeholder: "; WAVE_OVERHANG_CONFIG region=0 outer_perim=1 ..."
     validations:
       required: true
 

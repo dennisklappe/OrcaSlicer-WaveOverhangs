@@ -67,12 +67,6 @@ enum PrintHostType {
     htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink
 };
 
-// Orca: which wave-overhang generation algorithm to use.
-enum WaveOverhangAlgorithm {
-    woaAndersons,
-    woaKaiser
-};
-
 // Orca: wave-overhang ring spacing mode.
 enum WaveOverhangSpacingMode {
     wosmUniform,
@@ -547,7 +541,6 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AuthorizationType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerWallType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
-CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangAlgorithm)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangSpacingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangSeamMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WaveOverhangPattern)
@@ -1143,7 +1136,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsNullable, filament_ironing_speed))
     // Detect bridging perimeters
     ((ConfigOptionBool, detect_overhang_wall))
-    // Wave Overhangs — Janis A. Andersons' algorithm, ported from stmcculloch/PrusaSlicer-WaveOverhangs
+    // Wave Overhangs
     ((ConfigOptionBool,                 wave_overhangs))
     ((ConfigOptionBool,                 wave_overhangs_instead_of_bridges))
     ((ConfigOptionInt,                  wave_overhang_outer_perimeters))
@@ -1168,8 +1161,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,                       wave_overhang_nozzle_temp))
     ((ConfigOptionFloat,                     wave_overhang_min_wave_time))
     ((ConfigOptionFloat,                     wave_overhang_min_layer_time))
-    ((ConfigOptionEnum<WaveOverhangAlgorithm>, wave_overhang_algorithm))
-    ((ConfigOptionFloat,                     wave_overhang_ring_overlap))
     ((ConfigOptionFloat,                     wave_overhang_min_angle))
     ((ConfigOptionEnum<WaveOverhangSpacingMode>, wave_overhang_spacing_mode))
     ((ConfigOptionEnum<WaveOverhangSeamMode>,    wave_overhang_seam_mode))

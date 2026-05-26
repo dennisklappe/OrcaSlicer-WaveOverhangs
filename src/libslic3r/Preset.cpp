@@ -903,7 +903,6 @@ static std::vector<std::string> s_Preset_print_options {
     "wave_overhang_floor_hilbert_density",
     "wave_overhang_floor_print_speed", "wave_overhang_floor_perimeter_speed", "wave_overhang_floor_fan_speed",
     "wave_overhang_floor_aux_fan_speed",
-    "wave_overhang_algorithm", "wave_overhang_ring_overlap",
     "wave_overhang_min_angle",
     "wave_overhang_spacing_mode", "wave_overhang_seam_mode",
     "wave_overhang_debug_gcode", "wave_overhang_min_length",

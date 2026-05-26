@@ -11,7 +11,6 @@
 #include "Arachne/WallToolPaths.hpp"
 #include "WaveOverhangs/WaveOverhangs.hpp"
 #include "WaveOverhangs/AndersonsGenerator.hpp"
-#include "WaveOverhangs/KaiserGenerator.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "ExPolygonCollection.hpp"
 #include "Geometry.hpp"
@@ -1137,15 +1136,8 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     if (infill_area.empty())
         return { {}, {} };
 
-    WaveOverhangs::GenerateResult res;
-    if (region_config.wave_overhang_algorithm == woaKaiser) {
-        WaveOverhangs::KaiserGenerator gen;
-        gen.overlap = region_config.wave_overhang_ring_overlap.value;
-        res = gen.generate(infill_area, lower_slices_polygons, params);
-    } else {
-        WaveOverhangs::AndersonsGenerator gen;
-        res = gen.generate(infill_area, lower_slices_polygons, params);
-    }
+    WaveOverhangs::AndersonsGenerator gen;
+    WaveOverhangs::GenerateResult res = gen.generate(infill_area, lower_slices_polygons, params);
     return { std::move(res.paths), std::move(res.residual) };
 }
 

@@ -2414,7 +2414,6 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("General"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhangs");
         optgroup->append_single_option_line("wave_overhangs_instead_of_bridges");
-        optgroup->append_single_option_line("wave_overhang_algorithm");
         optgroup->append_single_option_line("support_remaining_areas_after_wave_overhangs");
 
         optgroup = page->new_optgroup(L("Detection"), L"param_overhang");
@@ -2422,10 +2421,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("wave_overhang_min_length");
         optgroup->append_single_option_line("wave_overhang_max_iterations");
 
-        // Pattern: how the wave is shaped. Algo-specific rows are filtered by
-        // ConfigManipulation::toggle_line — Andersons sees most of these,
-        // Kaiser only sees ring_overlap. They share the section header so an
-        // algo switch doesn't leave an empty section behind.
+        // Pattern: how the wave is shaped.
         optgroup = page->new_optgroup(L("Pattern"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_pattern");
         optgroup->append_single_option_line("wave_overhang_seam_mode");
@@ -2436,12 +2432,11 @@ void TabPrint::build()
         optgroup->append_single_option_line("wave_overhang_minimum_width");
         optgroup->append_single_option_line("wave_overhang_min_new_area");
         optgroup->append_single_option_line("wave_overhang_flow_mm3_per_mm");
-        optgroup->append_single_option_line("wave_overhang_ring_overlap"); // Kaiser-only
 
         // Corner reinforcement: opt-in feature. Master toggle reveals the
         // three tunables (matches the pattern used by Hilbert under Floor
-        // layers). Andersons-only — ConfigManipulation gates the sub-options
-        // on algo + master toggle so the sub-rows hide cleanly when off.
+        // layers). ConfigManipulation gates the sub-options on the master
+        // toggle so the sub-rows hide cleanly when off.
         optgroup = page->new_optgroup(L("Corner reinforcement"), L"param_overhang");
         optgroup->append_single_option_line("wave_overhang_corner_taper_enable");
         optgroup->append_single_option_line("wave_overhang_line_spacing_corner");

@@ -2531,7 +2531,6 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 for (const PrintRegion *region : print.m_print_regions) {
                     const PrintRegionConfig &rc = region->config();
                     if (!rc.wave_overhangs.value || !rc.wave_overhang_debug_gcode.value) { ++region_idx; continue; }
-                    const char *algo = (rc.wave_overhang_algorithm.value == woaKaiser) ? "kaiser" : "andersons";
                     const char *spacing_mode = (rc.wave_overhang_spacing_mode.value == wosmProgressive) ? "progressive" : "uniform";
                     const char *seam_mode;
                     switch (rc.wave_overhang_seam_mode.value) {
@@ -2548,10 +2547,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         default:                             pattern = "smart";     break;
                     }
                     file.write_format(
-                        "; WAVE_OVERHANG_CONFIG region=%zu algo=%s outer_perim=%d"
+                        "; WAVE_OVERHANG_CONFIG region=%zu outer_perim=%d"
                         " spacing=%.3f flow_mm3_per_mm=%.3f speed=%.1f travel=%.1f fan=%d"
                         " floor_layers=%d min_angle=%.1f min_length=%.2f max_iterations=%d"
-                        " ring_overlap=%.2f"
                         " pattern=%s spacing_mode=%s seam_mode=%s"
                         " perimeter_overlap=%.2f minimum_wave_width=%.2f"
                         " min_new_area=%.4f"
@@ -2561,7 +2559,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         " wall_loops=%d top_shell_layers=%d bottom_shell_layers=%d"
                         " infill_density=%.0f infill_pattern=%s"
                         " support_remainder=%d instead_of_bridges=%d\n",
-                        region_idx, algo,
+                        region_idx,
                         rc.wave_overhang_outer_perimeters.value,
                         rc.wave_overhang_line_spacing.value,
                         rc.wave_overhang_flow_mm3_per_mm.value,
@@ -2572,7 +2570,6 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         rc.wave_overhang_min_angle.value,
                         rc.wave_overhang_min_length.value,
                         rc.wave_overhang_max_iterations.value,
-                        rc.wave_overhang_ring_overlap.value,
                         pattern, spacing_mode, seam_mode,
                         rc.wave_overhang_perimeter_overlap.value,
                         rc.wave_overhang_minimum_width.value,

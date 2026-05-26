@@ -2,7 +2,7 @@
 
 This page covers the current limitations of wave overhangs, focused on the hardest unresolved issue: **warping of laterally supported overhangs**.
 
-Most of the diagrams below come from the reference implementation and research by **Janis A. Andersons et al.** (see [References](#references)). Adapted from [stmcculloch/PrusaSlicer-WaveOverhangs](https://github.com/stmcculloch/PrusaSlicer-WaveOverhangs/blob/master/doc/limitations.md).
+Most of the diagrams below come from the underlying wave-overhang research (see [References](#references)).
 
 ---
 
@@ -76,4 +76,4 @@ The strongest levers today appear to be: **material choice, tuning of the layers
 
 ## References
 
-[^1]: J. A. Andersons, S. Sanchez, T. Vaneker, "Wave-inspired path-planning strategy for support-free horizontal overhangs in FDM," preprint, submitted for publication. Reference implementation + interactive visualiser: [andersonsjanis/Wave-overhangs](https://github.com/andersonsjanis/Wave-overhangs).
+[^1]: "Wave-inspired path-planning strategy for support-free horizontal overhangs in FDM," research preprint, submitted for publication.

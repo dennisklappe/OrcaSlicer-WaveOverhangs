@@ -169,13 +169,6 @@ static t_config_enum_values s_keys_map_PowerLossRecoveryMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
 
-// Orca: wave-overhang algorithm selection
-static t_config_enum_values s_keys_map_WaveOverhangAlgorithm {
-    { "andersons", woaAndersons },
-    { "kaiser",   woaKaiser }
-};
-CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WaveOverhangAlgorithm)
-
 // Orca: wave-overhang ring spacing mode
 static t_config_enum_values s_keys_map_WaveOverhangSpacingMode {
     { "uniform",     wosmUniform },
@@ -4602,12 +4595,12 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
-    // Wave Overhangs (Janis A. Andersons algorithm — port of stmcculloch/PrusaSlicer-WaveOverhangs)
+    // Wave Overhangs
     def = this->add("wave_overhangs", coBool);
     def->label = L("Use wave overhangs (Experimental)");
     def->category = L("Strength");
     def->tooltip = L("Generate wave-patterned perimeters over overhangs to print steep angles "
-                     "without supports. Algorithm by Janis A. Andersons.");
+                     "without supports.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -4648,7 +4641,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wave_overhang_minimum_width", coFloat);
     def->label = L("Minimum wave width");
     def->category = L("Strength");
-    def->tooltip = L("Andersons algorithm only. If a narrow neck in the wave region is smaller than this width, a thin split is inserted there before propagation so fragile wave branches do not form. "
+    def->tooltip = L("If a narrow neck in the wave region is smaller than this width, a thin split is inserted there before propagation so fragile wave branches do not form. "
                      "Larger values split more aggressively.");
     def->sidetext = L("mm");
     def->min = 0;
@@ -4682,9 +4675,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wave_overhang_flow_mm3_per_mm", coFloat);
     def->label = L("Wave flow");
     def->category = L("Strength");
-    def->tooltip = L("Volume of plastic extruded per millimetre of wave-overhang line, in mm³/mm. "
-                     "Used by both Andersons and Kaiser algorithms.\n\n"
-                     "Default 0.15 matches Andersons' published reference for a 0.4 mm nozzle. "
+    def->tooltip = L("Volume of plastic extruded per millimetre of wave-overhang line, in mm³/mm.\n\n"
+                     "Default 0.15 is a calibrated reference value for a 0.4 mm nozzle. "
                      "The bead hangs in air rather than being squished against a layer below, so layer "
                      "height has no effect on its cross-section. For non-0.4 mm nozzles, scale as "
                      "0.15 × (nozzle/0.4)²: about 0.09 for 0.3 mm, 0.34 for 0.6 mm, 0.60 for 0.8 mm.\n\n"
@@ -4801,8 +4793,8 @@ void PrintConfigDef::init_fff_params()
                      "cantilevered wave lines are short and have little neighbouring material to "
                      "fuse with, so they curl as PLA cools. Packing more lines into a small radius "
                      "around each corner gives each short line a neighbour to bond with, resisting "
-                     "the curl. Andersons-only; the corner radius, denser spacing, and angle "
-                     "threshold appear when this is on.");
+                     "the curl. The corner radius, denser spacing, and angle threshold appear when "
+                     "this is on.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -4962,30 +4954,6 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->set_default_value(new ConfigOptionInt(-1));
 
-    def = this->add("wave_overhang_algorithm", coEnum);
-    def->label = L("Algorithm");
-    def->category = L("Strength");
-    def->tooltip = L("Algorithm used to generate wave-overhang extrusions. "
-                     "Andersons: outward expanding wavefronts (default, robust). "
-                     "Kaiser (LaSO): lateral seed-curve offsetting.");
-    def->enum_keys_map = &ConfigOptionEnum<WaveOverhangAlgorithm>::get_enum_values();
-    def->enum_values.push_back("andersons");
-    def->enum_values.push_back("kaiser");
-    def->enum_labels.push_back(L("Andersons"));
-    def->enum_labels.push_back(L("Kaiser LaSO"));
-    def->mode = comSimple;
-    def->set_default_value(new ConfigOptionEnum<WaveOverhangAlgorithm>(woaAndersons));
-
-    def = this->add("wave_overhang_ring_overlap", coFloat);
-    def->label = L("Ring overlap");
-    def->category = L("Strength");
-    def->tooltip = L("Overlap fraction between successive wave rings. Higher values produce denser, "
-                     "more solid fills. Kaiser's reference uses 0.15.");
-    def->mode = comAdvanced;
-    def->min = 0.0;
-    def->max = 0.9;
-    def->set_default_value(new ConfigOptionFloat(0.15));
-
     def = this->add("wave_overhang_min_angle", coFloat);
     def->label = L("Min angle");
     def->category = L("Strength");
@@ -5053,9 +5021,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wave_overhang_max_iterations", coInt);
     def->label = L("Max iterations");
     def->category = L("Strength");
-    def->tooltip = L("Safety cap on the algorithm's main loop: max wavefronts (Andersons) or max rings "
-                     "(Kaiser) per overhang region. 0 = unlimited (stops naturally when the algorithm can't "
-                     "grow further). Useful for bounding print time on very large overhangs.");
+    def->tooltip = L("Safety cap on the wave-overhang generator's main loop: max wavefronts per overhang "
+                     "region. 0 = unlimited (stops naturally when the generator can't grow further). "
+                     "Useful for bounding print time on very large overhangs.");
     def->mode = comAdvanced;
     def->min = 0;
     def->max = 500;
@@ -5064,11 +5032,11 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wave_overhang_min_new_area", coFloat);
     def->label = L("Min new area");
     def->category = L("Strength");
-    def->tooltip = L("Termination threshold for Andersons propagation: when a new wavefront adds less "
+    def->tooltip = L("Termination threshold for wave-overhang propagation: when a new wavefront adds less "
                      "than this much new area over the previous wavefront, stop propagating. "
                      "Lower = longer propagation, potentially denser coverage. Higher = earlier "
-                     "termination. Our default 0.01 mm² is a safer early-stop than Andersons' "
-                     "research-code value of 1e-4 mm²; lower toward 0.0001 for maximum coverage.");
+                     "termination. Default 0.01 mm² is a safe early-stop; lower toward 0.0001 for "
+                     "maximum coverage.");
     def->sidetext = L("mm²");
     def->mode = comDevelop;
     def->min = 0.0;

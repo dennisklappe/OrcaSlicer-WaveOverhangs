@@ -29,11 +29,11 @@ struct CommonParams {
     double      line_width             = 0.4;
     Flow        overhang_flow;
     double      scaled_resolution      = 1.0;
-    SpacingMode spacing_mode           = SpacingMode::Uniform;   // Andersons only.
-    SeamMode    seam_mode              = SeamMode::Alternating;  // shared.
+    SpacingMode spacing_mode           = SpacingMode::Uniform;
+    SeamMode    seam_mode              = SeamMode::Alternating;
     double      min_length_mm          = 0.0;   // mm; skip overhangs whose contour length is below this.
-    int         max_iterations         = 0;     // 0 = unlimited; safety cap on main loop (wavefronts for Andersons, rings for Kaiser).
-    // Alpha.6 tunables (Andersons only).
+    int         max_iterations         = 0;     // 0 = unlimited; safety cap on main loop (wavefronts per region).
+    // Wavefront-propagation tunables.
     double      perimeter_overlap      = 0.1;   // mm; extend wave propagation toward perimeters.
     double      minimum_wave_width     = 0.7;   // mm; split wave region when a neck is narrower than this.
     WaveOverhangPattern pattern        = WaveOverhangPattern::Smart;

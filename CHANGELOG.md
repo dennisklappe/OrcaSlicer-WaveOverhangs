@@ -6,6 +6,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning fol
 
 ## [Unreleased]
 
+### Removed
+- **Algorithm selector and second wave-overhang algorithm removed.** Wave overhangs now ships as a single generator. The `wave_overhang_algorithm` config key and the Kaiser/LaSO generator are gone; the `wave_overhang_ring_overlap` key (only used by the removed generator) is gone too.
+- **Algorithm-name branding stripped from the UI.** Tooltips, settings labels, docs, README, and the issue template no longer reference specific algorithm names; the feature is described generically as "wave overhangs".
+
 ### Changed
 - **Unified flow model across Andersons and Kaiser.** `wave_overhang_flow_ratio` replaced with `wave_overhang_flow_mm3_per_mm` (absolute mm³/mm, default `0.16` = `nozzle²` for a 0.4 mm nozzle). Previously Andersons used a layer-height-dependent multiplier while Kaiser had a hardcoded `nozzle²`. Both now read the same config key and apply the same physics model: wave-overhang lines hang in air, so flow depends on nozzle bore and extrusion rate, not on layer height. Breaking change; no profile migration shim (no real users on pre-v0.3 versions to preserve tunings for).
 

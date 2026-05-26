@@ -131,8 +131,6 @@ set(lisbslic3r_sources
     WaveOverhangs/IGenerator.hpp
     WaveOverhangs/AndersonsGenerator.cpp
     WaveOverhangs/AndersonsGenerator.hpp
-    WaveOverhangs/KaiserGenerator.cpp
-    WaveOverhangs/KaiserGenerator.hpp
     ExtrusionSimulator.cpp
     ExtrusionSimulator.hpp
     FaceDetector.cpp
