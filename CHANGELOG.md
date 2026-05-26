@@ -6,6 +6,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning fol
 
 ## [Unreleased]
 
+### Added
+- **Floor-layer speed ramp.** New `wave_overhang_floor_speed_ramp` config (default 0 = step function, current behaviour) interpolates `wave_overhang_floor_print_speed` and `wave_overhang_floor_perimeter_speed` linearly from the override speed back up to the normal speed across N layers above the wave. Distance is stamped per-extrusion during the existing tagging pass. Helpful for releasing warping stress gradually instead of at a single layer boundary (closes #77).
+
 ### Removed
 - **Algorithm selector and second wave-overhang algorithm removed.** Wave overhangs now ships as a single generator. The `wave_overhang_algorithm` config key and the Kaiser/LaSO generator are gone; the `wave_overhang_ring_overlap` key (only used by the removed generator) is gone too.
 - **Algorithm-name branding stripped from the UI.** Tooltips, settings labels, docs, README, and the issue template no longer reference specific algorithm names; the feature is described generically as "wave overhangs".

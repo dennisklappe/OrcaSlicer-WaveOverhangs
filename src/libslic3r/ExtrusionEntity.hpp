@@ -172,6 +172,11 @@ public:
     // G-code applies wave_overhang_floor_perimeter_speed to reduce warping driven by
     // fast walls printed on top of the still-fragile wave shadow.
     bool wave_overhang_floor_perimeter = false;
+    // 1-based distance (in layers) from the nearest wave layer below this path, when
+    // this path is on a wave-overhang floor layer; 0 otherwise. Consumed by G-code
+    // together with wave_overhang_floor_speed_ramp to interpolate floor speeds from
+    // the override back up to the normal speed across N layers.
+    int8_t wave_overhang_floor_distance = 0;
 
     ExtrusionPath() : mm3_per_mm(-1), width(-1), height(-1), m_role(erNone), m_no_extrusion(false) {}
     ExtrusionPath(ExtrusionRole role) : mm3_per_mm(-1), width(-1), height(-1), m_role(role), m_no_extrusion(false) {}
@@ -186,6 +191,7 @@ public:
         , wave_overhang_floor(rhs.wave_overhang_floor)
         , wave_overhang_perimeter(rhs.wave_overhang_perimeter)
         , wave_overhang_floor_perimeter(rhs.wave_overhang_floor_perimeter)
+        , wave_overhang_floor_distance(rhs.wave_overhang_floor_distance)
         , m_can_reverse(rhs.m_can_reverse)
         , m_role(rhs.m_role)
         , m_no_extrusion(rhs.m_no_extrusion)
@@ -199,6 +205,7 @@ public:
         , wave_overhang_floor(rhs.wave_overhang_floor)
         , wave_overhang_perimeter(rhs.wave_overhang_perimeter)
         , wave_overhang_floor_perimeter(rhs.wave_overhang_floor_perimeter)
+        , wave_overhang_floor_distance(rhs.wave_overhang_floor_distance)
         , m_can_reverse(rhs.m_can_reverse)
         , m_role(rhs.m_role)
         , m_no_extrusion(rhs.m_no_extrusion)
@@ -212,6 +219,7 @@ public:
         , wave_overhang_floor(rhs.wave_overhang_floor)
         , wave_overhang_perimeter(rhs.wave_overhang_perimeter)
         , wave_overhang_floor_perimeter(rhs.wave_overhang_floor_perimeter)
+        , wave_overhang_floor_distance(rhs.wave_overhang_floor_distance)
         , m_can_reverse(rhs.m_can_reverse)
         , m_role(rhs.m_role)
         , m_no_extrusion(rhs.m_no_extrusion)
@@ -225,6 +233,7 @@ public:
         , wave_overhang_floor(rhs.wave_overhang_floor)
         , wave_overhang_perimeter(rhs.wave_overhang_perimeter)
         , wave_overhang_floor_perimeter(rhs.wave_overhang_floor_perimeter)
+        , wave_overhang_floor_distance(rhs.wave_overhang_floor_distance)
         , m_can_reverse(rhs.m_can_reverse)
         , m_role(rhs.m_role)
         , m_no_extrusion(rhs.m_no_extrusion)
@@ -241,6 +250,7 @@ public:
         this->wave_overhang_floor = rhs.wave_overhang_floor;
         this->wave_overhang_perimeter = rhs.wave_overhang_perimeter;
         this->wave_overhang_floor_perimeter = rhs.wave_overhang_floor_perimeter;
+        this->wave_overhang_floor_distance = rhs.wave_overhang_floor_distance;
         this->polyline = rhs.polyline;
         return *this;
     }
@@ -255,6 +265,7 @@ public:
         this->wave_overhang_floor = rhs.wave_overhang_floor;
         this->wave_overhang_perimeter = rhs.wave_overhang_perimeter;
         this->wave_overhang_floor_perimeter = rhs.wave_overhang_floor_perimeter;
+        this->wave_overhang_floor_distance = rhs.wave_overhang_floor_distance;
         this->polyline = std::move(rhs.polyline);
         return *this;
     }

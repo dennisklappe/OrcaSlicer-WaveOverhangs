@@ -1156,6 +1156,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,                       wave_overhang_floor_hilbert_density))
     ((ConfigOptionFloat,                     wave_overhang_floor_print_speed))
     ((ConfigOptionFloat,                     wave_overhang_floor_perimeter_speed))
+    ((ConfigOptionInt,                       wave_overhang_floor_speed_ramp))
     ((ConfigOptionInt,                       wave_overhang_floor_fan_speed))
     ((ConfigOptionInt,                       wave_overhang_floor_aux_fan_speed))
     ((ConfigOptionInt,                       wave_overhang_nozzle_temp))

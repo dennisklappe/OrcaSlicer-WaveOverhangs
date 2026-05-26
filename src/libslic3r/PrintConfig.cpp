@@ -4926,6 +4926,29 @@ void PrintConfigDef::init_fff_params()
     def->max = 1000;
     def->set_default_value(new ConfigOptionFloat(0.0));
 
+    def = this->add("wave_overhang_floor_speed_ramp", coInt);
+    def->label = L("Floor speed ramp");
+    def->category = L("Speed");
+    def->tooltip = L("Number of layers over which the floor-layer speed overrides (Floor print speed "
+                     "and Floor perimeter speed) ramp linearly from the slow override speed back up "
+                     "to the normal print/wall speed.\n\n"
+                     "0 = step function (current behaviour): every floor layer prints at the override "
+                     "speed, then snaps back to normal on the next layer.\n"
+                     "1..N = layer 1 above the wave prints at the override speed, layer N (or the last "
+                     "floor layer, whichever comes first) prints at full normal speed, with linear "
+                     "interpolation in between.\n\n"
+                     "Helpful for releasing the thermal stress that builds up at the speed transition: "
+                     "the gradual ramp keeps each layer slightly warmer than the next as the print "
+                     "moves away from the wave shadow, so curl is spread across the ramp instead of "
+                     "concentrated at one boundary.\n\n"
+                     "Capped by Floor layers; if you set a ramp longer than the floor-layer count, "
+                     "the ramp ends at the top floor layer.");
+    def->sidetext = L("layers");
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 64;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("wave_overhang_floor_fan_speed", coInt);
     def->label = L("Hilbert floor fan speed");
     def->category = L("Cooling");

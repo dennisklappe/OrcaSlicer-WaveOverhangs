@@ -26,18 +26,21 @@ namespace Slic3r {
 // wave-overhang-floor path. Used to mark Hilbert-pattern infill on the solid
 // floor layers above wave overhangs so the G-code stage applies the
 // wave_overhang_floor_print_speed and wave_overhang_floor_fan_speed overrides.
-static void tag_wave_overhang_floor_recursive(ExtrusionEntity *ent)
+// `distance` is the 1-based layer offset from the nearest wave layer below;
+// G-code interpolates against wave_overhang_floor_speed_ramp using this.
+static void tag_wave_overhang_floor_recursive(ExtrusionEntity *ent, int8_t distance)
 {
     if (!ent) return;
-    if (auto *path = dynamic_cast<ExtrusionPath*>(ent)) {
-        path->wave_overhang_floor = true;
-    } else if (auto *loop = dynamic_cast<ExtrusionLoop*>(ent)) {
-        for (ExtrusionPath &p : loop->paths) p.wave_overhang_floor = true;
-    } else if (auto *mp = dynamic_cast<ExtrusionMultiPath*>(ent)) {
-        for (ExtrusionPath &p : mp->paths) p.wave_overhang_floor = true;
-    } else if (auto *coll = dynamic_cast<ExtrusionEntityCollection*>(ent)) {
+    auto stamp = [distance](ExtrusionPath &p) {
+        p.wave_overhang_floor = true;
+        p.wave_overhang_floor_distance = distance;
+    };
+    if (auto *path = dynamic_cast<ExtrusionPath*>(ent))         { stamp(*path); }
+    else if (auto *loop = dynamic_cast<ExtrusionLoop*>(ent))    { for (ExtrusionPath &p : loop->paths) stamp(p); }
+    else if (auto *mp = dynamic_cast<ExtrusionMultiPath*>(ent)) { for (ExtrusionPath &p : mp->paths) stamp(p); }
+    else if (auto *coll = dynamic_cast<ExtrusionEntityCollection*>(ent)) {
         for (ExtrusionEntity *child : coll->entities)
-            tag_wave_overhang_floor_recursive(child);
+            tag_wave_overhang_floor_recursive(child, distance);
     }
 }
 
@@ -294,6 +297,10 @@ struct SurfaceFillParams
     // Used by Layer::make_fills() to tag produced ExtrusionPaths so the G-code stage
     // applies wave_overhang_floor_print_speed / wave_overhang_floor_fan_speed overrides.
     bool wave_overhang_floor = false;
+    // Orca: 1-based layer distance from the nearest wave layer below; 0 when not a
+    // wave-overhang floor. Tagged onto produced ExtrusionPaths so G-code can ramp the
+    // floor print speed across wave_overhang_floor_speed_ramp layers.
+    int8_t wave_overhang_floor_distance = 0;
 
 	bool operator<(const SurfaceFillParams &rhs) const {
 #define RETURN_COMPARE_NON_EQUAL(KEY) if (this->KEY < rhs.KEY) return true; if (this->KEY > rhs.KEY) return false;
@@ -328,6 +335,7 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(infill_lock_depth);
 		RETURN_COMPARE_NON_EQUAL(skin_infill_depth);		RETURN_COMPARE_NON_EQUAL(infill_overhang_angle);
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, wave_overhang_floor);
+		RETURN_COMPARE_NON_EQUAL_TYPED(int, wave_overhang_floor_distance);
 
 		return false;
 	}
@@ -356,7 +364,8 @@ struct SurfaceFillParams
 				this->infill_lock_depth      ==  rhs.infill_lock_depth &&
 				this->skin_infill_depth      ==  rhs.skin_infill_depth &&
                 this->infill_overhang_angle == rhs.infill_overhang_angle &&
-                this->wave_overhang_floor   == rhs.wave_overhang_floor;
+                this->wave_overhang_floor   == rhs.wave_overhang_floor &&
+                this->wave_overhang_floor_distance == rhs.wave_overhang_floor_distance;
 	}
 };
 
@@ -949,6 +958,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                                         params.pattern = ipHilbertCurve;
                                         params.density = float(std::clamp(region_config.wave_overhang_floor_hilbert_density.value, 1, 100));
                                         params.wave_overhang_floor = true;
+                                        params.wave_overhang_floor_distance = static_cast<int8_t>(std::min(k, 127));
                                     }
                                 }
                             }
@@ -1394,8 +1404,9 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
 		// Orca: now tag every newly-produced path/loop/multi-path/sub-collection if
 		// this SurfaceFill represented a wave-overhang Hilbert floor.
 		if (surface_fill.params.wave_overhang_floor) {
+			const int8_t dist = surface_fill.params.wave_overhang_floor_distance;
 			for (size_t i = wo_floor_dst_size_before; i < dst_entities.size(); ++i)
-				tag_wave_overhang_floor_recursive(dst_entities[i]);
+				tag_wave_overhang_floor_recursive(dst_entities[i], dist);
 		}
     }
 

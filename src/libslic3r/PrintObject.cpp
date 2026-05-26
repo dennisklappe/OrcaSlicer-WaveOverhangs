@@ -2000,34 +2000,47 @@ void PrintObject::apply_wave_overhang_bridge_suppression()
 //   wave_overhang_floor_perimeter  : path lives on a layer in the wave shadow but is NOT a wave layer itself
 // ==============================================================================================================
 namespace {
-// Recursively flag every leaf ExtrusionPath inside an entity tree.
-static void tag_wave_overhang_perimeter_recursive(ExtrusionEntity *ent, bool floor_layer)
+// Recursively flag every leaf ExtrusionPath inside an entity tree. `distance` is the
+// 1-based layer offset from the nearest wave layer below (0 for wave layers themselves
+// and for non-floor layers); consumed by G-code together with
+// wave_overhang_floor_speed_ramp to interpolate floor speed back to normal.
+static void tag_wave_overhang_perimeter_recursive(ExtrusionEntity *ent, bool floor_layer, int8_t distance)
 {
     if (!ent) return;
-    auto stamp = [floor_layer](ExtrusionPath &p) {
-        if (floor_layer) p.wave_overhang_floor_perimeter = true;
-        else             p.wave_overhang_perimeter       = true;
+    auto stamp = [floor_layer, distance](ExtrusionPath &p) {
+        if (floor_layer) {
+            p.wave_overhang_floor_perimeter = true;
+            p.wave_overhang_floor_distance  = distance;
+        } else {
+            p.wave_overhang_perimeter = true;
+        }
     };
     if (auto *path = dynamic_cast<ExtrusionPath*>(ent))         { stamp(*path); }
     else if (auto *loop = dynamic_cast<ExtrusionLoop*>(ent))    { for (ExtrusionPath &p : loop->paths) stamp(p); }
     else if (auto *mp = dynamic_cast<ExtrusionMultiPath*>(ent)) { for (ExtrusionPath &p : mp->paths)   stamp(p); }
     else if (auto *coll = dynamic_cast<ExtrusionEntityCollection*>(ent))
-        for (ExtrusionEntity *child : coll->entities) tag_wave_overhang_perimeter_recursive(child, floor_layer);
+        for (ExtrusionEntity *child : coll->entities) tag_wave_overhang_perimeter_recursive(child, floor_layer, distance);
 }
 } // anonymous namespace
 
 void PrintObject::tag_wave_overhang_perimeters()
 {
     bool any_wave = false;
-    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id)
-        if (this->printing_region(region_id).config().wave_overhangs.value) { any_wave = true; break; }
+    int  max_floor_layers = 0;
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        const PrintRegionConfig &rconf = this->printing_region(region_id).config();
+        if (rconf.wave_overhangs.value) {
+            any_wave = true;
+            max_floor_layers = std::max(max_floor_layers, rconf.wave_overhang_floor_layers.value);
+        }
+    }
     if (!any_wave)
         return;
 
     BOOST_LOG_TRIVIAL(info) << "Tagging wave-overhang perimeters...";
 
     tbb::parallel_for(tbb::blocked_range<size_t>(0, m_layers.size()),
-        [this](const tbb::blocked_range<size_t> &range) {
+        [this, max_floor_layers](const tbb::blocked_range<size_t> &range) {
             for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
                 m_print->throw_if_canceled();
                 Layer *layer = m_layers[idx_layer];
@@ -2035,11 +2048,27 @@ void PrintObject::tag_wave_overhang_perimeters()
                 const bool is_floor_layer = !is_wave_layer && !layer->wave_overhang_shadow_polygons.empty();
                 if (!is_wave_layer && !is_floor_layer)
                     continue;
+                // For floor layers, find the closest wave layer below within the
+                // floor-layer window. The distance is 1-based: 1 = directly above the
+                // wave, 2 = one layer further up, etc. Capped at max_floor_layers
+                // across all regions. 0 stays as "no ramp data" so existing step-function
+                // behaviour is unaffected when the ramp config is 0.
+                int8_t distance = 0;
+                if (is_floor_layer && max_floor_layers > 0) {
+                    const int search_limit = std::min<int>(max_floor_layers, 127);
+                    for (int k = 1; k <= search_limit; ++k) {
+                        if ((int)idx_layer - k < 0) break;
+                        if (!m_layers[idx_layer - k]->wave_overhang_floor_polygons.empty()) {
+                            distance = static_cast<int8_t>(k);
+                            break;
+                        }
+                    }
+                }
                 for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
                     if (!this->printing_region(region_id).config().wave_overhangs.value)
                         continue;
                     LayerRegion *layerm = layer->m_regions[region_id];
-                    tag_wave_overhang_perimeter_recursive(&layerm->perimeters, is_floor_layer);
+                    tag_wave_overhang_perimeter_recursive(&layerm->perimeters, is_floor_layer, distance);
                 }
             }
         });

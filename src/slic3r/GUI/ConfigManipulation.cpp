@@ -985,6 +985,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         std::string("wave_overhang_min_layer_time"),
         std::string("wave_overhang_floor_layers"),
         std::string("wave_overhang_floor_perimeter_speed"),
+        std::string("wave_overhang_floor_speed_ramp"),
         std::string("wave_overhang_floor_use_hilbert"),
         std::string("wave_overhang_min_angle"),
         std::string("wave_overhang_min_length"),

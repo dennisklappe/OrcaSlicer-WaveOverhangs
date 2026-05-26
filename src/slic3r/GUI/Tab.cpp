@@ -2463,6 +2463,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("wave_overhang_floor_hilbert_density");
         optgroup->append_single_option_line("wave_overhang_floor_print_speed");
         optgroup->append_single_option_line("wave_overhang_floor_perimeter_speed");
+        optgroup->append_single_option_line("wave_overhang_floor_speed_ramp");
         optgroup->append_single_option_line("wave_overhang_floor_fan_speed");
         optgroup->append_single_option_line("wave_overhang_floor_aux_fan_speed");
 

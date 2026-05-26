@@ -6684,7 +6684,18 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         // Orca: wave-overhang Hilbert floor speed override. Slower print on the floor
         // layers gives each Hilbert line more time to dissipate heat before its
         // neighbours land, which reduces the residual thermal stress driving warping.
-        speed = m_config.wave_overhang_floor_print_speed.value;
+        // If wave_overhang_floor_speed_ramp > 0 and we know the layer's distance from
+        // the wave, linearly interpolate between the override (slowest, distance=1)
+        // and the normal speed (full, distance>=ramp) so the transition is gradual.
+        const double override_speed = m_config.wave_overhang_floor_print_speed.value;
+        const int    ramp           = m_config.wave_overhang_floor_speed_ramp.value;
+        const int    distance       = path.wave_overhang_floor_distance;
+        if (ramp > 0 && distance > 0) {
+            const double factor = std::min(double(distance) / double(ramp), 1.0);
+            speed = override_speed + (speed - override_speed) * factor;
+        } else {
+            speed = override_speed;
+        }
         variable_speed = false;
         new_points.clear();
     } else if (path.wave_overhang_perimeter && m_config.wave_overhang_perimeter_speed.value > 0) {
@@ -6697,8 +6708,18 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     } else if (path.wave_overhang_floor_perimeter && m_config.wave_overhang_floor_perimeter_speed.value > 0) {
         // Orca: walls on floor layers above wave-overhang regions ride a fragile
         // shadow that warps with fast walls landing on top; slow them to keep the
-        // substrate near bed temperature and let thermal stress relax.
-        speed = m_config.wave_overhang_floor_perimeter_speed.value;
+        // substrate near bed temperature and let thermal stress relax. Mirrors the
+        // floor-print ramp above: if wave_overhang_floor_speed_ramp > 0, interpolate
+        // from the override (slowest, distance=1) back to the normal wall speed.
+        const double override_speed = m_config.wave_overhang_floor_perimeter_speed.value;
+        const int    ramp           = m_config.wave_overhang_floor_speed_ramp.value;
+        const int    distance       = path.wave_overhang_floor_distance;
+        if (ramp > 0 && distance > 0) {
+            const double factor = std::min(double(distance) / double(ramp), 1.0);
+            speed = override_speed + (speed - override_speed) * factor;
+        } else {
+            speed = override_speed;
+        }
         variable_speed = false;
         new_points.clear();
     }
