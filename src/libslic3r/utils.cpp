@@ -1208,7 +1208,11 @@ std::string string_printf(const char *format, ...)
 
 std::string header_slic3r_generated()
 {
-	return std::string(SLIC3R_APP_NAME " " SoftFever_VERSION);
+	// Use SLIC3R_GCODE_VERSION (carries the "-WaveOverhangs" fork suffix) rather
+	// than SoftFever_VERSION (kept clean for CPack/NSIS). Gives a header like
+	// "OrcaSlicer 2.4.0-WaveOverhangs" that firmware parsers such as Snapmaker U1
+	// accept (name token is "OrcaSlicer").
+	return std::string(SLIC3R_APP_NAME " " SLIC3R_GCODE_VERSION);
 }
 
 std::string header_gcodeviewer_generated()

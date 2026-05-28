@@ -322,6 +322,14 @@ jobs:
         run: |
           cpack -G NSIS
 
+      - name: Dump NSIS log on failure
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED && failure()
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          $log = "_CPack_Packages/win64/NSIS/NSISOutput.log"
+          if (Test-Path $log) { Write-Host "===== NSISOutput.log ====="; Get-Content $log }
+          else { Write-Host "NSISOutput.log not found at $log" }
+
       - name: Pack app
         if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}/build

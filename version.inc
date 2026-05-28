@@ -11,12 +11,17 @@ set(SLIC3R_GETTEXT_DOMAIN "OrcaSlicer")
 if(NOT DEFINED BBL_INTERNAL_TESTING)
 set(BBL_INTERNAL_TESTING "0")
 endif()
-# Suffix the fork identifier into the version so the gcode header reads
-# "OrcaSlicer 2.4.0-WaveOverhangs on ..." - matches the convention used by
-# other Orca forks (e.g. "OrcaSlicer 2.4.0-Nanashi") and accepted by firmware
-# parsers like Snapmaker U1 that reject the longer "OrcaSlicer-WaveOverhangs"
-# prefix.
-set(SoftFever_VERSION "2.4.0-WaveOverhangs")
+# Upstream Orca base version. Keep this clean (no fork suffix): it feeds CPack /
+# NSIS packaging (installer filename, product version). A non-"dev" suffix here
+# made the Windows NSIS installer build fail, so the fork identifier lives in
+# SLIC3R_GCODE_VERSION below instead.
+set(SoftFever_VERSION "2.4.0-dev")
+# Gcode-header version string only. Read by header_slic3r_generated() so the
+# gcode reads "OrcaSlicer 2.4.0-WaveOverhangs on ...", matching the convention
+# other Orca forks use (e.g. "OrcaSlicer 2.4.0-Nanashi") and accepted by firmware
+# parsers like Snapmaker U1 that reject the "OrcaSlicer-WaveOverhangs" prefix.
+# Does NOT feed CPack, so it can carry the fork suffix safely.
+set(SLIC3R_GCODE_VERSION "2.4.0-WaveOverhangs")
 # Wave-overhangs fork version, bumped per git tag at release time
 # (patched by .github/workflows/release.yml). Keep as "dev" on main branch.
 set(WAVE_OVERHANGS_VERSION "dev")
