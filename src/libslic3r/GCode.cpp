@@ -2506,7 +2506,15 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // Orca: wave-overhang debug block — when any region has wave_overhangs
         // enabled AND debug-gcode is on, dump the active settings so post-
         // processing / tuning reports can verify exactly what ran.
-        {
+        //
+        // Emitted *after* HEADER_BLOCK_END (see the call below), never inside the
+        // header block itself: firmware parsers read HEADER_BLOCK and some reject
+        // a file outright when they meet keys they don't know. The Flashforge AD5X
+        // reported this as "No filament detected" (#74) and the Snapmaker U1 as
+        // "Invalid gcode" (#76). Keeping HEADER_BLOCK byte-for-byte the same shape
+        // as stock OrcaSlicer's is what makes our g-code portable; anything
+        // fork-specific belongs outside it.
+        auto write_wave_overhang_debug_block = [&]() {
             // Determine if any region uses wave overhangs with debug enabled.
             bool any_wave_debug = false;
             for (const PrintRegion *region : print.m_print_regions) {
@@ -2597,7 +2605,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                     ++region_idx;
                 }
             }
-        }
+        };
         if (is_bbl_printers)
             file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Estimated_Printing_Time_Placeholder).c_str());
         //BBS: total layer number
@@ -2656,6 +2664,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
 
     file.write_format("; HEADER_BLOCK_END\n\n");
+
+    // Orca: fork-specific debug keys go here, outside HEADER_BLOCK.
+    write_wave_overhang_debug_block();
     }
     
       // BBS: write global config at the beginning of gcode file because printer
