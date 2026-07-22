@@ -14,12 +14,30 @@ if (IN_GIT_REPO)
     set(OpenCV_DIRECTORY_FLAG --directory ${BINARY_DIR_REL}/dep_OpenCV-prefix/src/dep_OpenCV)
 endif ()
 
+# When arm64 deps are configured by an x86_64 CMake (e.g. an Intel-Homebrew
+# CMake running under Rosetta), OpenCV's host-based CPU detection leaves its
+# AARCH64 flag unset, so its bundled libpng never adds the arm/*neon*.c sources.
+# The arm64 compiler still defines __ARM_NEON, so libpng's headers emit NEON
+# *references* (png_*_neon) with no implementation -> the final link fails with
+# undefined symbols. Force libpng to its portable C paths, but only in that
+# mismatched host/target setup: native arm64 toolchains (including CI) detect
+# AARCH64 correctly and keep the NEON fast paths untouched. DEPS_ARCH is only
+# assigned in the MSVC branch of deps/CMakeLists.txt, so on APPLE it is empty;
+# key off the target CMAKE_OSX_ARCHITECTURES instead. The flag must ride on
+# CMAKE_C_FLAGS (not OPENCV_EXTRA_C_FLAGS, which OpenCV 4.6.0 resets to "" at
+# configure time) so it reaches the bundled libpng C sources as a real define.
+if (APPLE AND CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_OSX_ARCHITECTURES MATCHES "arm64")
+    set(_opencv_libpng_no_neon "-DCMAKE_C_FLAGS=-DPNG_ARM_NEON_OPT=0")
+endif ()
+
 orcaslicer_add_cmake_project(OpenCV
     ${_options}
     URL https://github.com/opencv/opencv/archive/refs/tags/4.6.0.tar.gz
     URL_HASH SHA256=1ec1cba65f9f20fe5a41fda1586e01c70ea0c9a6d7b67c9e13edf0cfe2239277
     PATCH_COMMAND git apply ${OpenCV_DIRECTORY_FLAG} --verbose --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/0001-vs.patch  ${CMAKE_CURRENT_LIST_DIR}/0002-clang19-macos.patch
     CMAKE_ARGS
+       # Empty unless the x86_64-host / arm64-target mismatch above is detected.
+       ${_opencv_libpng_no_neon}
     -DBUILD_SHARED_LIBS=0
        -DBUILD_PERE_TESTS=OFF
        -DBUILD_TESTS=OFF

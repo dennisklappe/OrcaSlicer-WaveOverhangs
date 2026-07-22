@@ -1,4 +1,4 @@
-set(_curl_platform_flags 
+set(_curl_platform_flags
   -DENABLE_IPV6:BOOL=ON
   -DENABLE_VERSIONED_SYMBOLS:BOOL=ON
   -DENABLE_THREADED_RESOLVER:BOOL=ON
@@ -28,17 +28,17 @@ if (WIN32)
   #set(_curl_platform_flags  ${_curl_platform_flags} -DCMAKE_USE_SCHANNEL=ON)
   set(_curl_platform_flags  ${_curl_platform_flags} -DCMAKE_USE_OPENSSL=ON -DCURL_CA_PATH:STRING=none)
 elseif (APPLE)
-  set(_curl_platform_flags 
-    
+  set(_curl_platform_flags
+
     ${_curl_platform_flags}
 
-    #-DCMAKE_USE_SECTRANSP:BOOL=ON 
+    #-DCMAKE_USE_SECTRANSP:BOOL=ON
     -DCMAKE_USE_OPENSSL:BOOL=ON
 
     -DCURL_CA_PATH:STRING=none
   )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set(_curl_platform_flags 
+  set(_curl_platform_flags
 
     ${_curl_platform_flags}
 
@@ -62,13 +62,23 @@ orcaslicer_add_cmake_project(CURL
   URL                 https://github.com/curl/curl/archive/refs/tags/curl-7_75_0.zip
   URL_HASH            SHA256=a63ae025bb0a14f119e73250f2c923f4bf89aa93b8d4fafa4a9f5353a96a765a
   DEPENDS             ${ZLIB_PKG}
-  # PATCH_COMMAND       ${GIT_EXECUTABLE} checkout -f -- . && git clean -df && 
+  # PATCH_COMMAND       ${GIT_EXECUTABLE} checkout -f -- . && git clean -df &&
   #                     ${GIT_EXECUTABLE} apply --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/curl-mods.patch
   CMAKE_ARGS
     -DBUILD_TESTING:BOOL=OFF
     -DBUILD_CURL_EXE:BOOL=OFF
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON
     -DCURL_STATICLIB=${_curl_static}
+    # find_package(OpenSSL) links OpenSSL::SSL/::Crypto as IMPORTED targets whose
+    # INTERFACE include dir is added as a system path (-isystem <deps>/include).
+    # On macOS that -isystem entry demotes the bundled OpenSSL below the compiler's
+    # default /usr/local/include, where a Homebrew OpenSSL 3.x can live, so curl's
+    # TLS code compiles against the 3.x API and then fails to link against the
+    # bundled 1.1.1 libs (undefined SSL_CTX_load_verify_dir,
+    # SSL_get1_peer_certificate, EVP_PKEY_get_id, ...). Disabling the implicit
+    # system treatment keeps the bundled OpenSSL headers as a normal -I so they
+    # win. Safe here: curl only imports bundled deps, all under <deps>/include.
+    -DCMAKE_NO_SYSTEM_FROM_IMPORTED:BOOL=ON
     ${_curl_platform_flags}
 )
 
