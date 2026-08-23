@@ -6297,6 +6297,11 @@ void ObjectList::OnEditingStarted(wxDataViewEvent &event)
 
 void ObjectList::OnEditingDone(wxDataViewEvent &event)
 {
+    // wxGTK may emit EDITING_DONE after the plater's canvas state has already
+    // been reset during application shutdown.
+    if (wxGetApp().is_closing())
+        return;
+
     if (event.GetColumn() != colName)
         return;
 
