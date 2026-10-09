@@ -154,6 +154,7 @@ jobs:
         with:
           name: OrcaSlicer_Mac_bundle_${{ inputs.arch }}_${{ github.sha }}
           path: ${{ github.workspace }}/OrcaSlicer_Mac_bundle_${{ inputs.arch }}_${{ github.sha }}.tar.gz
+          retention-days: 3
 
       - name: Download macOS app bundles
         if: runner.os == 'macOS' && inputs.macos-combine-only
@@ -266,6 +267,7 @@ jobs:
         with:
           name: OrcaSlicerWaveOverhangs_Mac_universal_${{ env.ver }}
           path: ${{ github.workspace }}/OrcaSlicerWaveOverhangs_Mac_universal_${{ env.ver }}.dmg
+          retention-days: 3
 
       - name: Upload OrcaSlicer_profile_validator DMG mac
         if: runner.os == 'macOS' && inputs.macos-combine-only && !vars.SELF_HOSTED
@@ -274,6 +276,7 @@ jobs:
           name: OrcaSlicer_profile_validator_Mac_universal_DMG_${{ env.ver }}
           path: ${{ github.workspace }}/OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
           if-no-files-found: ignore
+          retention-days: 3
 
       - name: Deploy Mac release
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'macOS' && inputs.macos-combine-only && !vars.SELF_HOSTED
@@ -348,6 +351,7 @@ jobs:
         with:
           name: OrcaSlicerWaveOverhangs_Windows_${{ env.ver }}_portable
           path: ${{ github.workspace }}/build/OrcaSlicer
+          retention-days: 3
 
       - name: Upload artifacts Win installer
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
@@ -355,6 +359,7 @@ jobs:
         with:
           name: OrcaSlicerWaveOverhangs_Windows_${{ env.ver }}
           path: ${{ github.workspace }}/build/OrcaSlicer*.exe
+          retention-days: 3
 
       - name: Upload artifacts Win PDB
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
@@ -362,6 +367,7 @@ jobs:
         with:
           name: PDB
           path: ${{ github.workspace }}/build/src/Release/Debug_PDB_${{ env.ver }}_for_developers_only.7z
+          retention-days: 3
 
       - name: Upload OrcaSlicer_profile_validator Win
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
@@ -369,6 +375,7 @@ jobs:
         with:
           name: OrcaSlicer_profile_validator_Windows_${{ env.ver }}
           path: ${{ github.workspace }}/build/src/Release/OrcaSlicer_profile_validator.exe
+          retention-days: 3
 
       - name: Deploy Windows release portable
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED
@@ -449,6 +456,7 @@ jobs:
           # The rename step above produces OrcaSlicerWaveOverhangs_..., so the
           # upload path needs to match or nothing gets uploaded to the release.
           path: './build/OrcaSlicerWaveOverhangs_Linux_AppImage${{ env.ubuntu-ver-str }}_${{ env.ver }}.AppImage'
+          retention-days: 3
 
       - name: Upload OrcaSlicer_profile_validator Ubuntu
         if: ${{ ! env.ACT && runner.os == 'Linux' && !vars.SELF_HOSTED }}
@@ -456,6 +464,7 @@ jobs:
         with:
           name: OrcaSlicer_profile_validator_Linux_ubuntu_${{ env.ubuntu-ver }}_${{ env.ver }}
           path: './build/src/Release/OrcaSlicer_profile_validator'
+          retention-days: 3
 
       - name: Deploy Ubuntu release
         if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' && ! env.ACT && github.ref == 'refs/heads/main' && runner.os == 'Linux' && !vars.SELF_HOSTED }}
