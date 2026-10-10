@@ -6,6 +6,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning fol
 
 ## [Unreleased]
 
+### Fixed
+- **Inward-growing overhangs get waves again (#84).** Overhang regions whose supported band is narrower than the seed inset margin (typical: an inward lip on a thin-walled ring, like a phone-case rim) produced no wave seeds and were silently dropped, printing the lip in mid-air. Seed anchoring now falls back to the un-inset anchors when the inset swallows the whole band.
+- **Walls and solid infill no longer print through the wave's anchor band (#69).** The wave seeds sit up to ~(walls+1) line spacings inside the supported region, but walls and fill were only cleared within 1.5 perimeter spacings of the geometric overhang. On profiles where an infill strip exists between the walls (many walls on a thin part, small nozzles) the surviving inner walls and solid infill ran straight through the wave rings, over-extruding badly. The clip regions now also include the area the wave actually painted.
+- **Linux AppImage no longer exits when the requested locale is not generated (#88).** On distros shipping only C.UTF-8 (minimal Debian/Ubuntu), every locale in the fallback chain failed `wxLocale::IsAvailable` and the app showed "Switching language failed" and closed. First launch now falls back to the C runtime default locale while keeping the translation dictionary.
+
+### Removed
+- **Dead generator plumbing removed.** The single-implementation `IGenerator`/`AndersonsGenerator` wrapper layer (left over from the algorithm-selector removal) is collapsed into `WaveOverhangs::generate()`, and the always-zero `additional_shell_count` parameter plus its unreachable shell-perimeter code path are gone. No behavior change.
+
 ### Added
 - **Floor-layer speed ramp.** New `wave_overhang_floor_speed_ramp` config (default 0 = step function, current behaviour) interpolates `wave_overhang_floor_print_speed` and `wave_overhang_floor_perimeter_speed` linearly from the override speed back up to the normal speed across N layers above the wave. Distance is stamped per-extrusion during the existing tagging pass. Helpful for releasing warping stress gradually instead of at a single layer boundary (closes #77).
 
