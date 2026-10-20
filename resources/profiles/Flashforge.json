@@ -44,6 +44,10 @@
         {
             "name": "Flashforge Guider4 Pro",
             "sub_path": "machine/Flashforge Guider4 Pro.json"
+        },
+        {
+            "name": "Flashforge Creator 5 Pro",
+            "sub_path": "machine/Flashforge Creator 5 Pro.json"
         }
     ],
     "process_list": [
@@ -2545,7 +2549,7 @@
         },
         {
             "name": "Flashforge Artemis 0.4 Nozzle",
-            "sub_path":"machine/Flashforge Artemis 0.4 Nozzle.json"
+            "sub_path": "machine/Flashforge Artemis 0.4 Nozzle.json"
         },
         {
             "name": "Flashforge Guider 3 Ultra 0.4 Nozzle",
@@ -2622,6 +2626,22 @@
         {
             "name": "Flashforge Guider4 Pro 0.8 HF nozzle",
             "sub_path": "machine/Flashforge Guider4 Pro 0.8 HF nozzle.json"
+        },
+        {
+            "name": "Flashforge Creator 5 Pro 0.25 nozzle",
+            "sub_path": "machine/Flashforge Creator 5 Pro 0.25 nozzle.json"
+        },
+        {
+            "name": "Flashforge Creator 5 Pro 0.4 nozzle",
+            "sub_path": "machine/Flashforge Creator 5 Pro 0.4 nozzle.json"
+        },
+        {
+            "name": "Flashforge Creator 5 Pro 0.6 nozzle",
+            "sub_path": "machine/Flashforge Creator 5 Pro 0.6 nozzle.json"
+        },
+        {
+            "name": "Flashforge Creator 5 Pro 0.8 nozzle",
+            "sub_path": "machine/Flashforge Creator 5 Pro 0.8 nozzle.json"
         }
     ]
 }
