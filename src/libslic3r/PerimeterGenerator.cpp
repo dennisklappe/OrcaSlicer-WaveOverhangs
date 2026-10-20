@@ -10,7 +10,6 @@
 #include "VariableWidth.hpp"
 #include "Arachne/WallToolPaths.hpp"
 #include "WaveOverhangs/WaveOverhangs.hpp"
-#include "WaveOverhangs/AndersonsGenerator.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "ExPolygonCollection.hpp"
 #include "Geometry.hpp"
@@ -1092,14 +1091,12 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     ExPolygons               infill_area,
     const Polygons          &lower_slices_polygons,
     int                      perimeter_count,
-    int                      additional_shell_count_override,
     const PrintRegionConfig &region_config,
     const Flow              &overhang_flow,
     double                   scaled_resolution)
 {
     WaveOverhangs::CommonParams params;
     params.perimeter_count        = perimeter_count;
-    params.additional_shell_count = std::max(0, additional_shell_count_override);
     params.line_spacing           = region_config.wave_overhang_line_spacing.value;
     params.line_width             = overhang_flow.nozzle_diameter();  // Always match nozzle; line_width != nozzle has no sensible regime in air.
     params.overhang_flow          = overhang_flow;
@@ -1136,8 +1133,7 @@ static std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_wave_overhang_
     if (infill_area.empty())
         return { {}, {} };
 
-    WaveOverhangs::AndersonsGenerator gen;
-    WaveOverhangs::GenerateResult res = gen.generate(infill_area, lower_slices_polygons, params);
+    WaveOverhangs::GenerateResult res = WaveOverhangs::generate(infill_area, lower_slices_polygons, params);
     return { std::move(res.paths), std::move(res.residual) };
 }
 
@@ -1268,8 +1264,7 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
         this->config->wall_loops > 0 && this->layer_id > this->object_config->raft_layers) {
         // Semantic: wave_overhang_outer_perimeters = N means "keep N outermost normal
         // perimeters inside the overhang zone, replace the rest with wave pattern". The wave
-        // itself produces only the pattern (additional_shell_count=0); the N preserved normal
-        // perimeters are the walls.
+        // itself produces only the pattern; the N preserved normal perimeters are the walls.
         //
         // Compute the wave's input region from the island geometry directly: island shrunk
         // inward by effective_outer * perimeter_spacing, where effective_outer is capped at
@@ -1312,8 +1307,7 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
 
         auto [extra_perimeters, filled_area] = use_wave_overhangs
             ? generate_wave_overhang_paths(wave_infill, this->lower_slices_polygons(),
-                                           this->config->wall_loops, /*additional_shell_count=*/0,
-                                           *this->config,
+                                           this->config->wall_loops, *this->config,
                                            this->overhang_flow, this->m_scaled_resolution)
             : generate_extra_perimeters_over_overhangs(infill_area, this->lower_slices_polygons(),
                                                         this->config->wall_loops, this->overhang_flow,
@@ -1366,7 +1360,16 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
                 // Previous 3-spacing margin clipped inner walls too aggressively,
                 // leaving them visibly short of the wave on the wave layer (#47).
                 const coord_t anchor_margin = coord_t(this->perimeter_flow.scaled_spacing() * 1.5);
-                const Polygons clip_region = expand(overhang_zone, anchor_margin, jtRound, 0.);
+                // Issue #69: also clear walls from the wave's supported-side anchor band.
+                // The wave seeds sit up to anchors_size (~(walls+1) spacings) INSIDE the
+                // supported region and the rings propagate outward from there, so the
+                // painted area extends well past overhang_zone + anchor_margin. On profiles
+                // where an infill strip exists between the walls (many walls + thin part,
+                // or small nozzles), the surviving inner walls ran straight through the
+                // wave rings, over-extruding badly. Union with filled_area (what the wave
+                // actually painted); the geometric zone still handles the sharp convex
+                // corners filled_area rounds off.
+                const Polygons clip_region = union_(expand(overhang_zone, anchor_margin, jtRound, 0.), filled_area);
                 ExtrusionEntityCollection clipped =
                     clip_inner_perimeters_in_zone(*this_islands_perimeters, clip_region, wave_outer);
                 new_perimeters.append(std::move(clipped.entities));
@@ -1415,6 +1418,12 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
                     // the wave's outermost ring with a small visual clearance.
                     const coord_t fill_overshoot_compensation = coord_t(this->overhang_flow.scaled_width() * 1.25);
                     fill_carve = expand(raw_overhang, fill_overshoot_compensation, jtRound, 0.);
+                    // Issue #69: also carve where the wave actually painted. The anchor
+                    // band on the supported side lies outside raw_overhang, and solid
+                    // infill kept printing straight through the wave rings there.
+                    // Expand by half a wave line width so fill stops at the physical
+                    // edge of the wave extrusion rather than at its centerline.
+                    fill_carve = union_(fill_carve, expand(filled_area, coord_t(this->overhang_flow.scaled_width() / 2), jtRound, 0.));
                 }
             }
 

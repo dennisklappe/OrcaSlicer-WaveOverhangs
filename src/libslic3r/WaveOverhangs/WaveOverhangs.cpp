@@ -407,33 +407,6 @@ void tag_wave_overhang_paths(std::vector<ExtrusionPaths> &wave_paths)
             path.wave_overhang = true;
 }
 
-void append_shell_perimeters(ExtrusionPaths &overhang_region,
-                             const Polygons &overhang_to_cover,
-                             int             outer_perimeter_count,
-                             coord_t         perimeter_spacing,
-                             const Flow     &perimeter_flow,
-                             double          scaled_resolution)
-{
-    if (outer_perimeter_count <= 0)
-        return;
-
-    Polygons shell_centerline = shrink(overhang_to_cover, std::max<coord_t>(1, perimeter_flow.scaled_width() / 2), jtRound, 0.);
-    for (int i = 0; i < outer_perimeter_count && ! shell_centerline.empty(); ++i) {
-        Polylines shell_loops = to_polylines(shell_centerline);
-        for (Polyline &loop : shell_loops)
-            loop.simplify(std::min(0.05 * perimeter_spacing, scaled_resolution));
-        shell_loops.erase(
-            std::remove_if(shell_loops.begin(), shell_loops.end(), [](const Polyline &loop) { return loop.points.size() < 2; }),
-            shell_loops.end());
-
-        if (! shell_loops.empty())
-            extrusion_paths_append(overhang_region, shell_loops, erOverhangPerimeter,
-                                   perimeter_flow.mm3_per_mm(), perimeter_flow.width(), perimeter_flow.height());
-
-        shell_centerline = shrink(shell_centerline, perimeter_spacing, jtRound, 0.);
-    }
-}
-
 // Helper: construct an ExtrusionPath from a polyline + flow/role (Orca API).
 static ExtrusionPath make_wave_path(const Polyline &polyline, const Flow &flow)
 {
@@ -684,26 +657,37 @@ void append_zig_zag_front_levels(ExtrusionPaths               &overhang_region,
 
 } // namespace
 
-std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
-    ExPolygons      infill_area,
-    const Polygons &lower_slices_polygons,
-    int             perimeter_count,
-    int             additional_shell_count,
-    double          wave_perimeter_overlap,
-    double          minimum_wave_width,
-    WaveOverhangPattern wave_pattern,
-    double          wave_line_spacing,
-    double          wave_line_width,
-    const Flow     &overhang_flow,
-    double          scaled_resolution,
-    int             max_iterations,
-    double          min_new_area_mm2,
-    bool            use_instead_of_bridges,
-    bool            corner_taper_enable,
-    double          line_spacing_corner_mm,
-    double          corner_taper_distance_mm,
-    double          corner_angle_threshold_deg)
+GenerateResult generate(const ExPolygons   &overhang_area,
+                        const Polygons     &lower_slices_polygons,
+                        const CommonParams &params)
 {
+    // Filter out overhangs whose contour length is below the configured minimum.
+    ExPolygons infill_area;
+    if (params.min_length_mm > 0.0) {
+        const double min_len_scaled = scale_(params.min_length_mm);
+        infill_area.reserve(overhang_area.size());
+        for (const ExPolygon &ex : overhang_area)
+            if (ex.contour.length() >= min_len_scaled)
+                infill_area.push_back(ex);
+    } else
+        infill_area = overhang_area;
+
+    const int    perimeter_count            = params.perimeter_count;
+    const double wave_perimeter_overlap     = params.perimeter_overlap;
+    const double minimum_wave_width         = params.minimum_wave_width;
+    const WaveOverhangPattern wave_pattern  = params.pattern;
+    const double wave_line_spacing          = params.line_spacing;
+    const double wave_line_width            = params.line_width;
+    const Flow  &overhang_flow              = params.overhang_flow;
+    const double scaled_resolution          = params.scaled_resolution;
+    const int    max_iterations             = params.max_iterations;
+    const double min_new_area_mm2           = params.min_new_area;
+    const bool   use_instead_of_bridges     = params.use_instead_of_bridges;
+    const bool   corner_taper_enable        = params.corner_taper_enable;
+    const double line_spacing_corner_mm     = params.line_spacing_corner;
+    const double corner_taper_distance_mm   = params.corner_taper_distance;
+    const double corner_angle_threshold_deg = params.corner_angle_threshold;
+
     const coord_t base_spacing       = overhang_flow.scaled_spacing();
     const Flow    wave_flow          = wave_line_width > 0. ? overhang_flow.with_width(float(wave_line_width)) : overhang_flow;
     const coord_t perimeter_overlap  = std::max<coord_t>(0, wave_perimeter_overlap > 0. ? coord_t(scale_(wave_perimeter_overlap)) : 0);
@@ -736,7 +720,6 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     const double  corner_angle_rad   = std::max(10.0, std::min(179.0, corner_angle_threshold_deg)) * M_PI / 180.0;
     const coord_t anchors_size       = std::min(coord_t(scale_(EXTERNAL_INFILL_MARGIN)), base_spacing * (perimeter_count + 1));
     const coord_t seed_expansion     = std::max<coord_t>(1, base_spacing / 10);
-    const coord_t shell_inner_edge   = additional_shell_count > 0 ? overhang_flow.scaled_width() + (additional_shell_count - 1) * base_spacing : 0;
     const coord_t filled_area_regularization = std::max<coord_t>(1, base_spacing / 2);
     const coord_t zig_zag_connector_limit = std::max<coord_t>(wave_spacing, wave_flow.scaled_width()) + perimeter_overlap;
     // Map min_new_area (mm^2) into Clipper's scaled area units. Fall back to the
@@ -761,9 +744,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
 
     for (const ExPolygon &overhang : union_ex(to_expolygons(inset_overhang_area))) {
         Polygons overhang_to_cover = to_polygons(overhang);
-        Polygons wave_cover_area   = additional_shell_count > 0 ?
-            shrink(overhang_to_cover, std::max<coord_t>(0, shell_inner_edge - perimeter_overlap), jtRound, 0.) :
-            expand(overhang_to_cover, perimeter_overlap, jtRound, 0.);
+        Polygons wave_cover_area   = expand(overhang_to_cover, perimeter_overlap, jtRound, 0.);
 
         // Corner-influence mask for this overhang. Detected from the overhang
         // contour (the free-air boundary), then dilated into a disk union.
@@ -789,9 +770,16 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
             if (Polygons split_slits = generate_narrow_split_slits(wave_cover, wave_spacing, min_wave_width); ! split_slits.empty())
                 split_wave_covers = union_ex(diff_ex(ExPolygons{ wave_cover }, split_slits));
 
-            const Polygons &full_seed_cover_polygons = additional_shell_count > 0 ? overhang_to_cover : to_polygons(wave_cover);
-            const ExPolygon &full_seed_boundary = additional_shell_count > 0 ? overhang : wave_cover;
-            const Polygons full_anchoring = intersection(expand(full_seed_cover_polygons, 1.1 * base_spacing, jtRound, 0.), inset_anchors);
+            const Polygons  full_seed_cover_polygons = to_polygons(wave_cover);
+            const ExPolygon &full_seed_boundary      = wave_cover;
+            Polygons full_anchoring = intersection(expand(full_seed_cover_polygons, 1.1 * base_spacing, jtRound, 0.), inset_anchors);
+            if (full_anchoring.empty())
+                // Narrow anchor band: the standard inset (anchors_size) swallowed the whole
+                // supported area, which happens when the wall band next to the overhang is
+                // narrower than the inset margin. Typical case: an inward-growing lip on a
+                // thin-walled ring (issue #84). Fall back to the un-inset anchors so the
+                // region still gets seeds instead of being silently dropped.
+                full_anchoring = intersection(expand(full_seed_cover_polygons, 1.1 * base_spacing, jtRound, 0.), anchors);
             const Polylines base_seeds = generate_wave_overhang_seeds(full_seed_boundary, full_anchoring, seed_expansion);
 
             for (const ExPolygon &split_wave_cover : split_wave_covers) {
@@ -806,8 +794,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
                 if (trim_boundary.empty())
                     trim_boundary = wave_cover_polygons;
 
-                const coord_t seed_offset = additional_shell_count > 0 ? shell_inner_edge + seed_expansion : seed_expansion;
-                Polygons accumulated_region = intersection(offset(seeds, float(seed_offset), jtRound, 0., ClipperLib::etOpenRound), wave_cover_polygons);
+                Polygons accumulated_region = intersection(offset(seeds, float(seed_expansion), jtRound, 0., ClipperLib::etOpenRound), wave_cover_polygons);
                 if (accumulated_region.empty())
                     continue;
 
@@ -886,13 +873,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
                     }
                     if (! split_region_paths.empty()) {
                         append(overhang_region, split_region_paths);
-                        append(
-                            filled_overhang_region,
-                            additional_shell_count > 0 ?
-                                intersection(
-                                    expand(accumulated_region, std::max<coord_t>(0, shell_inner_edge - perimeter_overlap), jtRound, 0.),
-                                    overhang_to_cover) :
-                                accumulated_region);
+                        append(filled_overhang_region, accumulated_region);
                     }
                 }
             }
@@ -902,7 +883,6 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
             std::remove_if(overhang_region.begin(), overhang_region.end(), [](const ExtrusionPath &path) { return path.empty(); }),
             overhang_region.end());
         filled_overhang_region = union_(filled_overhang_region);
-        append_shell_perimeters(overhang_region, filled_overhang_region, additional_shell_count, base_spacing, overhang_flow, scaled_resolution);
         if (! filled_overhang_region.empty())
             append(filled_area, filled_overhang_region);
         if (overhang_region.empty())
@@ -910,7 +890,10 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate(
     }
 
     tag_wave_overhang_paths(wave_paths);
-    return { wave_paths, union_safety_offset(closing_ex(filled_area, float(filled_area_regularization), jtRound, 0.)) };
+    GenerateResult result;
+    result.paths    = std::move(wave_paths);
+    result.residual = union_safety_offset(closing_ex(filled_area, float(filled_area_regularization), jtRound, 0.));
+    return result;
 }
 
 } // namespace Slic3r::WaveOverhangs

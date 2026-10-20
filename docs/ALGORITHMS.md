@@ -37,7 +37,7 @@ flowchart TD
     L[Push fragments into front_levels stack]
     M[current_shape = next_shape]
     N[Pattern mode:<br/>Smart / Monotonic / ZigZag<br/>decides inter-front traversal]
-    O[Emit as ExtrusionPath<br/>mm3/mm = wave_overhang_flow_mm3_per_mm<br/>defaults to nozzle squared]
+    O[Emit as ExtrusionPath<br/>mm3/mm = wave_overhang_flow_mm3_per_mm<br/>default 0.15 for a 0.4 mm nozzle]
 
     A --> B --> C --> D --> E --> F --> G
     G -- yes --> H
@@ -58,7 +58,7 @@ flowchart TD
 
 ## Flow setting
 
-`wave_overhang_flow_mm3_per_mm` controls how much plastic is extruded per millimetre of wave-overhang line. The default is `0.16` mm³/mm, which equals `nozzle²` for a 0.4 mm nozzle.
+`wave_overhang_flow_mm3_per_mm` controls how much plastic is extruded per millimetre of wave-overhang line. The default is `0.15` mm³/mm, the calibrated reference value for a 0.4 mm nozzle. Scale as `0.15 × (nozzle / 0.4)²` for other nozzles.
 
 Why a fixed mm³/mm rather than a layer-height-dependent ratio: a wave-overhang line hangs in air, not squished against a layer below. There's nothing to squish into, so layer height has no effect on the bead's cross-section. Only the nozzle bore and the mm³/mm extrusion rate set the bead size.
 
@@ -66,15 +66,15 @@ Recommended values for other nozzle sizes:
 
 | Nozzle | `wave_overhang_flow_mm3_per_mm` |
 |---|---|
+| 0.2 mm | 0.04 |
 | 0.3 mm | 0.09 |
-| 0.4 mm | **0.16 (default)** |
-| 0.5 mm | 0.25 |
-| 0.6 mm | 0.36 |
-| 0.8 mm | 0.64 |
+| 0.4 mm | **0.15 (default)** |
+| 0.5 mm | 0.23 |
+| 0.6 mm | 0.34 |
+| 0.8 mm | 0.60 |
 
 Raise if wave lines look thin or broken; lower if they blob together.
 
 ## Source
 
-- `src/libslic3r/WaveOverhangs/WaveOverhangs.cpp`: the algorithm body
-- `src/libslic3r/WaveOverhangs/AndersonsGenerator.cpp`: pluggable wrapper
+- `src/libslic3r/WaveOverhangs/WaveOverhangs.cpp`: the algorithm body (entry point: `WaveOverhangs::generate()`)

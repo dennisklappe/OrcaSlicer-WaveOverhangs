@@ -6530,27 +6530,39 @@ bool GUI_App::load_language(wxString language, bool initial)
 
 	BOOST_LOG_TRIVIAL(trace) << boost::format("Switching wxLocales to %1%") % locale_language_info->CanonicalName.ToUTF8().data();
 
-    if (!wxLocale::IsAvailable(locale_language_info->Language)) {
-    	// Loading the language dictionary failed.
-	    wxString message = "Switching Orca Slicer to language " + requested_language_code + " failed.";
+    // wxLANGUAGE_DEFAULT means "whatever the C runtime gives us" (setlocale(LC_ALL, "")).
+    // It is the last resort when no named locale in the fallback chain is generated on this
+    // system (typical for minimal Debian/Ubuntu installs that only ship C.UTF-8): the
+    // translation dictionary is still loaded, only number/date formatting comes from the C locale.
+    int locale_language = locale_language_info->Language;
+    if (!wxLocale::IsAvailable(locale_language)) {
+        if (initial && wxLocale::IsAvailable(wxLANGUAGE_DEFAULT)) {
+            BOOST_LOG_TRIVIAL(warning) << boost::format("No usable OS locale for %1% (missing locales?). "
+                                                        "Falling back to the C runtime default locale, keeping translation dictionary %1%.")
+                                              % requested_language_code.ToUTF8().data();
+            locale_language = wxLANGUAGE_DEFAULT;
+        } else {
+            // Loading the language dictionary failed.
+            wxString message = "Switching Orca Slicer to language " + requested_language_code + " failed.";
 #if !defined(_WIN32) && !defined(__APPLE__)
-        // likely some linux system
-        message += "\nYou may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n";
+            // likely some linux system
+            message += "\nYou may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n";
 #endif
-        if (initial)
-        	message + "\n\nApplication will close.";
-        wxMessageBox(message, "Orca Slicer - Switching language failed", wxOK | wxICON_ERROR);
-        if (initial)
-			std::exit(EXIT_FAILURE);
-		else
-			return false;
+            if (initial)
+                message += "\n\nApplication will close.";
+            wxMessageBox(message, "Orca Slicer - Switching language failed", wxOK | wxICON_ERROR);
+            if (initial)
+                std::exit(EXIT_FAILURE);
+            else
+                return false;
+        }
     }
 
     // Release the old locales, create new locales.
     //FIXME wxWidgets cause havoc if the current locale is deleted. We just forget it causing memory leaks for now.
     m_wxLocale.release();
     m_wxLocale = Slic3r::make_unique<wxLocale>();
-    m_wxLocale->Init(locale_language_info->Language);
+    m_wxLocale->Init(locale_language);
     // Override language at the active wxTranslations class (which is stored in the active m_wxLocale)
     // to load possibly different dictionary, for example, load Czech dictionary for Slovak language.
     wxTranslations::Get()->SetLanguage(language_dict);
