@@ -1287,18 +1287,6 @@ static ExtrusionEntityCollection clip_inner_perimeters_in_zone(const ExtrusionEn
     return out;
 }
 
-// Geometric overhang zone of an island (island - raw lower slices), restricted to the connected
-// pieces the wave actually painted. Pieces the wave skipped (bridgeable, too small, ...) are left
-// alone so their walls and fill are not carved without anything replacing them.
-static Polygons wave_painted_overhang_zone(const Polygons &island_polys, const Polygons &lower_raw, const Polygons &filled_area)
-{
-    Polygons zone;
-    const ExPolygons painted = union_ex(filled_area);
-    for (const ExPolygon &piece : union_ex(diff(island_polys, lower_raw)))
-        if (!intersection_ex(ExPolygons{piece}, painted).empty())
-            append(zone, to_polygons(piece));
-    return zone;
-}
 
 void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const ExPolygon &island_region)
 {
@@ -1401,7 +1389,7 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
                 // plus a perimeter-spacing anchor margin catches the full band.
                 const Polygons island_polys = to_polygons(ExPolygons{island_region});
                 const Polygons lower_raw    = to_polygons(*this->lower_slices);
-                const Polygons overhang_zone = wave_painted_overhang_zone(island_polys, lower_raw, filled_area);
+                const Polygons overhang_zone = WaveOverhangs::detail::painted_overhang_zone(island_polys, lower_raw, filled_area, coord_t(this->overhang_flow.scaled_width() / 2));
                 // 1.5 spacings: tight enough that inset walls in the supported
                 // region reach close to the wave boundary, wide enough that
                 // walls actually crossing into the overhang still get clipped.
@@ -1456,7 +1444,7 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
             if (use_wave_overhangs && this->lower_slices != nullptr) {
                 const Polygons island_polys = to_polygons(ExPolygons{island_region});
                 const Polygons lower_raw    = to_polygons(*this->lower_slices);
-                Polygons raw_overhang       = wave_painted_overhang_zone(island_polys, lower_raw, filled_area);
+                Polygons raw_overhang       = WaveOverhangs::detail::painted_overhang_zone(island_polys, lower_raw, filled_area, coord_t(this->overhang_flow.scaled_width() / 2));
                 if (! raw_overhang.empty()) {
                     // Compensate for the fill generator's overshoot past the
                     // fill_surface boundary. Two effects stack: the rectilinear

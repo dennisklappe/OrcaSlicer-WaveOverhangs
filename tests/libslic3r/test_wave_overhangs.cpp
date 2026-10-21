@@ -4,6 +4,7 @@
 #include <numeric>
 
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Flow.hpp"
@@ -259,4 +260,23 @@ TEST_CASE("generate far from the origin", "[WaveOverhangs]")
     const WO::GenerateResult result = cantilever(default_params(), 500., -500.);
     REQUIRE(path_count(result) > 0);
     REQUIRE(! result.residual.empty());
+}
+
+TEST_CASE("painted_overhang_zone drops a leaning wall sliver but keeps the overhang", "[WaveOverhangs]")
+{
+    // Overhang block on top, plus a 0.05 mm sliver running 40 mm along the supported side.
+    const Polygons lower  = { rect_mm(0, 0, 10, 40) };
+    const Polygons island = { rect_mm(-0.05, 0, 10, 40), rect_mm(-5, 38, 10, 45) };
+    const Polygons island_u = union_(island);
+    const Polygons painted = { rect_mm(-5, 40, 10, 45) };
+    const coord_t  radius  = scaled(0.4);
+
+    const Polygons zone = WO::detail::painted_overhang_zone(island_u, lower, painted, radius);
+    REQUIRE(unscaled(unscaled(area(zone))) > 84.);
+    // The sliver stays clear of the zone beyond 2 * radius from the overhang body.
+    REQUIRE(unscale<double>(get_extents(zone).min.y()) > 36.9);
+
+    // Without the filter the sliver reaches the bottom.
+    const Polygons all = WO::detail::painted_overhang_zone(island_u, lower, painted, 0);
+    REQUIRE(unscale<double>(get_extents(all).min.y()) < 1.);
 }
