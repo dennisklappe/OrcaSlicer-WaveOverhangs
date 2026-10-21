@@ -4656,9 +4656,9 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Use wave overhangs instead of bridges");
     def->category = L("Strength");
     def->tooltip = L("When wave overhangs are enabled, suppress every bridge classification "
-                     "in this region and fill with solid infill instead. Off by default: simple "
-                     "flat spans stay as regular bridges, only concave or holed overhangs get "
-                     "waves. Turn on to guarantee no bridge patterns anywhere in the region "
+                     "in this region and fill with solid infill instead. Off by default: short, "
+                     "wide flat spans stay as regular bridges; long, concave, one-sided or holed "
+                     "overhangs get waves. Turn on to guarantee no bridge patterns anywhere in the region "
                      "(bottom bridges and internal bridges both become solid infill).");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));

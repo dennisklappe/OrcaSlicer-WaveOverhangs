@@ -50,7 +50,7 @@ Master on/off switch. When off, none of the other wave-overhang settings have an
 
 ### `wave_overhangs_instead_of_bridges`
 
-Skip the bridge-vs-wave decision and wave every overhang in the region. Off by default: simple flat spans that are anchored on all sides stay regular bridges, only one-sided (cantilevered), concave, or holed overhangs get waves. Turn on to guarantee no bridge patterns anywhere in the region; bottom bridges and internal bridges both become solid infill on top of wave.
+Skip the bridge-vs-wave decision and wave every overhang in the region. Off by default: a flat span stays a regular bridge only when its unsupported distance is below 20% of the overhang's perimeter and it has no holes; longer, narrower, one-sided (cantilevered), concave, or holed overhangs get waves. Turn on to guarantee no bridge patterns anywhere in the region; bottom bridges and internal bridges both become solid infill on top of wave.
 
 - **Type:** bool · **Default:** `false`
 - **When to use:** an overhang that grows *inward* (a lip on the inside of a ring, a phone-case rim) is anchored on all sides, so the bridgeability check hands it to Orca's normal bridge pipeline. Turn this on to force wave there.

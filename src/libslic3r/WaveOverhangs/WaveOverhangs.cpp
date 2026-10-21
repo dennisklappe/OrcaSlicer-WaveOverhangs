@@ -748,6 +748,10 @@ GenerateResult generate(const ExPolygons   &overhang_area,
                 // thin-walled ring (issue #84). Fall back to the un-inset anchors so the
                 // region still gets seeds instead of being silently dropped.
                 full_anchoring = intersection(expand(full_seed_cover_polygons, 1.1 * base_spacing, jtRound, 0.), anchors);
+            if (full_anchoring.empty())
+                // Supports thinner than the wall inset (for example 0.5 mm rails) leave `anchors`
+                // empty too. Seed from the raw lower slices so the region is not dropped silently.
+                full_anchoring = intersection(expand(full_seed_cover_polygons, 1.1 * base_spacing, jtRound, 0.), optimized_lower);
             const Polylines base_seeds = generate_wave_overhang_seeds(full_seed_boundary, full_anchoring, seed_expansion);
 
             for (const ExPolygon &split_wave_cover : split_wave_covers) {
