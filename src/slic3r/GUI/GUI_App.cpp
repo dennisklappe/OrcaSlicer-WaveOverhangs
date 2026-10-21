@@ -2418,7 +2418,7 @@ void GUI_App::init_app_config()
             #endif
             bool first_launch = !boost::filesystem::exists(data_dir_path);
             if (first_launch){
-                boost::filesystem::create_directory(data_dir_path);
+                boost::filesystem::create_directories(data_dir_path);
             }
             // First-launch import: if our data dir didn't exist yet, probe for
             // other slicers' configs (stock OrcaSlicer, Bambu, Prusa) and offer
@@ -6536,7 +6536,9 @@ bool GUI_App::load_language(wxString language, bool initial)
     // translation dictionary is still loaded, only number/date formatting comes from the C locale.
     int locale_language = locale_language_info->Language;
     if (!wxLocale::IsAvailable(locale_language)) {
-        if (initial && wxLocale::IsAvailable(wxLANGUAGE_DEFAULT)) {
+        if (initial) {
+            // Even wxLANGUAGE_DEFAULT can be reported as unavailable when the system only has the
+            // plain "C" locale (fresh containers). Starting with the C locale beats refusing to start.
             BOOST_LOG_TRIVIAL(warning) << boost::format("No usable OS locale for %1% (missing locales?). "
                                                         "Falling back to the C runtime default locale, keeping translation dictionary %1%.")
                                               % requested_language_code.ToUTF8().data();
