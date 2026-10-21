@@ -8926,8 +8926,16 @@ void GLCanvas3D::_render_assemble_control()
         GLVolume::explosion_ratio = m_explosion_ratio = 1.0;
         return;
     }
+
+    // The assembly canvas may be rendered for one frame before its clipper has
+    // been created (or while it is being torn down).
+    auto* assemble_view_data = m_gizmos.m_assemble_view_data.get();
+    auto* model_objects_clipper = assemble_view_data == nullptr ? nullptr : assemble_view_data->model_objects_clipper();
+    if (model_objects_clipper == nullptr)
+        return;
+
     if (m_gizmos.get_current_type() == GLGizmosManager::EType::MmSegmentation) {
-        m_gizmos.m_assemble_view_data->model_objects_clipper()->set_position(0.0, true);
+        model_objects_clipper->set_position(0.0, true);
         return;
     }
 
@@ -8964,7 +8972,7 @@ void GLCanvas3D::_render_assemble_control()
     }
     float same_line_width = tip_icon_size;
     {
-        float clp_dist = m_gizmos.m_assemble_view_data->model_objects_clipper()->get_position();
+        float clp_dist = model_objects_clipper->get_position();
         if (clp_dist == 0.f) {
             ImGui::AlignTextToFramePadding();
             imgui->text(_L("Section View"));
@@ -8972,7 +8980,10 @@ void GLCanvas3D::_render_assemble_control()
         else {
             if (imgui->button(_L("Reset direction"))) {
                 wxGetApp().CallAfter([this]() {
-                    m_gizmos.m_assemble_view_data->model_objects_clipper()->set_position(-1., false);
+                    auto* data = m_gizmos.m_assemble_view_data.get();
+                    auto* clipper = data == nullptr ? nullptr : data->model_objects_clipper();
+                    if (clipper != nullptr)
+                        clipper->set_position(-1., false);
                     });
             }
         }
@@ -8987,7 +8998,7 @@ void GLCanvas3D::_render_assemble_control()
         bool view_input_changed = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
 
         if (view_slider_changed || view_input_changed)
-            m_gizmos.m_assemble_view_data->model_objects_clipper()->set_position(clp_dist, true);
+            model_objects_clipper->set_position(clp_dist, true);
 
         same_line_width += (value_size + item_spacing * 2);
     }
