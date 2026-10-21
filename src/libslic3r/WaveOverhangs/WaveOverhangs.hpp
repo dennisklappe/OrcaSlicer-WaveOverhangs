@@ -75,6 +75,11 @@ Polylines reconnect_polylines(const Polylines &polylines, double limit_distance)
 // Convex vertices of the polygons with an interior angle below the threshold.
 Points detect_overhang_corners(const Polygons &polys, double angle_threshold_rad);
 
+// Geometric overhang of an island (island - lower), restricted to the connected pieces the wave
+// painted. Thin slivers (a slightly leaning wall) are cut back to within 2 * sliver_radius of the
+// piece's body, so they do not clear the walls of a supported side along their whole length.
+Polygons painted_overhang_zone(const Polygons &island, const Polygons &lower, const Polygons &filled_area, coord_t sliver_radius);
+
 } // namespace detail
 
 } // namespace Slic3r::WaveOverhangs

@@ -31,6 +31,25 @@ namespace Slic3r::WaveOverhangs {
 
 namespace detail {
 
+Polygons painted_overhang_zone(const Polygons &island, const Polygons &lower, const Polygons &filled_area, coord_t sliver_radius)
+{
+    Polygons        zone;
+    const ExPolygons painted = union_ex(filled_area);
+    for (const ExPolygon &piece : union_ex(diff(island, lower))) {
+        if (intersection_ex(ExPolygons{piece}, painted).empty())
+            continue;
+        if (sliver_radius > 0) {
+            const ExPolygons body = opening_ex(ExPolygons{piece}, float(sliver_radius));
+            if (!body.empty()) {
+                append(zone, intersection(to_polygons(piece), expand(to_polygons(body), 2 * sliver_radius, jtRound, 0.)));
+                continue;
+            }
+        }
+        append(zone, to_polygons(piece));
+    }
+    return zone;
+}
+
 Polylines reconnect_polylines(const Polylines &polylines, double limit_distance)
 {
     std::vector<Polyline> chains(polylines.begin(), polylines.end());
