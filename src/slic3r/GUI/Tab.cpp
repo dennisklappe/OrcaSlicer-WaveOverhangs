@@ -2438,7 +2438,6 @@ void TabPrint::build()
         optgroup->append_single_option_line("support_remaining_areas_after_wave_overhangs");
 
         optgroup = page->new_optgroup(L("Detection"), L"param_overhang");
-        optgroup->append_single_option_line("wave_overhang_min_angle");
         optgroup->append_single_option_line("wave_overhang_min_length");
         optgroup->append_single_option_line("wave_overhang_max_iterations");
 

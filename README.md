@@ -40,7 +40,7 @@ Wave overhangs replace those supports with a different toolpath. Instead of stra
 
 The result: support‑free overhangs up to 90°, less wasted filament, and no post‑processing snap‑off step.
 
-**Angled overhangs work too.** The wave isn't restricted to fully horizontal overhangs. Any perimeter Orca classifies as overhang (geometrically: the extrusion extends past the layer below) becomes a candidate for wave, and there's no minimum angle setting. Practically, the wave only fills the unsupported portion of each layer, so a mild 50° wall only sees wave activity on the small lip that protrudes past the previous layer, while an 85° near‑horizontal cantilever sees wave across most of it.
+**Angled overhangs work too.** The wave isn't restricted to fully horizontal overhangs. Any perimeter Orca classifies as overhang (geometrically: the extrusion extends past the layer below) becomes a candidate for wave, and there is no minimum angle setting. Practically, the wave only fills the unsupported portion of each layer, so a mild 50° wall only sees wave activity on the small lip that protrudes past the previous layer, while an 85° near‑horizontal cantilever sees wave across most of it.
 
 This fork ports the technique into OrcaSlicer and exposes a large tunable parameter space, so people can experiment and find what works for their printer and material.
 
@@ -54,7 +54,7 @@ This fork ports the technique into OrcaSlicer and exposes a large tunable parame
 
 - **Single wave‑overhang generator** with expanding wavefronts, narrow‑region splitting, and Smart/ZigZag/Monotonic pattern selection.
 - **Dedicated Wave overhangs tab** in Print Settings with grouped sections: General, Detection, Pattern, Corner reinforcement, Motion, Cooling, Floor layers, Debug.
-- **~20 expert tunables** for experimentation: line spacing, flow (mm³/mm), seam mode, spacing mode, pattern, perimeter overlap, minimum wave width, max iterations, authoritative floor layers, cooling overrides, and more.
+- **About 40 settings** for experimentation: line spacing, flow (mm³/mm), pattern, corner reinforcement, Hilbert floor, floor speed ramp, perimeter overlap, minimum wave width, max wave rings, cooling overrides, and more.
 - **Community test‑print database** at **[waveoverhangs.com](https://waveoverhangs.com)** where you can upload your results with settings and compare prints side‑by‑side.
 - **Wave‑aware support integration**: supports only generate for overhang areas the wave couldn't cover.
 - **G‑code debug markers**: `;WAVE_OVERHANG_CONFIG …` header block and per‑region `;WAVE_OVERHANG_START/END` tags for easy post‑process verification.
@@ -79,7 +79,7 @@ Prebuilt binaries for tagged releases on the **[Releases page](https://github.co
 4. Slice and inspect the G‑code preview. Wave extrusions appear over detected overhang regions.
 
 > **Simple mode** shows just the master toggle.
-> Switch to **Advanced** (top‑right mode selector) to tune individual parameters like line spacing, flow (mm³/mm), seam mode, etc.
+> Switch to **Advanced** (top‑right mode selector) to tune individual parameters like line spacing, flow (mm³/mm), pattern, corner reinforcement, etc.
 
 For the full reference of every config option with tuning hints, see **[docs/WAVE_OVERHANG_SETTINGS.md](docs/WAVE_OVERHANG_SETTINGS.md)**.
 
@@ -119,10 +119,10 @@ make -j$(nproc)
 
 ## Current limitations
 
-- **Experimental.** The tunable space is large (~20 knobs) and most parameter combinations have not been print‑tested yet. Expect rough edges. Please share what works and what doesn't at **[waveoverhangs.com](https://waveoverhangs.com)**.
+- **Experimental.** The tunable space is large (about 40 settings) and most parameter combinations have not been print‑tested yet. Expect rough edges. Please share what works and what doesn't at **[waveoverhangs.com](https://waveoverhangs.com)**.
 - **PLA recommended.** Wave overhangs need each ring to cool and become rigid before the next pass anchors to it. PLA with max part‑cooling works well. PETG, ABS and PC are likely to fail (PETG cools too slowly and delaminates under heavy fan). If you've tested other materials, please upload the results (success or failure) to **[waveoverhangs.com/upload](https://waveoverhangs.com/upload)**; failures are just as valuable for mapping out what's possible.
 - **Warping on larger spans.** Laterally supported overhangs are prone to warping driven by thermal gradients, reheating of earlier layers, and nozzle pressure. Smaller overhangs print cleanly; larger spans may still need traditional supports. See **[docs/LIMITATIONS.md](docs/LIMITATIONS.md)** for the mechanisms and mitigations.
-- **Platform testing status:** real‑print tested on Linux and Windows. macOS builds pass CI but haven't been validated against a physical printer yet.
+- **Platform testing status:** real‑print tested on Linux and Windows. A print has also been confirmed on macOS, but coverage there is thinner.
 
 ---
 
