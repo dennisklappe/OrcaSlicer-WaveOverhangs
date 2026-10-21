@@ -16,6 +16,7 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r::WaveOverhangs {
@@ -32,8 +33,8 @@ struct CommonParams {
     double      line_width             = 0.4;
     Flow        overhang_flow;
     double      scaled_resolution      = 1.0;
-    SpacingMode spacing_mode           = SpacingMode::Uniform;
-    SeamMode    seam_mode              = SeamMode::Alternating;
+    SpacingMode spacing_mode           = SpacingMode::Uniform;      // not used by generate() yet
+    SeamMode    seam_mode              = SeamMode::Alternating;     // not used by generate() yet
     double      min_length_mm          = 0.0;   // mm; skip overhangs whose contour length is below this.
     int         max_iterations         = 0;     // 0 = unlimited; safety cap on main loop (wavefronts per region).
     // Wavefront-propagation tunables.
@@ -63,6 +64,18 @@ struct GenerateResult {
 GenerateResult generate(const ExPolygons   &overhang_area,
                         const Polygons     &lower_slices_polygons,
                         const CommonParams &params);
+
+// Internal helpers, exposed for unit tests only.
+namespace detail {
+
+// Greedily chain polylines whose end points are closer than limit_distance.
+// Deterministic: the result is ordered by the lowest input index of each chain.
+Polylines reconnect_polylines(const Polylines &polylines, double limit_distance);
+
+// Convex vertices of the polygons with an interior angle below the threshold.
+Points detect_overhang_corners(const Polygons &polys, double angle_threshold_rad);
+
+} // namespace detail
 
 } // namespace Slic3r::WaveOverhangs
 
