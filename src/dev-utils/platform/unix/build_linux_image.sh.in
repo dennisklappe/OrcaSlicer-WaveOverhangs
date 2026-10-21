@@ -83,7 +83,9 @@ copy_shared_object_to_dir() {
     src_real="$(readlink -f "$src")"
     dst_name="$(basename "$src_real")"
     mkdir -p "$dst_dir"
-    cp -fL "$src_real" "$dst_dir/$dst_name"
+    if ! [ "$src_real" -ef "$dst_dir/$dst_name" ]; then
+        cp -fL "$src_real" "$dst_dir/$dst_name"
+    fi
 
     if [ -L "$src" ]; then
         ln -snf "$dst_name" "$dst_dir/$(basename "$src")"
