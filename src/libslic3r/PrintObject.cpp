@@ -434,6 +434,13 @@ void PrintObject::make_perimeters()
         m_typed_slices = false;
     }
 
+    // Orca: wave-overhang footprints are appended to by LayerRegion::make_perimeters, so drop the
+    // ones left over from a previous run (layers survive when only the walls are invalidated).
+    for (Layer *layer : m_layers) {
+        layer->wave_overhang_floor_polygons.clear();
+        layer->wave_overhang_covered_polygons.clear();
+    }
+
     // compare each layer to the one below, and mark those slices needing
     // one additional inner perimeter, like the top of domed objects-
 
@@ -2045,8 +2052,8 @@ void PrintObject::tag_wave_overhang_perimeters()
                 m_print->throw_if_canceled();
                 Layer *layer = m_layers[idx_layer];
                 const bool is_wave_layer  = !layer->wave_overhang_floor_polygons.empty();
-                const bool is_floor_layer = !is_wave_layer && !layer->wave_overhang_shadow_polygons.empty();
-                if (!is_wave_layer && !is_floor_layer)
+                const bool in_shadow      = !is_wave_layer && !layer->wave_overhang_shadow_polygons.empty();
+                if (!is_wave_layer && !in_shadow)
                     continue;
                 // For floor layers, find the closest wave layer below within the
                 // floor-layer window. The distance is 1-based: 1 = directly above the
@@ -2054,7 +2061,7 @@ void PrintObject::tag_wave_overhang_perimeters()
                 // across all regions. 0 stays as "no ramp data" so existing step-function
                 // behaviour is unaffected when the ramp config is 0.
                 int8_t distance = 0;
-                if (is_floor_layer && max_floor_layers > 0) {
+                if (in_shadow && max_floor_layers > 0) {
                     const int search_limit = std::min<int>(max_floor_layers, 127);
                     for (int k = 1; k <= search_limit; ++k) {
                         if ((int)idx_layer - k < 0) break;
@@ -2064,6 +2071,11 @@ void PrintObject::tag_wave_overhang_perimeters()
                         }
                     }
                 }
+                // The shadow also spans layers below a wave layer and layers beyond the floor window;
+                // only layers with a wave layer within the window below are floor layers.
+                const bool is_floor_layer = in_shadow && distance > 0;
+                if (!is_wave_layer && !is_floor_layer)
+                    continue;
                 for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
                     if (!this->printing_region(region_id).config().wave_overhangs.value)
                         continue;

@@ -164,6 +164,9 @@ private:
     //BBS
     double      m_ext_mm3_per_mm_smaller_width;
     Polygons    m_lower_slices_polygons;
+    // Number of entries in `loops` before the island being processed; lets apply_extra_perimeters
+    // detect an island that produced no walls instead of touching the previous island's collection.
+    size_t      m_island_loops_begin = 0;
 };
 
 }
