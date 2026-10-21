@@ -556,7 +556,7 @@ std::string GCodeWriter::travel_to_xy(const Vec2d &point, const std::string &com
     return this->travel_to_xy(point, 0.0, comment);
 }
 
-// Orca: wave-overhang — variant accepting an explicit speed override (mm/s). 0 = use config.
+// Orca: wave-overhang: variant accepting an explicit speed override (mm/s). 0 = use config.
 std::string GCodeWriter::travel_to_xy(const Vec2d &point, double speed_override, const std::string &comment)
 {
     m_pos(0) = point(0);
@@ -648,7 +648,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     return this->travel_to_xyz(point, 0.0, comment, force_z);
 }
 
-// Orca: wave-overhang — variant accepting an explicit speed override (mm/s). 0 = use config.
+// Orca: wave-overhang: variant accepting an explicit speed override (mm/s). 0 = use config.
 std::string GCodeWriter::travel_to_xyz(const Vec3d &point, double speed_override, const std::string &comment, bool force_z)
 {
     // FIXME: This function was not being used when travel_speed_z was separated (bd6badf).
@@ -756,7 +756,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, double speed_override
 
     //BBS: take plate offset into consider
     Vec3d point_on_plate = { dest_point(0) - m_x_offset, dest_point(1) - m_y_offset, dest_point(2) };
-    // Orca: wave-overhang — honor speed override (mm/s). 0 = use config.
+    // Orca: wave-overhang: honor speed override (mm/s). 0 = use config.
     const double xyz_speed = (speed_override > 0.0) ? speed_override : this->config.travel_speed.value;
     std::string out_string;
     GCodeG1Formatter w;
