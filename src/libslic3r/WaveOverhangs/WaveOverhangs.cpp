@@ -14,7 +14,6 @@
 #include <cmath>
 #include <functional>
 #include <limits>
-#include <unordered_map>
 #include <utility>
 
 #include "Algorithm/RegionExpansion.hpp"
@@ -29,81 +28,66 @@
 #include "libslic3r.h"
 
 namespace Slic3r::WaveOverhangs {
-namespace {
 
-#define EXTRA_PERIMETER_OFFSET_PARAMETERS ClipperLib::jtSquare, 0.
+namespace detail {
 
 Polylines reconnect_polylines(const Polylines &polylines, double limit_distance)
 {
-    if (polylines.empty())
-        return polylines;
+    std::vector<Polyline> chains(polylines.begin(), polylines.end());
+    std::vector<bool>     alive(chains.size());
+    for (size_t i = 0; i < chains.size(); ++i)
+        alive[i] = ! chains[i].empty();
 
-    std::unordered_map<size_t, Polyline> connected;
-    connected.reserve(polylines.size());
-    for (size_t i = 0; i < polylines.size(); ++i) {
-        if (! polylines[i].empty())
-            connected.emplace(i, polylines[i]);
-    }
+    const double limit_sq = limit_distance * limit_distance;
+    auto close = [limit_sq](const Point &p1, const Point &p2) {
+        return (p1 - p2).cast<double>().squaredNorm() < limit_sq;
+    };
 
-    for (size_t a = 0; a < polylines.size(); ++a) {
-        auto base_it = connected.find(a);
-        if (base_it == connected.end())
-            continue;
-
-        Polyline &base = base_it->second;
-        for (size_t b = a + 1; b < polylines.size(); ++b) {
-            auto next_it = connected.find(b);
-            if (next_it == connected.end())
+    // Repeat until nothing joins any more: a merge changes the end points, so earlier
+    // rejected pieces may match now.
+    for (bool changed = true; changed;) {
+        changed = false;
+        for (size_t a = 0; a < chains.size(); ++a) {
+            if (! alive[a])
                 continue;
-
-            Polyline &next = next_it->second;
-            if ((base.last_point() - next.first_point()).cast<double>().squaredNorm() < limit_distance * limit_distance) {
-                base.append(std::move(next));
-                connected.erase(next_it);
-            } else if ((base.last_point() - next.last_point()).cast<double>().squaredNorm() < limit_distance * limit_distance) {
-                base.points.insert(base.points.end(), next.points.rbegin(), next.points.rend());
-                connected.erase(next_it);
-            } else if ((base.first_point() - next.last_point()).cast<double>().squaredNorm() < limit_distance * limit_distance) {
-                next.append(std::move(base));
-                base = std::move(next);
-                base.reverse();
-                connected.erase(next_it);
-            } else if ((base.first_point() - next.first_point()).cast<double>().squaredNorm() < limit_distance * limit_distance) {
-                base.reverse();
-                base.append(std::move(next));
-                base.reverse();
-                connected.erase(next_it);
+            Polyline &base = chains[a];
+            for (size_t b = a + 1; b < chains.size(); ++b) {
+                if (! alive[b])
+                    continue;
+                Polyline &next = chains[b];
+                if (close(base.last_point(), next.first_point())) {
+                    base.append(std::move(next));
+                } else if (close(base.last_point(), next.last_point())) {
+                    base.points.insert(base.points.end(), next.points.rbegin(), next.points.rend());
+                } else if (close(base.first_point(), next.last_point())) {
+                    next.append(std::move(base));
+                    base = std::move(next);
+                    base.reverse();
+                } else if (close(base.first_point(), next.first_point())) {
+                    base.reverse();
+                    base.append(std::move(next));
+                    base.reverse();
+                } else
+                    continue;
+                alive[b] = false;
+                changed  = true;
             }
         }
     }
 
     Polylines result;
-    result.reserve(connected.size());
-    for (auto &entry : connected)
-        result.push_back(std::move(entry.second));
+    for (size_t i = 0; i < chains.size(); ++i)
+        if (alive[i])
+            result.push_back(std::move(chains[i]));
     return result;
-}
-
-template <class Fn>
-void for_each_boundary_point(const ExPolygon &expoly, Fn &&fn)
-{
-    for (const Point &pt : expoly.contour.points)
-        fn(pt);
-    for (const Polygon &hole : expoly.holes)
-        for (const Point &pt : hole.points)
-            fn(pt);
 }
 
 // Detect sharp convex corners on an overhang polygon. A vertex is a "corner"
 // when its interior angle is below the threshold AND the polygon turns the
 // outward (convex) way there. CCW polygons (outer contours) are convex on
 // positive turns; holes are wound CW and reverse that. Returns the vertex
-// points in scaled coordinates.
-//
-// Corners flagged here are the ones that warp the worst in wave overhangs:
-// the free-air side of the overhang has little material to resist cooling
-// contraction, and sharp tips concentrate that contraction into the smallest
-// area. The caller uses these points as seeds for the reinforcement zone.
+// points in scaled coordinates. The caller uses them as seeds for the
+// corner reinforcement zone.
 Points detect_overhang_corners(const Polygons &polys, double angle_threshold_rad)
 {
     Points corners;
@@ -132,6 +116,25 @@ Points detect_overhang_corners(const Polygons &polys, double angle_threshold_rad
     return corners;
 }
 
+} // namespace detail
+
+namespace {
+
+using detail::reconnect_polylines;
+using detail::detect_overhang_corners;
+
+#define EXTRA_PERIMETER_OFFSET_PARAMETERS ClipperLib::jtSquare, 0.
+
+template <class Fn>
+void for_each_boundary_point(const ExPolygon &expoly, Fn &&fn)
+{
+    for (const Point &pt : expoly.contour.points)
+        fn(pt);
+    for (const Polygon &hole : expoly.holes)
+        for (const Point &pt : hole.points)
+            fn(pt);
+}
+
 // Union of disks (radius `radius_scaled`) around each corner point. Used as
 // the "reinforcement zone" mask for the corner-aware spacing taper: wave
 // fronts that fall inside this mask are emitted at the tighter corner
@@ -142,7 +145,7 @@ Polygons build_corner_influence(const Points &corners, coord_t radius_scaled)
         return {};
     Polygons disks;
     disks.reserve(corners.size());
-    constexpr int disk_sides = 16;  // coarse — it's a mask, not a print path
+    constexpr int disk_sides = 16;  // coarse: it's a mask, not a print path
     for (const Point &c : corners) {
         Polygon disk;
         disk.points.reserve(disk_sides);
@@ -245,9 +248,10 @@ bool slit_changes_topology(const ExPolygon &wave_cover, const Polygon &slit)
     return split_result.size() != 1 || total_hole_count(split_result) != wave_cover.holes.size();
 }
 
-Polygon make_effective_split_slit(const ExPolygon &wave_cover, const Point &a, const Point &b, coord_t extension, coord_t initial_half_width, coord_t wave_spacing)
+// The slit starts about one wave spacing wide, so it is never thinner than a wave line.
+Polygon make_effective_split_slit(const ExPolygon &wave_cover, const Point &a, const Point &b, coord_t extension, coord_t wave_spacing)
 {
-    coord_t half_width = std::max<coord_t>(std::max<coord_t>(1, initial_half_width), wave_spacing / 2 + 1);
+    coord_t half_width = wave_spacing / 2 + 1;
     for (int attempt = 0; attempt < 6; ++attempt) {
         Polygon slit = make_split_slit(a, b, extension, half_width);
         if (slit_changes_topology(wave_cover, slit))
@@ -282,7 +286,7 @@ Polygons generate_narrow_split_slits(const ExPolygon &wave_cover, coord_t wave_s
         candidate.b = pair.b;
         candidate.distance_sq = pair.distance_sq;
         candidate.midpoint = (0.5 * (pair.a.cast<double>() + pair.b.cast<double>())).cast<coord_t>();
-        candidate.slit = make_effective_split_slit(wave_cover, pair.a, pair.b, wave_spacing + slit_extension, slit_half_width, wave_spacing);
+        candidate.slit = make_effective_split_slit(wave_cover, pair.a, pair.b, wave_spacing + slit_extension, wave_spacing);
         if (! candidate.slit.is_valid())
             return;
 
@@ -358,7 +362,7 @@ Polylines generate_wave_overhang_seeds(const ExPolygon &boundary, const Polygons
         return {};
 
     Polylines seeds;
-    for (const Algorithm::WaveSeed &seed : Algorithm::wave_seeds(to_expolygons(anchoring), ExPolygons{ boundary }, float(seed_expansion), true)) {
+    for (const Algorithm::WaveSeed &seed : Algorithm::wave_seeds(union_ex(anchoring), ExPolygons{ boundary }, float(seed_expansion), true)) {
         if (seed.boundary == 0 && seed.path.size() >= 2)
             seeds.emplace_back(seed.path);
     }
@@ -432,44 +436,8 @@ void append_wave_fronts(ExtrusionPaths &overhang_region,
         return;
 
     if (wave_pattern == WaveOverhangPattern::Monotonic) {
-        Polylines monotonic_fronts = fronts;
+        Polylines monotonic_fronts = fronts;  // extrusion_paths_append takes a mutable lvalue
         extrusion_paths_append(overhang_region, monotonic_fronts, erOverhangPerimeter,
-                               wave_flow.mm3_per_mm(), wave_flow.width(), wave_flow.height());
-        return;
-    }
-
-    if (wave_pattern == WaveOverhangPattern::ZigZag) {
-        Polylines merged;
-        merged.reserve(fronts.size());
-        for (const Polyline &source_front : fronts) {
-            Polyline front = source_front;
-            if (front.points.size() < 2)
-                continue;
-
-            if (merged.empty()) {
-                merged.emplace_back(std::move(front));
-                continue;
-            }
-
-            Polyline &current = merged.back();
-            const double d_keep = (current.last_point() - front.first_point()).cast<double>().norm();
-            const double d_flip = (current.last_point() - front.last_point()).cast<double>().norm();
-            const double best_d = std::min(d_keep, d_flip);
-
-            if (best_d > connector_limit) {
-                merged.emplace_back(std::move(front));
-                continue;
-            }
-
-            if (d_flip < d_keep)
-                front.reverse();
-            if (current.last_point() == front.first_point())
-                current.append(front.points.begin() + 1, front.points.end());
-            else
-                current.append(std::move(front));
-        }
-
-        extrusion_paths_append(overhang_region, merged, erOverhangPerimeter,
                                wave_flow.mm3_per_mm(), wave_flow.width(), wave_flow.height());
         return;
     }
@@ -661,16 +629,9 @@ GenerateResult generate(const ExPolygons   &overhang_area,
                         const Polygons     &lower_slices_polygons,
                         const CommonParams &params)
 {
-    // Filter out overhangs whose contour length is below the configured minimum.
-    ExPolygons infill_area;
-    if (params.min_length_mm > 0.0) {
-        const double min_len_scaled = scale_(params.min_length_mm);
-        infill_area.reserve(overhang_area.size());
-        for (const ExPolygon &ex : overhang_area)
-            if (ex.contour.length() >= min_len_scaled)
-                infill_area.push_back(ex);
-    } else
-        infill_area = overhang_area;
+    const ExPolygons &infill_area = overhang_area;
+    if (infill_area.empty())
+        return {};
 
     const int    perimeter_count            = params.perimeter_count;
     const double wave_perimeter_overlap     = params.perimeter_overlap;
@@ -697,7 +658,7 @@ GenerateResult generate(const ExPolygons   &overhang_area,
     // Corner-aware spacing taper parameters. The master gate is the user-facing
     // toggle: when corner_taper_enable is false the rest is ignored and the
     // main loop runs unchanged (matches v0.2.x behaviour). When enabled, the
-    // taper still self-disables if the values don't make sense — corner
+    // taper still self-disables if the values don't make sense: corner
     // spacing must be smaller than main spacing AND the taper distance must
     // be > 0, otherwise there is nothing to densify.
     const coord_t wave_spacing_corner = (corner_taper_enable
@@ -712,11 +673,14 @@ GenerateResult generate(const ExPolygons   &overhang_area,
                                         && wave_spacing_corner < wave_spacing
                                         && corner_taper_dist > 0;
     // Sub-steps between main wavefronts. Example: main 0.35 mm, corner 0.175 mm
-    // → 2 sub-steps (one intercalated front between each pair of main fronts).
+    // -> 2 sub-steps (one intercalated front between each pair of main fronts).
     // Capped at 8 to guard against a pathological corner spacing near zero.
     const int     taper_substeps     = taper_enabled
                                        ? std::min(8, std::max(2, int(std::round(double(wave_spacing) / double(wave_spacing_corner)))))
                                        : 1;
+    // Step between sub-fronts: at least the corner spacing, and wide enough that
+    // taper_substeps sub-fronts cover the whole main spacing (no gap when the ratio is above 8).
+    const coord_t taper_step         = taper_enabled ? std::max<coord_t>(wave_spacing_corner, wave_spacing / taper_substeps) : wave_spacing;
     const double  corner_angle_rad   = std::max(10.0, std::min(179.0, corner_angle_threshold_deg)) * M_PI / 180.0;
     const coord_t anchors_size       = std::min(coord_t(scale_(EXTERNAL_INFILL_MARGIN)), base_spacing * (perimeter_count + 1));
     const coord_t seed_expansion     = std::max<coord_t>(1, base_spacing / 10);
@@ -742,13 +706,17 @@ GenerateResult generate(const ExPolygons   &overhang_area,
     std::vector<ExtrusionPaths> wave_paths;
     Polygons                    filled_area;
 
+    const double min_length_scaled = params.min_length_mm > 0. ? scale_(params.min_length_mm) : 0.;
     for (const ExPolygon &overhang : union_ex(to_expolygons(inset_overhang_area))) {
+        // Skip overhang pieces whose contour is shorter than the configured minimum.
+        if (min_length_scaled > 0. && overhang.contour.length() < min_length_scaled)
+            continue;
         Polygons overhang_to_cover = to_polygons(overhang);
         Polygons wave_cover_area   = expand(overhang_to_cover, perimeter_overlap, jtRound, 0.);
 
         // Corner-influence mask for this overhang. Detected from the overhang
         // contour (the free-air boundary), then dilated into a disk union.
-        // Empty when taper is disabled or no sharp corners were found — in
+        // Empty when taper is disabled or no sharp corners were found: in
         // that case the inner loop below short-circuits the intercalation.
         Polygons corner_influence;
         if (taper_enabled) {
@@ -819,7 +787,7 @@ GenerateResult generate(const ExPolygons   &overhang_area,
                     // so only the reinforced zone gets the extra density.
                     if (taper_region_active) {
                         for (int sub = 1; sub < taper_substeps; ++sub) {
-                            const coord_t sub_offset = coord_t(std::int64_t(sub) * std::int64_t(wave_spacing_corner));
+                            const coord_t sub_offset = coord_t(std::int64_t(sub) * std::int64_t(taper_step));
                             Polygons sub_region = intersection(
                                 offset(accumulated_region, float(sub_offset), jtRound, 0.),
                                 wave_cover_polygons);
@@ -827,12 +795,12 @@ GenerateResult generate(const ExPolygons   &overhang_area,
                             Polylines sub_fronts = intersection_pl(to_polylines(sub_region), trim_boundary);
                             sub_fronts = intersection_pl(sub_fronts, corner_influence);
                             for (Polyline &front : sub_fronts)
-                                front.simplify(std::min(0.05 * double(wave_spacing_corner), scaled_resolution));
+                                front.simplify(std::min(0.05 * double(taper_step), scaled_resolution));
                             sub_fronts.erase(
                                 std::remove_if(sub_fronts.begin(), sub_fronts.end(),
                                                [](const Polyline &front) { return front.points.size() < 2; }),
                                 sub_fronts.end());
-                            sub_fronts = reconnect_polylines(sub_fronts, wave_spacing_corner);
+                            sub_fronts = reconnect_polylines(sub_fronts, taper_step);
                             if (! sub_fronts.empty())
                                 front_levels.emplace_back(std::move(sub_fronts));
                         }
