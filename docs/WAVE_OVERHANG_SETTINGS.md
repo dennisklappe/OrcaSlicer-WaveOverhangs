@@ -25,7 +25,7 @@ Sections below follow the **Print Settings → Wave overhangs** page top to bott
 
 Wave overhangs let you print steep cantilevered overhangs without supports. Instead of dropping support columns from the bed, each ring of extrusion anchors to the one before it and the nozzle marches outward into empty space one fused-plastic rung at a time. The generator emits expanding wavefronts seeded at the supported edge of the overhang.
 
-**Wave overhangs are angle-agnostic.** The trigger is geometric, not an angle threshold: any perimeter Orca's *Strength → Detect overhang walls* + *Overhang reverse threshold* pipeline flags as overhang becomes a candidate for wave. So angled overhangs (slopes anywhere between vertical and fully horizontal) are supported, with the wave only filling the part of each layer that protrudes past the previous one. The `wave_overhang_min_angle` setting on the profile is inert (kept for compat); see its entry under [Detection](#detection) for the rationale.
+**Wave overhangs are angle-agnostic.** The trigger is geometric, not an angle threshold: any perimeter Orca's *Strength > Detect overhang walls* + *Overhang reverse threshold* pipeline flags as overhang becomes a candidate for wave. So angled overhangs (slopes anywhere between vertical and fully horizontal) are supported, with the wave only filling the part of each layer that protrudes past the previous one. There is no minimum angle setting; the old `wave_overhang_min_angle` key is only kept so older profiles still load (see [Reserved settings](#reserved-settings)).
 
 ## How to enable
 
@@ -66,17 +66,9 @@ When wave overhangs and supports are both on, generate supports only for overhan
 
 ## Detection
 
-### `wave_overhang_min_angle`
-
-Soft/metadata-only slope threshold. **Currently not enforced**; retained on the profile for future use.
-
-- **Type:** float (°) · **Default:** `0` · **Range:** `0 to 90`
-- **Why it's inert:** the actual slope filter for what becomes an overhang is Orca's upstream *Strength → Detect overhang walls* + *Overhang reverse threshold* pipeline. By the time a region reaches the wave generator, it has already been classified as `erOverhangPerimeter`. A secondary local envelope check (earlier implementations) rejected every legitimate strip because the strip extends roughly one layer-height beyond the supported region by construction. If you want fewer or more overhangs flagged, adjust Orca's upstream thresholds instead.
-- **What to do today:** leave it at `0`.
-
 ### `wave_overhang_min_length`
 
-Minimum perimeter length (mm) of a detected overhang below which wave generation is skipped.
+Overhang regions whose outline (outer contour length) is shorter than this get no wave and print as normal overhangs. `0` = no limit.
 
 - **Type:** float (mm) · **Default:** `0.0` · **Range:** `0 to 50`
 - **Tuning:** raise to 2 to 5 mm to avoid waving tiny overhang fragments (curved corners, small notches) where the travel/seam overhead isn't worth it.
@@ -104,17 +96,11 @@ Travel pattern between wave lines.
 | `zigzag` | Lines connected into a back-and-forth meander. Minimum travel, but start-of-line is sometimes on the unsupported side. |
 | `smart` | Starts each line from the better-supported end. Best default. |
 
-### `wave_overhang_seam_mode`
-
-Direction pattern across successive rings. **Currently not implemented**: the value is saved on the profile and echoed in the G-code header, but the generator does not read it yet. Ring direction currently comes from `wave_overhang_pattern`.
-
-- **Type:** enum (`alternating` | `aligned` | `random`) · **Default:** `alternating`
-
 ### `wave_overhang_outer_perimeters`
 
-Number of outer perimeters preserved inside the overhang region. Everything inward of that becomes wave pattern. Independent of *Strength → Walls* (`wall_loops`): if you set this to `1`, the overhang zone always has one outer wall + wave regardless of how many walls the rest of the object prints.
+Number of outer perimeters preserved inside the overhang region. Everything inward of that becomes wave pattern. Independent of *Strength > Walls* (`wall_loops`): if you set this to `1`, the overhang zone always has one outer wall + wave regardless of how many walls the rest of the object prints.
 
-- **Type:** int · **Default:** `1` · **Range:** `0 to unbounded`
+- **Type:** int · **Default:** `1` · **Range:** `0 to 20`
 - **How it works:** the overhang region of the layer is computed from the island geometry (island minus lower_slices). The outermost `N` normal perimeters in that region are kept untouched; inner perimeters are clipped away and replaced by wave pattern. The wave starts exactly where the preserved walls end, so there is no gap between them.
 - **Interaction with `wall_loops`:** the setting is capped at the effective wall count for the layer. Two cases matter:
   - If you set `wave_overhang_outer_perimeters = 5` but `wall_loops = 2`, only 2 walls exist, so effectively 2 are preserved and wave fills everything inside.
@@ -130,24 +116,18 @@ Center-to-center distance between adjacent wave extrusions.
 - **Tuning:** tighter (0.28 to 0.30) = denser fill, stronger, slower, risk of over-extrusion on cantilevers. Wider (0.40 to 0.50) = faster, visible gaps between rings, weaker.
 - **Other nozzles:** the default is tuned for 0.4 mm. On a 0.2 mm nozzle bring it down toward your line width (0.15 to 0.20); on 0.6 mm you can go to 0.5.
 
-### `wave_overhang_spacing_mode`
-
-How ring-to-ring step varies across the wave. **Currently not implemented**: the value is saved on the profile and echoed in the G-code header, but the generator always uses a uniform step. `progressive` (tight at the supported root, widening toward the tip) is planned.
-
-- **Type:** enum (`uniform` | `progressive`) · **Default:** `uniform`
-
 ### `wave_overhang_perimeter_overlap`
 
 Extends the wave propagation boundary outward toward kept perimeter lines so the outermost wave sits closer to the shell.
 
-- **Type:** float (mm) · **Default:** `0.1` · **Range:** `0 to unbounded`
+- **Type:** float (mm) · **Default:** `0.1` · **Range:** `0 to 20`
 - **Tuning:** raise toward `0.2 to 0.3` if you see a visible gap between the last wave ring and the outer perimeter. Too high can cause wave lines to print *into* the perimeter.
 
 ### `wave_overhang_minimum_width`
 
 If a neck in the wave region is narrower than this width, insert a thin split there before propagation so fragile wave branches do not form.
 
-- **Type:** float (mm) · **Default:** `0.7` · **Range:** `0 to unbounded`
+- **Type:** float (mm) · **Default:** `0.7` · **Range:** `0 to 20`
 - **Tuning:** raise to split more aggressively if wave rings skip over thin necks between lobes. Lower to `0` to disable splitting.
 
 ### `wave_overhang_min_new_area`
@@ -175,13 +155,13 @@ Absolute volume of plastic extruded per millimetre of wave-overhang line.
 
 ## Corner reinforcement
 
-Opt-in. Sharp convex corners of an overhang warp worst: their cantilevered wave lines are short and have little neighbouring material to fuse with, so they curl as the plastic cools. The taper packs more lines into a small radius around each corner so every short line has a neighbour to bond with.
+Opt-in. Sharp convex corners of an overhang warp worst: their cantilevered wave lines are short and have little neighbouring material to fuse with, so they curl as the plastic cools. Corner reinforcement packs more lines into a small radius around each corner so every short line has a neighbour to bond with.
 
-All three sub-options are no-ops unless the master toggle is on, **and** `wave_overhang_line_spacing_corner` is non-zero and smaller than `wave_overhang_line_spacing`, **and** `wave_overhang_corner_taper_distance` is non-zero.
+All three sub-options are no-ops unless the master toggle ("Corner reinforcement") is on, **and** `wave_overhang_line_spacing_corner` is non-zero and smaller than `wave_overhang_line_spacing`, **and** `wave_overhang_corner_taper_distance` ("Corner reinforcement radius") is non-zero. The defaults (0.18 mm and 3.0 mm) satisfy this, so switching the toggle on is enough.
 
 ### `wave_overhang_corner_taper_enable`
 
-Master toggle for the corner taper. Reveals the three sub-options below.
+Master toggle for corner reinforcement. Reveals the three sub-options below.
 
 - **Type:** bool · **Default:** `false`
 
@@ -189,16 +169,16 @@ Master toggle for the corner taper. Reveals the three sub-options below.
 
 Denser line spacing used inside the corner zone.
 
-- **Type:** float (mm) · **Default:** `0.0` · **Range:** `0 to 2`
-- Must be smaller than `wave_overhang_line_spacing`. `0` = taper off.
+- **Type:** float (mm) · **Default:** `0.18` · **Range:** `0 to 2`
+- Must be smaller than `wave_overhang_line_spacing`. `0` = reinforcement off.
 - **Tuning:** start at roughly half the main spacing (e.g. `0.18` for a `0.35` main spacing).
 
 ### `wave_overhang_corner_taper_distance`
 
 Radius around each detected corner vertex over which the denser spacing is applied.
 
-- **Type:** float (mm) · **Default:** `0.0` · **Range:** `0 to 20`
-- `0` = taper off. Larger values widen the reinforced zone at the cost of extrusion time. `2 to 4 mm` is a sensible starting range.
+- **Type:** float (mm) · **Default:** `3.0` · **Range:** `0 to 20`
+- `0` = reinforcement off. Larger values widen the reinforced zone at the cost of extrusion time. `2 to 4 mm` is a sensible starting range.
 
 ### `wave_overhang_corner_angle_threshold`
 
@@ -360,13 +340,20 @@ Emit `; WAVE_OVERHANG_START` / `; WAVE_OVERHANG_END` comments around wave extrus
 
 ---
 
+## Reserved settings
+
+These keys exist so that older profiles and 3MF files still load. They have no effect on slicing. `wave_overhang_seam_mode` and `wave_overhang_spacing_mode` are only visible in Develop mode, `wave_overhang_min_angle` is not shown at all.
+
+| Key | Status |
+|---|---|
+| `wave_overhang_min_angle` | Not used. Which overhangs get waves is decided by Orca's *Detect overhang walls* + *Overhang reverse threshold* (Strength tab). |
+| `wave_overhang_seam_mode` | Not used. Ring direction comes from `wave_overhang_pattern`. |
+| `wave_overhang_spacing_mode` | Not used. Ring step is always uniform. |
+
 ## Known limitations
 
 | Topic | Status |
 |---|---|
-| `wave_overhang_min_angle` | **Inert (save-only).** Kept on the profile but not enforced; Orca's *Detect overhang walls* + *Overhang reverse threshold* (Strength tab) is the real slope filter. |
-| `wave_overhang_seam_mode` | **Inert (save-only).** Saved and echoed in the G-code header, but the generator does not read it yet. |
-| `wave_overhang_spacing_mode` | **Inert (save-only).** Saved and echoed in the G-code header; ring step is always uniform for now. |
 | `wave_overhang_min_new_area` | Develop mode only. |
 | Nozzle sizes other than 0.4 mm | Flow and line spacing defaults are tuned for 0.4 mm and are **not** auto-scaled. Scale by hand (see `wave_overhang_flow_mm3_per_mm`). |
 | Overhangs anchored on all sides (inward lips, rings) | Classified as bridgeable and handed to Orca's bridge pipeline unless `wave_overhangs_instead_of_bridges` is on. |
@@ -418,4 +405,4 @@ G1 X... Y... E...
 
 Fan overrides additionally emit `;_WAVE_OVERHANG_FAN_START` / `;_WAVE_OVERHANG_FAN_END` (consumed by the cooling post-processor and stripped from the final file).
 
-**Verifying waves were emitted:** slice your model, then grep the output for `WAVE_OVERHANG_START`. No matches means either Orca's upstream overhang-wall detection didn't flag any regions (check *Strength → Detect overhang walls* / *Overhang reverse threshold*), `wave_overhangs` is off, your `min_length` threshold filtered everything, or the overhang was judged bridgeable (see `wave_overhangs_instead_of_bridges`). If you want the markers off for a production print, set `wave_overhang_debug_gcode = false`.
+**Verifying waves were emitted:** slice your model, then grep the output for `WAVE_OVERHANG_START`. No matches means either Orca's upstream overhang-wall detection didn't flag any regions (check *Strength > Detect overhang walls* / *Overhang reverse threshold*), `wave_overhangs` is off, your `min_length` threshold filtered everything, or the overhang was judged bridgeable (see `wave_overhangs_instead_of_bridges`). If you want the markers off for a production print, set `wave_overhang_debug_gcode = false`.
