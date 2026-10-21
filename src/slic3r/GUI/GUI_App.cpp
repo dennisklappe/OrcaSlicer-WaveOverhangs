@@ -5376,7 +5376,9 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
         detect_updater_os_info()
     };
 
-    const std::string query_string = build_updater_query(query);
+    // The default URL is the fork's GitHub releases API: no need to send the updater telemetry query there.
+    const bool is_github_api = version_check_url.find("api.github.com") != std::string::npos;
+    const std::string query_string = is_github_api ? std::string() : build_updater_query(query);
     if (!query_string.empty()) {
         const bool has_query = version_check_url.find('?') != std::string::npos;
         if (!has_query)
@@ -5413,7 +5415,14 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
             boost::property_tree::read_json(json_stream, root);
 
             std::regex matcher("[0-9]+\\.[0-9]+(\\.[0-9]+)*(-[A-Za-z0-9]+)?(\\+[A-Za-z0-9]+)?");
-            Semver    current_version = get_version(SoftFever_VERSION, matcher);
+            // Compare against the fork's own version: the release list is the fork's, not upstream's.
+            Semver    current_version = get_version(WAVE_OVERHANGS_VERSION, matcher);
+            if (!current_version.valid()) {
+                // Development build without a release version: nothing to compare against.
+                if (by_user != 0)
+                    this->no_new_version();
+                return;
+            }
             Semver    best_pre(0, 0, 0);
             Semver    best_release(0, 0, 0);
             bool      best_pre_valid = false;
