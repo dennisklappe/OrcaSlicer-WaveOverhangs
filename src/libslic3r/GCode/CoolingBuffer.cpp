@@ -107,7 +107,7 @@ struct CoolingLine
     float   time_max;
     // If marked with the "slowdown" flag, the line has been slowed down.
     bool    slowdown;
-    // Orca: wave-overhang fan override — fan %s parsed from the marker line. Valid
+    // Orca: wave-overhang fan override: fan %s parsed from the marker line. Valid
     // only when type & TYPE_WAVE_OVERHANG_FAN_START. The marker carries two values:
     // main part-cooling % (0-100, -1 = no override) and auxiliary fan % (0-100,
     // -1 = no override). Pre-existing single-value markers parse with aux = -1.
@@ -575,8 +575,8 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             size_t pos_P = sline.find('P', 3);
             assert(is_decimal_separator_point()); // for atof
             line.time = line.time_max = float(
-                (pos_S > 0) ? atof(sline.c_str() + pos_S + 1) :
-                (pos_P > 0) ? atof(sline.c_str() + pos_P + 1) * 0.001 : 0.);
+                (pos_S != std::string::npos) ? atof(sline.c_str() + pos_S + 1) :
+                (pos_P != std::string::npos) ? atof(sline.c_str() + pos_P + 1) * 0.001 : 0.);
         } else if (boost::starts_with(sline, ";_FORCE_RESUME_FAN_SPEED")) {
             line.type = CoolingLine::TYPE_FORCE_RESUME_FAN;
         }
@@ -772,6 +772,8 @@ std::string CoolingBuffer::apply_layer_cooldown(
     // inline at the marker site and restore at the close marker. False means no
     // aux override is currently active.
     bool wave_aux_override_active = false;
+    // Orca: true only while the main fan is overridden (aux-only overrides must not touch the main fan).
+    bool wave_main_override_active = false;
     auto change_extruder_set_fan = [ this, layer_id, layer_time, &new_gcode,
         &overhang_fan_control, &overhang_fan_speed,
         &internal_bridge_fan_control, &internal_bridge_fan_speed,
@@ -939,6 +941,7 @@ std::string CoolingBuffer::apply_layer_cooldown(
                 bool any_override = false;
                 if (line->wave_overhang_fan_percent >= 0) {
                     wave_overhang_fan_speed = line->wave_overhang_fan_percent;
+                    wave_main_override_active = true;
                     need_set_fan = true;
                     any_override = true;
                 }
@@ -954,6 +957,7 @@ std::string CoolingBuffer::apply_layer_cooldown(
             if (fan_speed_change_requests[CoolingLine::TYPE_WAVE_OVERHANG_FAN_START]) {
                 fan_speed_change_requests[CoolingLine::TYPE_WAVE_OVERHANG_FAN_START] = false;
             }
+            wave_main_override_active = false;
             if (wave_aux_override_active && m_config.auxiliary_fan.value) {
                 // Restore aux fan to the underlying extruder default that
                 // change_extruder_set_fan most recently applied.
@@ -1058,7 +1062,7 @@ std::string CoolingBuffer::apply_layer_cooldown(
         if (need_set_fan) {
             // Orca: wave-overhang fan override takes priority over regular overhang fan
             // (a wave path is also an overhang path, so the two scopes can overlap).
-            if (fan_speed_change_requests[CoolingLine::TYPE_WAVE_OVERHANG_FAN_START]) {
+            if (wave_main_override_active && fan_speed_change_requests[CoolingLine::TYPE_WAVE_OVERHANG_FAN_START]) {
                 new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, wave_overhang_fan_speed);
                 m_current_fan_speed = wave_overhang_fan_speed;
             } else if (fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START]){
